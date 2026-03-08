@@ -11,6 +11,7 @@ use std::fs;
 
 const API_OPS_GLOBAL: &str = "__pycro_ops";
 const FRAME_TIME_GLOBAL: &str = "__pycro_frame_time";
+const KEYS_DOWN_GLOBAL: &str = "__pycro_keys_down";
 
 /// Runtime configuration for Python script loading.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -207,7 +208,7 @@ impl RustPythonVm {
 
     fn module_bootstrap_source(plan: &ModuleInstallPlan) -> String {
         let mut source = String::from(
-            "Color = tuple\nVec2 = tuple\nTextureHandle = str\n\n__pycro_ops = []\n__pycro_frame_time = 0.016\n\n",
+            "Color = tuple\nVec2 = tuple\nTextureHandle = str\n\n__pycro_ops = []\n__pycro_frame_time = 0.016\n__pycro_keys_down = []\n\n",
         );
         for function_name in &plan.exported_function_names {
             let function_source = match *function_name {
@@ -217,7 +218,7 @@ impl RustPythonVm {
                 "draw_circle" => {
                     "def draw_circle(position, radius, color):\n    __pycro_ops.append(('draw_circle', position, radius, color))\n\n"
                 }
-                "is_key_down" => "def is_key_down(key):\n    return False\n\n",
+                "is_key_down" => "def is_key_down(key):\n    return key in __pycro_keys_down\n\n",
                 "frame_time" => "def frame_time():\n    return __pycro_frame_time\n\n",
                 "load_texture" => {
                     "def load_texture(path):\n    __pycro_ops.append(('load_texture', path))\n    return path\n\n"
@@ -578,6 +579,19 @@ impl PythonVm for RustPythonVm {
                     .set_attr(FRAME_TIME_GLOBAL, vm.ctx.new_float(f64::from(*dt)), vm)
                     .map_err(|error| RuntimeError::FunctionCall {
                         function: FRAME_TIME_GLOBAL.to_owned(),
+                        details: Self::exception_details(vm, &error),
+                    })?;
+
+                let mut keys_down = Vec::new();
+                for key in ["Space", "Left", "Right", "Up", "Down", "Escape"] {
+                    if backend.is_key_down(key) {
+                        keys_down.push(vm.ctx.new_str(key).into());
+                    }
+                }
+                module
+                    .set_attr(KEYS_DOWN_GLOBAL, vm.ctx.new_list(keys_down), vm)
+                    .map_err(|error| RuntimeError::FunctionCall {
+                        function: KEYS_DOWN_GLOBAL.to_owned(),
                         details: Self::exception_details(vm, &error),
                     })?;
             }

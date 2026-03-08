@@ -11,7 +11,7 @@
     "title": "Execute examples/basic/main.py through the real engine path",
     "status": "complete",
     "success_evidence": [
-      "cargo run -- examples/basic/main.py executes through desktop frame-loop ownership",
+      "cargo run -- examples/basic/main.py executes through Macroquad-owned desktop frame loop",
       "RustPython loads main.py and runs optional setup() exactly once",
       "update(dt) is dispatched every frame configured by FrameLoopConfig",
       "Queued pycro API operations are dispatched into EngineBackend"
@@ -119,10 +119,10 @@
       ],
       "evidence": [
         "DesktopFrameLoop + FrameLoopConfig introduced as desktop loop owner boundary",
-        "CLI execution now runs update(dt) via frame-loop ownership",
-        "MacroquadBackendContract records backend dispatch operations for smoke evidence"
+        "CLI execution now runs update(dt) inside Macroquad's real window/event loop ownership",
+        "MacroquadBackendContract executes and records backend dispatch operations for smoke evidence"
       ],
-      "next_action": "Replace fixed loop internals with live Macroquad loop implementation.",
+      "next_action": "Expand input mapping and texture asset resolution coverage across platforms.",
       "adr_refs": [
         "0001"
       ]
@@ -160,10 +160,11 @@
       ],
       "evidence": [
         "cargo run -- examples/basic/main.py passes",
-        "setup() runs once and update(dt) executes through desktop loop owner",
-        "backend api dispatch count is emitted as smoke evidence"
+        "setup() runs once and update(dt) executes through Macroquad loop owner",
+        "backend api dispatch count is emitted as smoke evidence",
+        "PYCRO_FRAMES=2 cargo run -- examples/basic/main.py validates non-simulated deterministic execution"
       ],
-      "next_action": "Add multi-frame smoke assertions and capability-specific dispatch expectations.",
+      "next_action": "Add CI-friendly screenshot/assertion smoke for render payloads.",
       "adr_refs": [
         "0001",
         "0002"

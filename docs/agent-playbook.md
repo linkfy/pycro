@@ -10,6 +10,8 @@ The orchestrator ingests summaries, not raw logs. Every worker reports only:
 - follow-up tasks
 - ADR or tracker references
 
+The main thread should avoid carrying large implementation context directly; delegate domain implementation to the team and keep the orchestrator focused on integration and gate decisions.
+
 ## Required Flows
 
 ### Feature Delivery

@@ -66,9 +66,9 @@ owner: platform-worker
 status: complete
 depends_on: bootstrap-foundation
 evidence: DesktopFrameLoop + FrameLoopConfig introduced as desktop loop owner boundary.
-evidence: Main CLI executes update(dt) through loop ownership and emits frame execution report.
-evidence: MacroquadBackendContract records backend dispatch operations for smoke evidence.
-next_action: Replace fixed loop internals with live Macroquad loop implementation.
+evidence: Main CLI now runs update(dt) inside Macroquad's real window/event loop and emits frame execution report.
+evidence: MacroquadBackendContract executes clear_background/draw_circle/draw_texture/camera operations through real Macroquad calls.
+next_action: Expand input mapping and texture asset resolution coverage across platforms.
 ENDTASK
 
 TASK api-dispatch-basic-surface
@@ -90,8 +90,9 @@ owner: architecture-orchestrator
 status: complete
 depends_on: runtime-basic-example-loader, platform-desktop-macroquad-loop, api-dispatch-basic-surface
 evidence: cargo run -- examples/basic/main.py passes.
-evidence: setup() runs once, update(dt) runs through desktop loop owner, and backend api dispatch count is emitted.
-next_action: Add multi-frame smoke assertions and capability-specific dispatch expectations.
+evidence: setup() runs once, update(dt) runs inside Macroquad loop ownership, and backend api dispatch count is emitted.
+evidence: PYCRO_FRAMES=2 cargo run -- examples/basic/main.py validates non-simulated execution with deterministic frame budget.
+next_action: Add CI-friendly screenshot/assertion smoke for render payloads.
 ENDTASK
 
 STATUS VOCABULARY

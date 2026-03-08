@@ -1,7 +1,17 @@
 //! Backend contract used by the API layer.
 //! The first backend owner is Macroquad, but the contract is backend-agnostic.
 
+use macroquad::input::{KeyCode, is_key_down, is_quit_requested};
+use macroquad::math::vec2;
+use macroquad::prelude::{
+    Camera2D, Color as MqColor, DrawTextureParams, Texture2D, WHITE, clear_background, draw_circle,
+    draw_rectangle, draw_texture_ex, set_camera,
+};
+use macroquad::time::get_frame_time;
+use macroquad::window::{Conf, next_frame};
+use std::collections::HashMap;
 use std::env;
+use std::path::Path;
 
 /// A two-dimensional vector.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -23,6 +33,17 @@ pub struct Color {
     pub b: f32,
     /// Alpha channel.
     pub a: f32,
+}
+
+impl From<Color> for MqColor {
+    fn from(value: Color) -> Self {
+        Self {
+            r: value.r,
+            g: value.g,
+            b: value.b,
+            a: value.a,
+        }
+    }
 }
 
 /// An opaque texture handle type owned by the backend implementation.
@@ -77,21 +98,12 @@ pub trait EngineBackend {
 }
 
 /// Desktop loop owner config for frame dispatch.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct FrameLoopConfig {
-    /// Fixed timestep in seconds.
-    pub frame_dt_seconds: f32,
-    /// Number of frames to dispatch before returning.
-    pub frame_count: usize,
-}
-
-impl Default for FrameLoopConfig {
-    fn default() -> Self {
-        Self {
-            frame_dt_seconds: 0.016,
-            frame_count: 1,
-        }
-    }
+    /// Optional fixed timestep in seconds. If omitted, uses Macroquad frame time.
+    pub fixed_dt_seconds: Option<f32>,
+    /// Optional frame budget. If omitted, loop runs until the window closes.
+    pub frame_count: Option<usize>,
 }
 
 impl FrameLoopConfig {
@@ -103,20 +115,20 @@ impl FrameLoopConfig {
         if let Ok(value) = env::var("PYCRO_FRAME_DT")
             && let Ok(parsed) = value.parse::<f32>()
         {
-            config.frame_dt_seconds = parsed.max(0.0);
+            config.fixed_dt_seconds = Some(parsed.max(0.0));
         }
 
         if let Ok(value) = env::var("PYCRO_FRAMES")
             && let Ok(parsed) = value.parse::<usize>()
         {
-            config.frame_count = parsed.max(1);
+            config.frame_count = Some(parsed.max(1));
         }
 
         config
     }
 }
 
-/// First desktop frame-loop owner. This is the location where Macroquad ownership plugs in.
+/// First desktop frame-loop owner. Macroquad owns this loop.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct DesktopFrameLoop {
     config: FrameLoopConfig,
@@ -136,25 +148,59 @@ impl DesktopFrameLoop {
         Self { config }
     }
 
-    /// Runs the frame callback exactly `frame_count` times.
-    pub fn run(
+    /// Runs the frame callback using Macroquad's real window/event loop.
+    pub async fn run(
         &self,
         mut on_frame: impl FnMut(f32) -> Result<(), String>,
     ) -> Result<DesktopLoopReport, String> {
-        for _ in 0..self.config.frame_count {
-            on_frame(self.config.frame_dt_seconds)?;
+        let mut frames_executed = 0usize;
+        loop {
+            let dt = self.config.fixed_dt_seconds.unwrap_or_else(get_frame_time);
+            on_frame(dt)?;
+            frames_executed += 1;
+
+            next_frame().await;
+
+            let reached_budget = self
+                .config
+                .frame_count
+                .is_some_and(|budget| frames_executed >= budget);
+            if reached_budget || is_quit_requested() {
+                break;
+            }
         }
-        Ok(DesktopLoopReport {
-            frames_executed: self.config.frame_count,
-        })
+
+        Ok(DesktopLoopReport { frames_executed })
+    }
+}
+
+/// Window configuration used by the real Macroquad loop owner.
+#[must_use]
+pub fn window_conf() -> Conf {
+    Conf {
+        window_title: "pycro".to_owned(),
+        window_width: 1280,
+        window_height: 720,
+        ..Conf::default()
     }
 }
 
 /// First backend implementation behind the contract boundary.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct MacroquadBackendContract {
     frame_time: f32,
     dispatch_log: Vec<BackendDispatch>,
+    textures: HashMap<String, Texture2D>,
+}
+
+impl Default for MacroquadBackendContract {
+    fn default() -> Self {
+        Self {
+            frame_time: 0.016,
+            dispatch_log: Vec::new(),
+            textures: HashMap::new(),
+        }
+    }
 }
 
 impl MacroquadBackendContract {
@@ -170,10 +216,23 @@ impl MacroquadBackendContract {
     }
 }
 
+fn key_code_from_name(key: &str) -> Option<KeyCode> {
+    match key {
+        "Space" | "space" => Some(KeyCode::Space),
+        "Left" | "left" => Some(KeyCode::Left),
+        "Right" | "right" => Some(KeyCode::Right),
+        "Up" | "up" => Some(KeyCode::Up),
+        "Down" | "down" => Some(KeyCode::Down),
+        "Escape" | "escape" => Some(KeyCode::Escape),
+        _ => None,
+    }
+}
+
 impl EngineBackend for MacroquadBackendContract {
     fn clear_background(&mut self, color: Color) {
         self.dispatch_log
             .push(BackendDispatch::ClearBackground(color));
+        clear_background(color.into());
     }
 
     fn draw_circle(&mut self, position: Vec2, radius: f32, color: Color) {
@@ -182,10 +241,11 @@ impl EngineBackend for MacroquadBackendContract {
             radius,
             color,
         });
+        draw_circle(position.x, position.y, radius, color.into());
     }
 
-    fn is_key_down(&self, _key: &str) -> bool {
-        false
+    fn is_key_down(&self, key: &str) -> bool {
+        key_code_from_name(key).is_some_and(is_key_down)
     }
 
     fn frame_time(&self) -> f32 {
@@ -195,7 +255,15 @@ impl EngineBackend for MacroquadBackendContract {
     fn load_texture(&mut self, path: &str) -> Result<TextureHandle, String> {
         self.dispatch_log
             .push(BackendDispatch::LoadTexture(path.to_owned()));
-        Ok(TextureHandle(path.to_owned()))
+
+        let handle = TextureHandle(path.to_owned());
+        let resolved = Path::new(path);
+        if let Ok(bytes) = std::fs::read(resolved) {
+            let texture = Texture2D::from_file_with_format(&bytes, None);
+            self.textures.insert(handle.0.clone(), texture);
+        }
+
+        Ok(handle)
     }
 
     fn draw_texture(&mut self, texture: &TextureHandle, position: Vec2, size: Vec2) {
@@ -204,10 +272,31 @@ impl EngineBackend for MacroquadBackendContract {
             position,
             size,
         });
+
+        if let Some(native_texture) = self.textures.get(&texture.0) {
+            draw_texture_ex(
+                native_texture,
+                position.x,
+                position.y,
+                WHITE,
+                DrawTextureParams {
+                    dest_size: Some(vec2(size.x, size.y)),
+                    ..DrawTextureParams::default()
+                },
+            );
+            return;
+        }
+
+        // Fallback marker when texture file cannot be loaded.
+        draw_rectangle(position.x, position.y, size.x, size.y, WHITE);
     }
 
     fn set_camera_target(&mut self, target: Vec2) {
         self.dispatch_log
             .push(BackendDispatch::SetCameraTarget(target));
+        set_camera(&Camera2D {
+            target: vec2(target.x, target.y),
+            ..Camera2D::default()
+        });
     }
 }

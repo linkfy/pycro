@@ -11,7 +11,7 @@ pub use api::{
 };
 pub use backend::{
     BackendDispatch, Color, DesktopFrameLoop, DesktopLoopReport, EngineBackend, FrameLoopConfig,
-    MacroquadBackendContract, TextureHandle, Vec2,
+    MacroquadBackendContract, TextureHandle, Vec2, window_conf,
 };
 pub use runtime::{
     ModuleInstallPlan, PythonVm, RuntimeConfig, RuntimeError, RuntimeValue, RustPythonVm,

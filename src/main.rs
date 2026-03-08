@@ -1,11 +1,14 @@
 //! Single-command CLI that delegates script execution to runtime.
 
-use pycro_cli::{DesktopFrameLoop, FrameLoopConfig, RuntimeConfig, RustPythonVm, ScriptRuntime};
+use pycro_cli::{
+    DesktopFrameLoop, FrameLoopConfig, RuntimeConfig, RustPythonVm, ScriptRuntime, window_conf,
+};
 use pycro_cli::{module_spec, registration_plan};
 
-fn main() {
+#[macroquad::main(window_conf)]
+async fn main() {
     let script_path = script_path_from_args(std::env::args().nth(1));
-    if let Err(error) = run_script_contract(script_path.as_str()) {
+    if let Err(error) = run_script_contract(script_path.as_str()).await {
         eprintln!("{error}");
         std::process::exit(1);
     }
@@ -15,7 +18,7 @@ fn script_path_from_args(script_arg: Option<String>) -> String {
     script_arg.unwrap_or_else(|| "examples/basic/main.py".to_owned())
 }
 
-fn run_script_contract(script_path: &str) -> Result<(), String> {
+async fn run_script_contract(script_path: &str) -> Result<(), String> {
     let config = RuntimeConfig {
         entry_script: script_path.to_owned(),
     };
@@ -31,11 +34,14 @@ fn run_script_contract(script_path: &str) -> Result<(), String> {
         .map_err(|error| format!("runtime load error: {error}"))?;
 
     let loop_owner = DesktopFrameLoop::new(FrameLoopConfig::from_env());
-    let report = loop_owner.run(|dt| {
-        runtime
-            .update(dt)
-            .map_err(|error| format!("runtime update error: {error}"))
-    })?;
+    let report = loop_owner
+        .run(|dt| {
+            runtime
+                .update(dt)
+                .map_err(|error| format!("runtime update error: {error}"))
+        })
+        .await?;
+
     println!("frames executed: {}", report.frames_executed);
     println!(
         "backend api dispatches: {}",

@@ -42,13 +42,13 @@ flowchart TD
     C --> D{setup exists}
     D -- yes --> E[call setup once]
     D -- no --> F[skip setup]
-    E --> G[DesktopFrameLoop dispatches dt]
+    E --> G[DesktopFrameLoop dispatches dt inside Macroquad loop]
     F --> G
     G --> H[call update dt]
     H --> I[python code calls pycro api]
     I --> J[pycro module queues operations]
     J --> K[runtime drains operations]
-    K --> L[dispatch to EngineBackend contract]
+    K --> L[dispatch to EngineBackend contract with real Macroquad calls]
     L --> G
 ```
 
