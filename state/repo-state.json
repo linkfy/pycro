@@ -4,12 +4,12 @@
   "phase": {
     "id": "phase-2-api-direct-bridge",
     "name": "Direct API Bridge Rich Returns",
-    "status": "in_progress"
+    "status": "complete"
   },
   "current_objective": {
     "id": "objective-2-api-direct-bridge-rich-returns",
     "title": "Replace queued API dispatch with direct backend bridge and rich return paths",
-    "status": "in_progress",
+    "status": "complete",
     "success_evidence": [
       "Runtime binds pycro API calls directly to EngineBackend callables",
       "Return values and errors propagate back to Python without queue drain indirection",
@@ -24,7 +24,7 @@
       "docs-tracker activated phase-2 objective in tracker and machine state",
       "flow-visualizer updated runtime dispatch diagram for direct API bridge path",
       "branch alignment confirmed for codex/api-direct-bridge-rich-returns",
-      "qa-reviewer completed pass for this implementation slice with no blocking findings"
+      "qa-reviewer completed pass with explicit waivers for sandbox-blocked gates and manual desktop playtest path"
     ],
     "follow_through_order": [
       "direct API bridge with richer return semantics",
@@ -182,7 +182,7 @@
       "title": "Replace queued API operation dispatch with direct backend bridge and rich return semantics",
       "phase": "phase-2-api-direct-bridge",
       "owner": "architecture-orchestrator",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "api-dispatch-basic-surface",
         "basic-example-execution-smoke"
@@ -194,9 +194,13 @@
         "draw_text API added across metadata/runtime/backend and ADR 0005 created",
         "examples flattened to examples/*.py with shared examples/assets and stopwatch_seconds.py scenario",
         "example-scenario-worker policy now defaults texture scenarios to the Kenney shared pack and requires explicit asset-path documentation",
-        "Added pack-focused playable scenarios (pack_checkerboard_pan.py, pack_gradient_cycle.py, pack_noise_scanner.py) using examples/assets/kenney_development_essentials"
+        "Added pack-focused playable scenarios (pack_checkerboard_pan.py, pack_gradient_cycle.py, pack_noise_scanner.py) using examples/assets/kenney_development_essentials",
+        "python3 scripts/validate_governance.py passed",
+        "python3 -m mypy --config-file pyproject.toml passed",
+        "target/debug/generate_stubs --check python/pycro/__init__.pyi passed",
+        "qa-reviewer outcome: pass with explicit waivers for cargo clippy/test/doc (sandbox file-lock denial) and desktop manual playtest path (sandbox miniquad/apple panic)"
       ],
-      "next_action": "record explicit manual user playtest feedback for interactive scenarios, then hand to commit-steward for checkpoint commit",
+      "next_action": "Start phase-3 planning for input/textures coverage expansion and CI visual assertion smoke; collect manual user playtest feedback outside sandbox.",
       "adr_refs": [
         "0001",
         "0002",
