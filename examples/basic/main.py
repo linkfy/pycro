@@ -3,7 +3,7 @@ import pycro
 hero_texture: pycro.TextureHandle | None = None
 CIRCLE_POSITION = (320.0, 220.0)
 TEXTURE_POSITION = (860.0, 420.0)
-CAMERA_FOCUS = (640.0, 360.0)
+CAMERA_FOCUS = (360.0, 260.0)
 
 
 def setup() -> None:

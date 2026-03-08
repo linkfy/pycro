@@ -4,7 +4,7 @@ Keep this file in sync with state/repo-state.json.
 
 QUICK INDEX
 1. [x] bootstrap-foundation: Validate and close the infrastructure bootstrap. Phase 0 is closed with review outcome persisted and gates green.
-2. [-] flow-mermaid-views: Maintain Mermaid visualizations for lifecycle and dispatch. Active during phase 1 to keep diagrams aligned with contracts.
+2. [-] flow-mermaid-views: Continuous flow-visualizer subagent for Mermaid lifecycle/dispatch documentation (cross-cutting, not a phase gate).
 3. [x] runtime-basic-example-loader: Load a real script path and dispatch setup plus update(dt) through runtime module. Complete.
 4. [x] platform-desktop-macroquad-loop: Provide the first desktop loop owner and backend contract implementation. Complete for phase-1 desktop slice.
 5. [x] api-dispatch-basic-surface: Connect the public pycro API registry to the backend contract without breaking stub generation. Complete.
@@ -19,6 +19,8 @@ orchestration: architecture-orchestrator delegated runtime/platform/api/docs/qa 
 visualization: flow-visualizer diagrams updated for current lifecycle and dispatch path.
 phase_closeout: phase-1-basic-example implementation slice closed; next phase can start from objective-1 evidence baseline.
 qa_reviewer_outcome: pass (no blocking findings).
+next_focus: 1) bridge API directo con retornos ricos, 2) input/texturas/cobertura plataforma, 3) smoke CI con aserciones visuales/payload.
+concurrency_note: example-scenario-worker genera ejemplos jugables por feature en paralelo a esos frentes.
 
 TASK ORDER
 1. [x] Close the bootstrap milestone with review evidence.
@@ -26,7 +28,7 @@ TASK ORDER
 3. [x] Make backend module provide the first desktop loop owner and backend contract implementation.
 4. [x] Make api module dispatch real calls into the backend contract while preserving the stub contract.
 5. [x] Add an integration smoke proving examples/basic/main.py actually executes.
-6. [-] Keep Mermaid diagrams updated as contracts evolve.
+6. [-] Keep Mermaid diagrams updated via flow-visualizer subagent as contracts evolve.
 
 TASK bootstrap-foundation
 title: Validate and close the infrastructure bootstrap
@@ -39,12 +41,12 @@ ENDTASK
 
 TASK flow-mermaid-views
 title: Maintain Mermaid visualizations for lifecycle and dispatch
-phase: phase-0-foundation
+phase: continuous-docs-support
 owner: flow-visualizer
 status: in_progress
 depends_on: bootstrap-foundation
 evidence: docs/flow-mermaids.md created and parser-safe diagrams refreshed for lifecycle, dispatch, delivery, and phase-1 dependency order.
-next_action: Keep diagrams synced on every lifecycle/API contract change.
+next_action: Continuous subagent duty; update diagrams on every lifecycle/API contract change.
 ENDTASK
 
 TASK runtime-basic-example-loader

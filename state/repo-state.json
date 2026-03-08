@@ -73,16 +73,17 @@
     {
       "id": "flow-mermaid-views",
       "title": "Maintain Mermaid visualizations for lifecycle and dispatch",
-      "phase": "phase-0-foundation",
+      "phase": "continuous-docs-support",
       "owner": "flow-visualizer",
       "status": "in_progress",
       "depends_on": [
         "bootstrap-foundation"
       ],
       "evidence": [
-        "docs/flow-mermaids.md created and parser-safe diagrams refreshed for lifecycle, dispatch, delivery, and phase-1 dependency order"
+        "docs/flow-mermaids.md maintained by flow-visualizer as a cross-cutting documentation stream",
+        "Diagrams refreshed for lifecycle, dispatch, delivery, and phase closeout transitions"
       ],
-      "next_action": "Keep diagrams synced on every lifecycle/API contract change.",
+      "next_action": "Continuous subagent duty; update diagrams on every lifecycle/API contract change.",
       "adr_refs": [
         "0001",
         "0002",

@@ -4,8 +4,8 @@
 use macroquad::input::{KeyCode, is_key_down, is_quit_requested};
 use macroquad::math::vec2;
 use macroquad::prelude::{
-    Camera2D, Color as MqColor, DrawTextureParams, Texture2D, WHITE, clear_background, draw_circle,
-    draw_rectangle, draw_texture_ex, set_camera,
+    Camera2D, Color as MqColor, DrawTextureParams, Rect, Texture2D, WHITE, clear_background,
+    draw_circle, draw_rectangle, draw_texture_ex, screen_height, screen_width, set_camera,
 };
 use macroquad::time::get_frame_time;
 use macroquad::window::{Conf, next_frame};
@@ -294,9 +294,15 @@ impl EngineBackend for MacroquadBackendContract {
     fn set_camera_target(&mut self, target: Vec2) {
         self.dispatch_log
             .push(BackendDispatch::SetCameraTarget(target));
-        set_camera(&Camera2D {
-            target: vec2(target.x, target.y),
-            ..Camera2D::default()
-        });
+
+        let width = screen_width();
+        let height = screen_height();
+        let display_rect = Rect::new(
+            target.x - (width * 0.5),
+            target.y - (height * 0.5),
+            width,
+            height,
+        );
+        set_camera(&Camera2D::from_display_rect(display_rect));
     }
 }
