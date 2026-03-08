@@ -9,3 +9,13 @@
 This repository is intentionally at the infrastructure milestone. It establishes governance, agent contracts, validation gates, and module boundaries before implementation expands into a playable engine.
 
 Start with [AGENTS.md](./AGENTS.md) and the canonical docs in `docs/`.
+
+## Run Playable Examples
+
+Use:
+
+```bash
+cargo run -- examples/<scenario>.py
+```
+
+See [`examples/README.md`](./examples/README.md) for scenario list and manual test checklist.

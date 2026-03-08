@@ -47,9 +47,11 @@ The main thread should avoid carrying large implementation context directly; del
 ## Manual Playtest Gate
 
 For user-visible engine features (for example: textures, movement, FX, audio, camera), `example-scenario-worker` must add or update a dedicated playable case under `examples/`. The final acceptance gate requires explicit user feedback after running the scenario, because agents cannot fully validate interactive event-loop behavior autonomously.
+Example layout rule: scenario scripts live at `examples/*.py` (flat). Shared assets live at `examples/assets/`.
 
 ## Documentation Discipline
 
 - `docs-tracker` updates the task tracker, ADR references, and machine state summary.
 - `flow-visualizer` updates Mermaid diagrams so lifecycle and dispatch behavior are reviewable without reading implementation code first.
 - The machine state file is a compact snapshot for agents. Do not append transcripts or verbose logs.
+- Before every phase commit, documentation must be refreshed and recompiled (for example `cargo doc --no-deps` and stub/cheatsheet refresh checks), with concise evidence captured in tracker/state.

@@ -58,7 +58,7 @@ Each public function must include:
 
 The first implementation objective after bootstrap is not a generic engine slice. It is a concrete vertical path:
 
-1. `pycro_cli` runs `examples/basic/main.py`
+1. `pycro_cli` runs `examples/basic_main.py`
 2. `runtime` loads that script through RustPython
 3. `backend` owns the live Macroquad desktop loop
 4. `api` maps the thin public Python surface into the backend contract

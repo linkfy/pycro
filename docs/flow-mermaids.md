@@ -32,7 +32,7 @@ flowchart LR
     C --> D[python/pycro/__init__.pyi]
 ```
 
-## Runtime Lifecycle (Phase 1 Completed)
+## Runtime Lifecycle (Phase 2 Active: Direct API Bridge)
 
 ```mermaid
 flowchart TD
@@ -46,9 +46,9 @@ flowchart TD
     F --> G
     G --> H[call update dt]
     H --> I[python code calls pycro api]
-    I --> J[pycro module queues operations]
-    J --> K[runtime drains operations]
-    K --> L[dispatch to EngineBackend contract with real Macroquad calls]
+    I --> J[direct API bridge calls EngineBackend callable]
+    J --> K[backend executes real Macroquad operation]
+    K --> L[rich return value or error mapped back to Python]
     L --> G
 ```
 

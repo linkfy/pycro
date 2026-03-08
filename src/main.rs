@@ -15,7 +15,7 @@ async fn main() {
 }
 
 fn script_path_from_args(script_arg: Option<String>) -> String {
-    script_arg.unwrap_or_else(|| "examples/basic/main.py".to_owned())
+    script_arg.unwrap_or_else(|| "examples/basic_main.py".to_owned())
 }
 
 async fn run_script_contract(script_path: &str) -> Result<(), String> {
@@ -58,15 +58,15 @@ mod tests {
     fn default_script_path_is_basic_example() {
         assert_eq!(
             script_path_from_args(None),
-            "examples/basic/main.py".to_owned()
+            "examples/basic_main.py".to_owned()
         );
     }
 
     #[test]
     fn accepts_positional_script_argument() {
         assert_eq!(
-            script_path_from_args(Some("examples/basic/main.py".to_owned())),
-            "examples/basic/main.py".to_owned()
+            script_path_from_args(Some("examples/basic_main.py".to_owned())),
+            "examples/basic_main.py".to_owned()
         );
     }
 }

@@ -1,0 +1,16 @@
+# Shared Asset Packs
+
+This directory contains shared assets intended for all example scripts under `examples/*.py`.
+
+## Kenney Development Essentials (CC0)
+
+- Source page: `https://kenney.nl/assets/development-essentials`
+- Download URL used: `https://kenney.nl/media/pages/assets/development-essentials/cff603fa34-1767593474/kenney_development-essentials.zip`
+- Local path: `examples/assets/kenney_development_essentials/`
+- Included upstream license file: `examples/assets/kenney_development_essentials/License.txt`
+
+Recommended starter files for new scenarios:
+
+- `examples/assets/kenney_development_essentials/Gradient/gradient-radial.png`
+- `examples/assets/kenney_development_essentials/Checkerboard/checkerboard.png`
+- `examples/assets/kenney_development_essentials/Noise/perlin-noise.png`

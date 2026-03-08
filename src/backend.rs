@@ -5,7 +5,8 @@ use macroquad::input::{KeyCode, is_key_down, is_quit_requested};
 use macroquad::math::vec2;
 use macroquad::prelude::{
     Camera2D, Color as MqColor, DrawTextureParams, Rect, Texture2D, WHITE, clear_background,
-    draw_circle, draw_rectangle, draw_texture_ex, screen_height, screen_width, set_camera,
+    draw_circle, draw_rectangle, draw_text, draw_texture_ex, screen_height, screen_width,
+    set_camera,
 };
 use macroquad::time::get_frame_time;
 use macroquad::window::{Conf, next_frame};
@@ -77,6 +78,17 @@ pub enum BackendDispatch {
     },
     /// set_camera_target(target)
     SetCameraTarget(Vec2),
+    /// draw_text(text, position, font_size, color)
+    DrawText {
+        /// Text content.
+        text: String,
+        /// Baseline anchor position.
+        position: Vec2,
+        /// Font size in pixels.
+        font_size: f32,
+        /// Text color.
+        color: Color,
+    },
 }
 
 /// Engine backend contract consumed by `api`.
@@ -95,6 +107,8 @@ pub trait EngineBackend {
     fn draw_texture(&mut self, texture: &TextureHandle, position: Vec2, size: Vec2);
     /// Moves the active camera target.
     fn set_camera_target(&mut self, target: Vec2);
+    /// Draws text on screen.
+    fn draw_text(&mut self, text: &str, position: Vec2, font_size: f32, color: Color);
 }
 
 /// Desktop loop owner config for frame dispatch.
@@ -304,5 +318,15 @@ impl EngineBackend for MacroquadBackendContract {
             height,
         );
         set_camera(&Camera2D::from_display_rect(display_rect));
+    }
+
+    fn draw_text(&mut self, text: &str, position: Vec2, font_size: f32, color: Color) {
+        self.dispatch_log.push(BackendDispatch::DrawText {
+            text: text.to_owned(),
+            position,
+            font_size,
+            color,
+        });
+        draw_text(text, position.x, position.y, font_size, color.into());
     }
 }

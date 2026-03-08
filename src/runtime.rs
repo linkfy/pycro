@@ -4,14 +4,11 @@ use crate::api::{
     ENTRYPOINT_SCRIPT, MODULE_NAME, SETUP_FUNCTION, UPDATE_FUNCTION, registration_plan,
 };
 use crate::backend::{Color, EngineBackend, MacroquadBackendContract, TextureHandle, Vec2};
-use rustpython_vm::builtins::PyBaseExceptionRef;
+use rustpython_vm::builtins::{PyBaseExceptionRef, PyDictRef};
 use rustpython_vm::scope::Scope;
-use rustpython_vm::{AsObject, Interpreter, PyObjectRef, VirtualMachine};
+use rustpython_vm::{AsObject, Interpreter, PyObjectRef, PyResult, VirtualMachine};
 use std::fs;
-
-const API_OPS_GLOBAL: &str = "__pycro_ops";
-const FRAME_TIME_GLOBAL: &str = "__pycro_frame_time";
-const KEYS_DOWN_GLOBAL: &str = "__pycro_keys_down";
+use std::sync::{Arc, Mutex, MutexGuard};
 
 /// Runtime configuration for Python script loading.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -170,15 +167,20 @@ where
 pub struct RustPythonVm {
     interpreter: Interpreter,
     scope: Option<Scope>,
-    backend: MacroquadBackendContract,
+    backend: Arc<Mutex<MacroquadBackendContract>>,
 }
 
 impl std::fmt::Debug for RustPythonVm {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let backend_dispatches = self
+            .backend
+            .lock()
+            .map(|backend| backend.dispatch_log().len())
+            .unwrap_or_default();
         formatter
             .debug_struct("RustPythonVm")
             .field("initialized", &self.scope.is_some())
-            .field("backend_dispatches", &self.backend.dispatch_log().len())
+            .field("backend_dispatches", &backend_dispatches)
             .finish()
     }
 }
@@ -196,44 +198,19 @@ impl RustPythonVm {
         Self {
             interpreter: Interpreter::without_stdlib(Default::default()),
             scope: None,
-            backend: MacroquadBackendContract::default(),
+            backend: Arc::new(Mutex::new(MacroquadBackendContract::default())),
         }
     }
 
     /// Exposes the current backend for smoke evidence.
-    #[must_use]
-    pub fn backend(&self) -> &MacroquadBackendContract {
-        &self.backend
+    pub fn backend(&self) -> MutexGuard<'_, MacroquadBackendContract> {
+        self.backend
+            .lock()
+            .expect("runtime backend mutex lock must not be poisoned")
     }
 
-    fn module_bootstrap_source(plan: &ModuleInstallPlan) -> String {
-        let mut source = String::from(
-            "Color = tuple\nVec2 = tuple\nTextureHandle = str\n\n__pycro_ops = []\n__pycro_frame_time = 0.016\n__pycro_keys_down = []\n\n",
-        );
-        for function_name in &plan.exported_function_names {
-            let function_source = match *function_name {
-                "clear_background" => {
-                    "def clear_background(color):\n    __pycro_ops.append(('clear_background', color))\n\n"
-                }
-                "draw_circle" => {
-                    "def draw_circle(position, radius, color):\n    __pycro_ops.append(('draw_circle', position, radius, color))\n\n"
-                }
-                "is_key_down" => "def is_key_down(key):\n    return key in __pycro_keys_down\n\n",
-                "frame_time" => "def frame_time():\n    return __pycro_frame_time\n\n",
-                "load_texture" => {
-                    "def load_texture(path):\n    __pycro_ops.append(('load_texture', path))\n    return path\n\n"
-                }
-                "draw_texture" => {
-                    "def draw_texture(texture, position, size):\n    __pycro_ops.append(('draw_texture', texture, position, size))\n\n"
-                }
-                "set_camera_target" => {
-                    "def set_camera_target(target):\n    __pycro_ops.append(('set_camera_target', target))\n\n"
-                }
-                _ => "",
-            };
-            source.push_str(function_source);
-        }
-        source
+    fn module_bootstrap_source() -> &'static str {
+        "Color = tuple\nVec2 = tuple\nTextureHandle = str\n"
     }
 
     fn with_scope<T>(
@@ -244,19 +221,19 @@ impl RustPythonVm {
         self.interpreter.enter(|vm| f(vm, scope))
     }
 
-    fn with_scope_and_backend<T>(
-        &mut self,
-        scope: Scope,
-        f: impl FnOnce(&VirtualMachine, Scope, &mut MacroquadBackendContract) -> Result<T, RuntimeError>,
-    ) -> Result<T, RuntimeError> {
-        let interpreter = &self.interpreter;
-        let backend = &mut self.backend;
-        interpreter.enter(|vm| f(vm, scope, backend))
-    }
-
     fn exception_details(vm: &VirtualMachine, error: &PyBaseExceptionRef) -> String {
         vm.print_exception(error.clone());
-        format!("{error:?}")
+        let type_name = error.class().name().to_owned();
+        let message = error
+            .as_object()
+            .str(vm)
+            .map(|value| value.as_str().to_owned())
+            .unwrap_or_else(|_| String::new());
+        if message.is_empty() {
+            type_name
+        } else {
+            format!("{type_name}: {message}")
+        }
     }
 
     fn flush_stdio(vm: &VirtualMachine) {
@@ -268,23 +245,12 @@ impl RustPythonVm {
         }
     }
 
-    fn parse_vec2(
-        vm: &VirtualMachine,
-        object: PyObjectRef,
-        context: &str,
-    ) -> Result<Vec2, RuntimeError> {
-        let values: Vec<f64> =
-            object
-                .try_into_value(vm)
-                .map_err(|error| RuntimeError::FunctionCall {
-                    function: context.to_owned(),
-                    details: Self::exception_details(vm, &error),
-                })?;
+    fn parse_vec2_py(vm: &VirtualMachine, object: PyObjectRef, context: &str) -> PyResult<Vec2> {
+        let values: Vec<f64> = object
+            .try_into_value(vm)
+            .map_err(|_| vm.new_value_error(format!("{context}: expected Vec2 tuple")))?;
         if values.len() != 2 {
-            return Err(RuntimeError::FunctionCall {
-                function: context.to_owned(),
-                details: "expected Vec2 tuple length 2".to_owned(),
-            });
+            return Err(vm.new_value_error(format!("{context}: expected Vec2 tuple length 2")));
         }
         Ok(Vec2 {
             x: values[0] as f32,
@@ -292,23 +258,12 @@ impl RustPythonVm {
         })
     }
 
-    fn parse_color(
-        vm: &VirtualMachine,
-        object: PyObjectRef,
-        context: &str,
-    ) -> Result<Color, RuntimeError> {
-        let values: Vec<f64> =
-            object
-                .try_into_value(vm)
-                .map_err(|error| RuntimeError::FunctionCall {
-                    function: context.to_owned(),
-                    details: Self::exception_details(vm, &error),
-                })?;
+    fn parse_color_py(vm: &VirtualMachine, object: PyObjectRef, context: &str) -> PyResult<Color> {
+        let values: Vec<f64> = object
+            .try_into_value(vm)
+            .map_err(|_| vm.new_value_error(format!("{context}: expected Color tuple")))?;
         if values.len() != 4 {
-            return Err(RuntimeError::FunctionCall {
-                function: context.to_owned(),
-                details: "expected Color tuple length 4".to_owned(),
-            });
+            return Err(vm.new_value_error(format!("{context}: expected Color tuple length 4")));
         }
         Ok(Color {
             r: values[0] as f32,
@@ -318,151 +273,153 @@ impl RustPythonVm {
         })
     }
 
-    fn dispatch_api_operations(
+    fn with_backend_py<T>(
         vm: &VirtualMachine,
-        backend: &mut MacroquadBackendContract,
+        backend: &Arc<Mutex<MacroquadBackendContract>>,
+        f: impl FnOnce(&mut MacroquadBackendContract) -> PyResult<T>,
+    ) -> PyResult<T> {
+        let mut backend = backend
+            .lock()
+            .map_err(|_| vm.new_runtime_error("backend mutex lock failed".to_owned()))?;
+        f(&mut backend)
+    }
+
+    fn install_direct_api_functions(
+        vm: &VirtualMachine,
+        module_dict: &PyDictRef,
+        plan: &ModuleInstallPlan,
+        backend: Arc<Mutex<MacroquadBackendContract>>,
     ) -> Result<(), RuntimeError> {
-        let modules =
-            vm.sys_module
-                .get_attr("modules", vm)
-                .map_err(|error| RuntimeError::FunctionCall {
-                    function: "sys.modules".to_owned(),
-                    details: Self::exception_details(vm, &error),
-                })?;
-        let module =
-            modules
-                .get_item(MODULE_NAME, vm)
-                .map_err(|error| RuntimeError::FunctionCall {
-                    function: "sys.modules[pycro]".to_owned(),
-                    details: Self::exception_details(vm, &error),
-                })?;
-        let ops_obj =
-            module
-                .get_attr(API_OPS_GLOBAL, vm)
-                .map_err(|error| RuntimeError::FunctionCall {
-                    function: API_OPS_GLOBAL.to_owned(),
-                    details: Self::exception_details(vm, &error),
-                })?;
-
-        let operations: Vec<PyObjectRef> =
-            ops_obj
-                .as_object()
-                .try_to_value(vm)
-                .map_err(|error| RuntimeError::FunctionCall {
-                    function: API_OPS_GLOBAL.to_owned(),
-                    details: Self::exception_details(vm, &error),
-                })?;
-
-        module
-            .set_attr(API_OPS_GLOBAL, vm.ctx.new_list(vec![]), vm)
-            .map_err(|error| RuntimeError::FunctionCall {
-                function: API_OPS_GLOBAL.to_owned(),
-                details: Self::exception_details(vm, &error),
-            })?;
-
-        for operation in operations {
-            let fields: Vec<PyObjectRef> =
-                operation
-                    .try_into_value(vm)
-                    .map_err(|error| RuntimeError::FunctionCall {
-                        function: "api operation tuple".to_owned(),
-                        details: Self::exception_details(vm, &error),
-                    })?;
-            if fields.is_empty() {
-                continue;
-            }
-
-            let op_name: String = fields[0].clone().try_into_value(vm).map_err(|error| {
-                RuntimeError::FunctionCall {
-                    function: "api operation name".to_owned(),
-                    details: Self::exception_details(vm, &error),
-                }
-            })?;
-
-            match op_name.as_str() {
+        for function_name in &plan.exported_function_names {
+            let function_obj = match *function_name {
                 "clear_background" => {
-                    if fields.len() != 2 {
-                        return Err(RuntimeError::FunctionCall {
-                            function: "clear_background".to_owned(),
-                            details: "expected 1 argument".to_owned(),
-                        });
-                    }
-                    let color = Self::parse_color(vm, fields[1].clone(), "clear_background")?;
-                    backend.clear_background(color);
+                    let backend = Arc::clone(&backend);
+                    vm.new_function(
+                        "clear_background",
+                        move |color: PyObjectRef, vm: &VirtualMachine| {
+                            let color = Self::parse_color_py(vm, color, "clear_background")?;
+                            Self::with_backend_py(vm, &backend, |backend| {
+                                backend.clear_background(color);
+                                Ok(())
+                            })
+                        },
+                    )
+                    .into()
                 }
                 "draw_circle" => {
-                    if fields.len() != 4 {
-                        return Err(RuntimeError::FunctionCall {
-                            function: "draw_circle".to_owned(),
-                            details: "expected 3 arguments".to_owned(),
-                        });
-                    }
-                    let position = Self::parse_vec2(vm, fields[1].clone(), "draw_circle position")?;
-                    let radius: f64 = fields[2].clone().try_into_value(vm).map_err(|error| {
-                        RuntimeError::FunctionCall {
-                            function: "draw_circle radius".to_owned(),
-                            details: Self::exception_details(vm, &error),
-                        }
-                    })?;
-                    let color = Self::parse_color(vm, fields[3].clone(), "draw_circle color")?;
-                    backend.draw_circle(position, radius as f32, color);
+                    let backend = Arc::clone(&backend);
+                    vm.new_function(
+                        "draw_circle",
+                        move |position: PyObjectRef,
+                              radius: f64,
+                              color: PyObjectRef,
+                              vm: &VirtualMachine| {
+                            let position =
+                                Self::parse_vec2_py(vm, position, "draw_circle position")?;
+                            let color = Self::parse_color_py(vm, color, "draw_circle color")?;
+                            Self::with_backend_py(vm, &backend, |backend| {
+                                backend.draw_circle(position, radius as f32, color);
+                                Ok(())
+                            })
+                        },
+                    )
+                    .into()
+                }
+                "is_key_down" => {
+                    let backend = Arc::clone(&backend);
+                    vm.new_function("is_key_down", move |key: String, vm: &VirtualMachine| {
+                        Self::with_backend_py(vm, &backend, |backend| Ok(backend.is_key_down(&key)))
+                    })
+                    .into()
+                }
+                "frame_time" => {
+                    let backend = Arc::clone(&backend);
+                    vm.new_function("frame_time", move |vm: &VirtualMachine| {
+                        Self::with_backend_py(vm, &backend, |backend| {
+                            Ok(f64::from(backend.frame_time()))
+                        })
+                    })
+                    .into()
                 }
                 "load_texture" => {
-                    if fields.len() != 2 {
-                        return Err(RuntimeError::FunctionCall {
-                            function: "load_texture".to_owned(),
-                            details: "expected 1 argument".to_owned(),
-                        });
-                    }
-                    let path: String = fields[1].clone().try_into_value(vm).map_err(|error| {
-                        RuntimeError::FunctionCall {
-                            function: "load_texture path".to_owned(),
-                            details: Self::exception_details(vm, &error),
-                        }
-                    })?;
-                    backend
-                        .load_texture(&path)
-                        .map_err(|error| RuntimeError::FunctionCall {
-                            function: "load_texture".to_owned(),
-                            details: error,
-                        })?;
+                    let backend = Arc::clone(&backend);
+                    vm.new_function("load_texture", move |path: String, vm: &VirtualMachine| {
+                        Self::with_backend_py(vm, &backend, |backend| {
+                            let handle = backend
+                                .load_texture(&path)
+                                .map_err(|error| vm.new_runtime_error(error))?;
+                            Ok(handle.0)
+                        })
+                    })
+                    .into()
                 }
                 "draw_texture" => {
-                    if fields.len() != 4 {
-                        return Err(RuntimeError::FunctionCall {
-                            function: "draw_texture".to_owned(),
-                            details: "expected 3 arguments".to_owned(),
-                        });
-                    }
-                    let texture: String =
-                        fields[1].clone().try_into_value(vm).map_err(|error| {
-                            RuntimeError::FunctionCall {
-                                function: "draw_texture texture".to_owned(),
-                                details: Self::exception_details(vm, &error),
-                            }
-                        })?;
-                    let position =
-                        Self::parse_vec2(vm, fields[2].clone(), "draw_texture position")?;
-                    let size = Self::parse_vec2(vm, fields[3].clone(), "draw_texture size")?;
-                    backend.draw_texture(&TextureHandle(texture), position, size);
+                    let backend = Arc::clone(&backend);
+                    vm.new_function(
+                        "draw_texture",
+                        move |texture: String,
+                              position: PyObjectRef,
+                              size: PyObjectRef,
+                              vm: &VirtualMachine| {
+                            let position =
+                                Self::parse_vec2_py(vm, position, "draw_texture position")?;
+                            let size = Self::parse_vec2_py(vm, size, "draw_texture size")?;
+                            Self::with_backend_py(vm, &backend, |backend| {
+                                backend.draw_texture(&TextureHandle(texture), position, size);
+                                Ok(())
+                            })
+                        },
+                    )
+                    .into()
                 }
                 "set_camera_target" => {
-                    if fields.len() != 2 {
-                        return Err(RuntimeError::FunctionCall {
-                            function: "set_camera_target".to_owned(),
-                            details: "expected 1 argument".to_owned(),
-                        });
-                    }
-                    let target = Self::parse_vec2(vm, fields[1].clone(), "set_camera_target")?;
-                    backend.set_camera_target(target);
+                    let backend = Arc::clone(&backend);
+                    vm.new_function(
+                        "set_camera_target",
+                        move |target: PyObjectRef, vm: &VirtualMachine| {
+                            let target = Self::parse_vec2_py(vm, target, "set_camera_target")?;
+                            Self::with_backend_py(vm, &backend, |backend| {
+                                backend.set_camera_target(target);
+                                Ok(())
+                            })
+                        },
+                    )
+                    .into()
+                }
+                "draw_text" => {
+                    let backend = Arc::clone(&backend);
+                    vm.new_function(
+                        "draw_text",
+                        move |text: String,
+                              position: PyObjectRef,
+                              font_size: f64,
+                              color: PyObjectRef,
+                              vm: &VirtualMachine| {
+                            let position = Self::parse_vec2_py(vm, position, "draw_text position")?;
+                            let color = Self::parse_color_py(vm, color, "draw_text color")?;
+                            Self::with_backend_py(vm, &backend, |backend| {
+                                backend.draw_text(text.as_str(), position, font_size as f32, color);
+                                Ok(())
+                            })
+                        },
+                    )
+                    .into()
                 }
                 _ => {
                     return Err(RuntimeError::FunctionCall {
-                        function: op_name,
-                        details: "unknown pycro API operation".to_owned(),
+                        function: format!("module function install: {function_name}"),
+                        details: "missing runtime direct-bridge binding for API metadata entry"
+                            .to_owned(),
                     });
                 }
-            }
+            };
+
+            module_dict
+                .set_item(*function_name, function_obj, vm)
+                .map_err(|error| RuntimeError::FunctionCall {
+                    function: format!("module function install: {function_name}"),
+                    details: Self::exception_details(vm, &error),
+                })?;
         }
 
         Ok(())
@@ -471,6 +428,7 @@ impl RustPythonVm {
 
 impl PythonVm for RustPythonVm {
     fn install_module(&mut self, plan: ModuleInstallPlan) -> Result<(), RuntimeError> {
+        let backend = Arc::clone(&self.backend);
         let scope = self.interpreter.enter(|vm| {
             let scope = vm.new_scope_with_builtins();
 
@@ -497,13 +455,18 @@ impl PythonVm for RustPythonVm {
                     details: Self::exception_details(vm, &error),
                 })?;
 
-            let module_scope = Scope::with_builtins(None, attrs, vm);
-            let module_source = Self::module_bootstrap_source(&plan);
-            vm.run_code_string(module_scope, &module_source, "<pycro-module>".to_owned())
-                .map_err(|error| RuntimeError::FunctionCall {
-                    function: "pycro module bootstrap".to_owned(),
-                    details: Self::exception_details(vm, &error),
-                })?;
+            let module_scope = Scope::with_builtins(None, attrs.clone(), vm);
+            vm.run_code_string(
+                module_scope,
+                Self::module_bootstrap_source(),
+                "<pycro-module>".to_owned(),
+            )
+            .map_err(|error| RuntimeError::FunctionCall {
+                function: "pycro module bootstrap".to_owned(),
+                details: Self::exception_details(vm, &error),
+            })?;
+
+            Self::install_direct_api_functions(vm, &attrs, &plan, backend)?;
 
             Ok(scope)
         })?;
@@ -548,7 +511,8 @@ impl PythonVm for RustPythonVm {
 
     fn call_function(&mut self, function: &str, args: &[RuntimeValue]) -> Result<(), RuntimeError> {
         let scope = self.scope.clone().ok_or(RuntimeError::NotLoaded)?;
-        self.with_scope_and_backend(scope, |vm, scope, backend| {
+        let backend = Arc::clone(&self.backend);
+        self.with_scope(scope, |vm, scope| {
             let callable = scope
                 .globals
                 .get_item_opt(function, vm)
@@ -562,38 +526,11 @@ impl PythonVm for RustPythonVm {
                 })?;
 
             if let [RuntimeValue::Float(dt)] = args {
+                let mut backend = backend.lock().map_err(|_| RuntimeError::FunctionCall {
+                    function: function.to_owned(),
+                    details: "backend mutex lock failed".to_owned(),
+                })?;
                 backend.set_frame_time(*dt);
-                let modules = vm.sys_module.get_attr("modules", vm).map_err(|error| {
-                    RuntimeError::FunctionCall {
-                        function: "sys.modules".to_owned(),
-                        details: Self::exception_details(vm, &error),
-                    }
-                })?;
-                let module = modules.get_item(MODULE_NAME, vm).map_err(|error| {
-                    RuntimeError::FunctionCall {
-                        function: "sys.modules[pycro]".to_owned(),
-                        details: Self::exception_details(vm, &error),
-                    }
-                })?;
-                module
-                    .set_attr(FRAME_TIME_GLOBAL, vm.ctx.new_float(f64::from(*dt)), vm)
-                    .map_err(|error| RuntimeError::FunctionCall {
-                        function: FRAME_TIME_GLOBAL.to_owned(),
-                        details: Self::exception_details(vm, &error),
-                    })?;
-
-                let mut keys_down = Vec::new();
-                for key in ["Space", "Left", "Right", "Up", "Down", "Escape"] {
-                    if backend.is_key_down(key) {
-                        keys_down.push(vm.ctx.new_str(key).into());
-                    }
-                }
-                module
-                    .set_attr(KEYS_DOWN_GLOBAL, vm.ctx.new_list(keys_down), vm)
-                    .map_err(|error| RuntimeError::FunctionCall {
-                        function: KEYS_DOWN_GLOBAL.to_owned(),
-                        details: Self::exception_details(vm, &error),
-                    })?;
             }
 
             match args {
@@ -611,7 +548,6 @@ impl PythonVm for RustPythonVm {
                 details: Self::exception_details(vm, &error),
             })?;
 
-            Self::dispatch_api_operations(vm, backend)?;
             Self::flush_stdio(vm);
             Ok(())
         })
@@ -621,8 +557,12 @@ impl PythonVm for RustPythonVm {
 #[cfg(test)]
 mod tests {
     use super::{
-        ModuleInstallPlan, PythonVm, RuntimeConfig, RuntimeError, RuntimeValue, ScriptRuntime,
+        ModuleInstallPlan, PythonVm, RuntimeConfig, RuntimeError, RuntimeValue, RustPythonVm,
+        ScriptRuntime,
     };
+    use std::fs;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     #[derive(Debug, Default)]
     struct FakeVm {
@@ -662,6 +602,19 @@ mod tests {
         }
     }
 
+    fn write_temp_script(prefix: &str, source: &str) -> PathBuf {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time should be after unix epoch")
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "pycro-runtime-{prefix}-{}-{timestamp}.py",
+            std::process::id()
+        ));
+        fs::write(&path, source).expect("temporary script should be writable");
+        path
+    }
+
     #[test]
     fn setup_runs_once_and_update_runs_per_frame() {
         let vm = FakeVm {
@@ -696,5 +649,85 @@ mod tests {
 
         let error = runtime.load_main().expect_err("load_main should fail");
         assert_eq!(error, RuntimeError::MissingUpdateFunction);
+    }
+
+    #[test]
+    fn direct_bridge_returns_backend_values_for_frame_time_and_texture_handle() {
+        let script = r#"
+import pycro
+
+_last_dt = None
+
+def update(dt):
+    global _last_dt
+    handle = pycro.load_texture('examples/assets/does-not-exist.png')
+    if handle != 'examples/assets/does-not-exist.png':
+        raise RuntimeError(f'unexpected texture handle: {handle}')
+
+    current = pycro.frame_time()
+    if abs(current - dt) > 1e-6:
+        raise RuntimeError(f'frame_time mismatch: {current} vs {dt}')
+
+    key_state = pycro.is_key_down('UnmappedKey')
+    if key_state is not False:
+        raise RuntimeError('is_key_down did not return bool')
+
+    if _last_dt is not None and dt <= _last_dt:
+        raise RuntimeError('dt did not advance')
+
+    _last_dt = dt
+"#;
+        let script_path = write_temp_script("bridge-returns", script);
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime.load_main().expect("load_main should succeed");
+        runtime.update(0.05).expect("first update should succeed");
+        runtime.update(0.09).expect("second update should succeed");
+
+        fs::remove_file(script_path).expect("temporary script should be removable");
+    }
+
+    #[test]
+    fn direct_bridge_surfaces_python_exceptions_from_api_argument_errors() {
+        let script = r#"
+import pycro
+
+def update(dt):
+    pycro.draw_texture('tex', (1.0,), (32.0, 32.0))
+"#;
+        let script_path = write_temp_script("bridge-errors", script);
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime.load_main().expect("load_main should succeed");
+        let error = runtime
+            .update(0.016)
+            .expect_err("update should propagate python call failure");
+
+        match error {
+            RuntimeError::FunctionCall { function, details } => {
+                assert_eq!(function, "update");
+                assert!(
+                    details.contains("ValueError"),
+                    "details should preserve python exception type, got: {details}"
+                );
+                assert!(
+                    details.contains("draw_texture position"),
+                    "details should preserve helper context, got: {details}"
+                );
+            }
+            _ => panic!("unexpected runtime error variant"),
+        }
+
+        fs::remove_file(script_path).expect("temporary script should be removable");
     }
 }

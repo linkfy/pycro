@@ -8,28 +8,30 @@ QUICK INDEX
 3. [x] runtime-basic-example-loader: Load a real script path and dispatch setup plus update(dt) through runtime module. Complete.
 4. [x] platform-desktop-macroquad-loop: Provide the first desktop loop owner and backend contract implementation. Complete for phase-1 desktop slice.
 5. [x] api-dispatch-basic-surface: Connect the public pycro API registry to the backend contract without breaking stub generation. Complete.
-6. [x] basic-example-execution-smoke: Prove that examples/basic/main.py executes on the real desktop path. Complete.
+6. [x] basic-example-execution-smoke: Prove that examples/basic_main.py executes on the real desktop path. Complete.
+7. [ ] api-direct-bridge-rich-returns: Replace queued API dispatch with direct backend bridge and rich return paths. Active phase-2 objective.
 
 CURRENT OBJECTIVE
-id: objective-1-basic-example
-title: Execute examples/basic/main.py through the real engine path
-status: complete
-success_evidence: cargo run -- examples/basic/main.py loads main.py through RustPython, runs setup() once, dispatches update(dt) through desktop frame-loop ownership, and forwards pycro API operations into EngineBackend.
-orchestration: architecture-orchestrator delegated runtime/platform/api/docs/qa slices and merged validated outcomes.
-visualization: flow-visualizer diagrams updated for current lifecycle and dispatch path.
-phase_closeout: phase-1-basic-example implementation slice closed; next phase can start from objective-1 evidence baseline.
-qa_reviewer_outcome: pass (no blocking findings).
-next_focus: 1) bridge API directo con retornos ricos, 2) input/texturas/cobertura plataforma, 3) smoke CI con aserciones visuales/payload.
-concurrency_note: example-scenario-worker genera ejemplos jugables por feature en paralelo a esos frentes.
-follow_through_order: 1) bridge API directo con retornos más ricos; 2) ampliar input/texturas/cobertura plataforma; 3) smoke CI con aserciones visuales/payload; 4) example-scenario-worker en paralelo creando ejemplos jugables por feature para validación manual del usuario.
+id: objective-2-api-direct-bridge-rich-returns
+title: Replace queued API dispatch with direct backend bridge and rich return paths
+status: in_progress
+success_evidence: Runtime binds pycro API calls directly to EngineBackend callables, return values/errors propagate back to Python without queued operation draining, and existing stub generation/type checks remain deterministic.
+orchestration: architecture-orchestrator activated the phase-2 objective and delegated runtime/api/platform/docs/qa coordination for direct-bridge delivery.
+visualization: flow-visualizer diagrams updated to show direct API bridge dispatch path without queued operation list.
+phase_closeout: phase-1-basic-example remains closed; phase-2-api-direct-bridge is now active from objective-1 evidence baseline.
+qa_reviewer_outcome: pass (no blocking findings; manual user playtest evidence still required before phase closeout).
+next_focus: 1) direct API bridge with rich returns, 2) broaden input/textures/platform coverage, 3) CI smoke with visual/payload assertions.
+concurrency_note: example-scenario-worker produces playable examples per user-visible feature in parallel to these tracks.
+follow_through_order: 1) direct API bridge with richer return semantics; 2) expand input/textures/platform coverage; 3) CI smoke with visual/payload assertions; 4) example-scenario-worker in parallel with playable feature scenarios for manual user validation.
 
 TASK ORDER
 1. [x] Close the bootstrap milestone with review evidence.
 2. [x] Make runtime module load and drive the Python lifecycle for a real script path.
 3. [x] Make backend module provide the first desktop loop owner and backend contract implementation.
 4. [x] Make api module dispatch real calls into the backend contract while preserving the stub contract.
-5. [x] Add an integration smoke proving examples/basic/main.py actually executes.
-6. [-] Keep Mermaid diagrams updated via flow-visualizer subagent as contracts evolve.
+5. [x] Add an integration smoke proving examples/basic_main.py actually executes.
+6. [ ] Activate and deliver api-direct-bridge-rich-returns (direct backend bindings and rich return-path semantics).
+7. [-] Keep Mermaid diagrams updated via flow-visualizer subagent as contracts evolve.
 
 TASK bootstrap-foundation
 title: Validate and close the infrastructure bootstrap
@@ -86,15 +88,29 @@ evidence: python/pycro/__init__.pyi remains registry-generated and stub drift ch
 next_action: Upgrade bridge dispatch to direct callable backend bindings with richer return-path semantics.
 ENDTASK
 
+TASK api-direct-bridge-rich-returns
+title: Replace queued API operation dispatch with direct backend bridge and rich return semantics
+phase: phase-2-api-direct-bridge
+owner: architecture-orchestrator
+status: in_progress
+depends_on: api-dispatch-basic-surface, basic-example-execution-smoke
+evidence: Objective and phase activated in tracker/state with branch aligned to codex/api-direct-bridge-rich-returns.
+evidence: docs/flow-mermaids.md updated to reflect direct API bridge path and removal of queued operation list from the dispatch flow.
+evidence: Runtime now installs direct RustPython callables for pycro API (queue drain path removed) and load_texture/frame_time/is_key_down return values propagate directly.
+evidence: Public API expanded with draw_text(text, position, font_size, color) and documented by ADR 0005 plus regenerated python/pycro/__init__.pyi.
+evidence: examples/ flattened to examples/*.py with shared examples/assets/ and stopwatch_seconds.py added for second-by-second manual validation.
+next_action: record explicit manual user playtest feedback for interactive scenarios, then hand to commit-steward for checkpoint commit
+ENDTASK
+
 TASK basic-example-execution-smoke
-title: Prove that examples/basic/main.py executes on the real desktop path
+title: Prove that examples/basic_main.py executes on the real desktop path
 phase: phase-1-basic-example
 owner: architecture-orchestrator
 status: complete
 depends_on: runtime-basic-example-loader, platform-desktop-macroquad-loop, api-dispatch-basic-surface
-evidence: cargo run -- examples/basic/main.py passes.
+evidence: cargo run -- examples/basic_main.py passes.
 evidence: setup() runs once, update(dt) runs inside Macroquad loop ownership, and backend api dispatch count is emitted.
-evidence: PYCRO_FRAMES=2 cargo run -- examples/basic/main.py validates non-simulated execution with deterministic frame budget.
+evidence: PYCRO_FRAMES=2 cargo run -- examples/basic_main.py validates non-simulated execution with deterministic frame budget.
 next_action: Add CI-friendly screenshot/assertion smoke for render payloads.
 ENDTASK
 

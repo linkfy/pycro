@@ -132,6 +132,10 @@ pub struct RegistrationFunction {
     pub function_name: &'static str,
     /// Family label.
     pub family: ApiFamily,
+    /// Ordered function arguments sourced from canonical metadata.
+    pub args: &'static [PythonArg],
+    /// Python return type hint sourced from canonical metadata.
+    pub return_type: &'static str,
     /// Support declaration.
     pub platforms: PlatformMatrix,
 }
@@ -163,6 +167,17 @@ pub enum BackendDispatchCommand {
     },
     /// `set_camera_target(target)`
     SetCameraTarget(Vec2),
+    /// `draw_text(text, position, font_size, color)`
+    DrawText {
+        /// Text content.
+        text: String,
+        /// Baseline anchor position.
+        position: Vec2,
+        /// Font size in pixels.
+        font_size: f32,
+        /// Text color.
+        color: Color,
+    },
 }
 
 /// Parses a runtime dispatch record into a typed backend command.
@@ -210,6 +225,20 @@ pub fn parse_backend_dispatch_record(record: &str) -> Result<BackendDispatchComm
             x: parse_f32(x)?,
             y: parse_f32(y)?,
         })),
+        ["draw_text", text, x, y, font_size, r, g, b, a] => Ok(BackendDispatchCommand::DrawText {
+            text: (*text).to_owned(),
+            position: Vec2 {
+                x: parse_f32(x)?,
+                y: parse_f32(y)?,
+            },
+            font_size: parse_f32(font_size)?,
+            color: Color {
+                r: parse_f32(r)?,
+                g: parse_f32(g)?,
+                b: parse_f32(b)?,
+                a: parse_f32(a)?,
+            },
+        }),
         _ => Err(format!("unsupported dispatch record: {record}")),
     }
 }
@@ -235,6 +264,12 @@ pub fn dispatch_backend_record(
             size,
         } => backend.draw_texture(&texture, position, size),
         BackendDispatchCommand::SetCameraTarget(target) => backend.set_camera_target(target),
+        BackendDispatchCommand::DrawText {
+            text,
+            position,
+            font_size,
+            color,
+        } => backend.draw_text(text.as_str(), position, font_size, color),
     }
     Ok(())
 }
@@ -317,7 +352,30 @@ const SET_CAMERA_TARGET_ARGS: [PythonArg; 1] = [PythonArg {
     summary: "Camera target in world space.",
 }];
 
-const FUNCTIONS: [PythonFunction; 7] = [
+const DRAW_TEXT_ARGS: [PythonArg; 4] = [
+    PythonArg {
+        name: "text",
+        type_hint: "str",
+        summary: "Text content to draw.",
+    },
+    PythonArg {
+        name: "position",
+        type_hint: "Vec2",
+        summary: "Screen-space baseline anchor.",
+    },
+    PythonArg {
+        name: "font_size",
+        type_hint: "float",
+        summary: "Font size in pixels.",
+    },
+    PythonArg {
+        name: "color",
+        type_hint: "Color",
+        summary: "Text color.",
+    },
+];
+
+const FUNCTIONS: [PythonFunction; 8] = [
     PythonFunction {
         name: "clear_background",
         family: ApiFamily::Render,
@@ -374,6 +432,14 @@ const FUNCTIONS: [PythonFunction; 7] = [
         return_type: "None",
         platforms: PlatformMatrix::cross_platform_safe(),
     },
+    PythonFunction {
+        name: "draw_text",
+        family: ApiFamily::Render,
+        summary: "Draw text in screen space using a baseline anchor.",
+        args: &DRAW_TEXT_ARGS,
+        return_type: "None",
+        platforms: PlatformMatrix::cross_platform_safe(),
+    },
 ];
 
 const MODULE_SPEC: ModuleSpec = ModuleSpec {
@@ -398,6 +464,8 @@ pub fn registration_plan() -> Vec<RegistrationFunction> {
             module_name: module_spec().module_name,
             function_name: function.name,
             family: function.family,
+            args: function.args,
+            return_type: function.return_type,
             platforms: function.platforms,
         })
         .collect()
@@ -501,6 +569,8 @@ mod tests {
 
         assert_eq!(plan.len(), spec.functions.len());
         assert_eq!(plan[0].module_name, spec.module_name);
+        assert_eq!(plan[0].args, spec.functions[0].args);
+        assert_eq!(plan[0].return_type, spec.functions[0].return_type);
     }
 
     #[test]
@@ -510,6 +580,33 @@ mod tests {
         for function in module_spec().functions {
             assert!(stub.contains(function.name), "missing {}", function.name);
         }
+    }
+
+    #[test]
+    fn metadata_and_stub_keep_direct_bridge_return_signatures() {
+        let stub = render_stub(module_spec());
+        let plan = registration_plan();
+
+        let is_key_down = plan
+            .iter()
+            .find(|entry| entry.function_name == "is_key_down")
+            .expect("is_key_down metadata should exist");
+        assert_eq!(is_key_down.return_type, "bool");
+        assert!(stub.contains("def is_key_down(key: str) -> bool:"));
+
+        let frame_time = plan
+            .iter()
+            .find(|entry| entry.function_name == "frame_time")
+            .expect("frame_time metadata should exist");
+        assert_eq!(frame_time.return_type, "float");
+        assert!(stub.contains("def frame_time() -> float:"));
+
+        let load_texture = plan
+            .iter()
+            .find(|entry| entry.function_name == "load_texture")
+            .expect("load_texture metadata should exist");
+        assert_eq!(load_texture.return_type, "TextureHandle");
+        assert!(stub.contains("def load_texture(path: str) -> TextureHandle:"));
     }
 
     #[test]
@@ -535,6 +632,7 @@ mod tests {
             }
             fn draw_texture(&mut self, _texture: &TextureHandle, _position: Vec2, _size: Vec2) {}
             fn set_camera_target(&mut self, _target: Vec2) {}
+            fn draw_text(&mut self, _text: &str, _position: Vec2, _font_size: f32, _color: Color) {}
         }
 
         let command = parse_backend_dispatch_record("clear_background|0.1|0.2|0.3|1.0")
