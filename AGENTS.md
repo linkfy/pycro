@@ -20,6 +20,7 @@ Operating rules:
 - Treat the docs above as the source of truth. If code and docs diverge, stop and reconcile.
 - Never work on `main`. Use `codex/<domain>-<task>` branches only.
 - One verified step per commit. Every implementation commit must include tracker updates, validation evidence, and a `qa-reviewer` outcome or an explicit waiver.
+- When all required validations pass, create a checkpoint commit immediately so there is always a stable rollback point.
 - Any change to lifecycle, public API, build strategy, stub generation contract, or platform guarantees requires an ADR entry under `docs/adr/`.
 - Workers do not hand raw logs to the orchestrator. They update concise summaries only: changed files, validation evidence, risks, follow-ups, and ADR/task references.
 - The canonical Python-facing API lives in Rust metadata inside the `api` module of `pycro_cli`. `python/pycro/__init__.pyi` must be generated from that metadata and checked for drift.
