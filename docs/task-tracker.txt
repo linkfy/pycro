@@ -1,0 +1,102 @@
+TASK TRACKER
+Human-readable plain text tracker.
+Keep this file in sync with state/repo-state.json.
+
+QUICK INDEX
+1. [x] bootstrap-foundation: Validate and close the infrastructure bootstrap. Phase 0 is closed with review outcome persisted and gates green.
+2. [-] flow-mermaid-views: Maintain Mermaid visualizations for lifecycle and dispatch. Active during phase 1 to keep diagrams aligned with contracts.
+3. [x] runtime-basic-example-loader: Load a real script path and dispatch setup plus update(dt) through runtime module. Complete.
+4. [x] platform-desktop-macroquad-loop: Provide the first desktop loop owner and backend contract implementation. Complete for phase-1 desktop slice.
+5. [x] api-dispatch-basic-surface: Connect the public pycro API registry to the backend contract without breaking stub generation. Complete.
+6. [x] basic-example-execution-smoke: Prove that examples/basic/main.py executes on the real desktop path. Complete.
+
+CURRENT OBJECTIVE
+id: objective-1-basic-example
+title: Execute examples/basic/main.py through the real engine path
+status: complete
+success_evidence: cargo run -- examples/basic/main.py loads main.py through RustPython, runs setup() once, dispatches update(dt) through desktop frame-loop ownership, and forwards pycro API operations into EngineBackend.
+orchestration: architecture-orchestrator delegated runtime/platform/api/docs/qa slices and merged validated outcomes.
+visualization: flow-visualizer diagrams updated for current lifecycle and dispatch path.
+phase_closeout: phase-1-basic-example implementation slice closed; next phase can start from objective-1 evidence baseline.
+qa_reviewer_outcome: pass (no blocking findings).
+
+TASK ORDER
+1. [x] Close the bootstrap milestone with review evidence.
+2. [x] Make runtime module load and drive the Python lifecycle for a real script path.
+3. [x] Make backend module provide the first desktop loop owner and backend contract implementation.
+4. [x] Make api module dispatch real calls into the backend contract while preserving the stub contract.
+5. [x] Add an integration smoke proving examples/basic/main.py actually executes.
+6. [-] Keep Mermaid diagrams updated as contracts evolve.
+
+TASK bootstrap-foundation
+title: Validate and close the infrastructure bootstrap
+phase: phase-0-foundation
+owner: architecture-orchestrator
+status: complete
+evidence: Governance docs, ADRs, tracker/state, workspace scaffold, generated stub file, CI workflow, cargo fmt --check, governance validation, cargo metadata --locked --no-deps, cargo test, cargo clippy --all-targets -- -D warnings, stub drift check, and mypy smoke all passed. qa-reviewer outcome recorded as pass for phase-0 closeout with no technical gate failures.
+next_action: Phase 0 closed. Hand off to runtime-basic-example-loader as the active phase-1 task.
+ENDTASK
+
+TASK flow-mermaid-views
+title: Maintain Mermaid visualizations for lifecycle and dispatch
+phase: phase-0-foundation
+owner: flow-visualizer
+status: in_progress
+depends_on: bootstrap-foundation
+evidence: docs/flow-mermaids.md created and parser-safe diagrams refreshed for lifecycle, dispatch, delivery, and phase-1 dependency order.
+next_action: Keep diagrams synced on every lifecycle/API contract change.
+ENDTASK
+
+TASK runtime-basic-example-loader
+title: Load a real script path and dispatch setup plus update(dt) through runtime module
+phase: phase-1-basic-example
+owner: runtime-worker
+status: complete
+depends_on: bootstrap-foundation
+evidence: RustPythonVm introduced with persistent interpreter and real script loading.
+evidence: Runtime installs pycro module aliases and lifecycle callable surface inside RustPython.
+evidence: setup() and update(dt) dispatch execute through real script path with stdout flushing for Python print visibility.
+next_action: Improve RustPython exception/report formatting in the next runtime slice.
+ENDTASK
+
+TASK platform-desktop-macroquad-loop
+title: Provide the first desktop Macroquad loop and backend contract implementation
+phase: phase-1-basic-example
+owner: platform-worker
+status: complete
+depends_on: bootstrap-foundation
+evidence: DesktopFrameLoop + FrameLoopConfig introduced as desktop loop owner boundary.
+evidence: Main CLI executes update(dt) through loop ownership and emits frame execution report.
+evidence: MacroquadBackendContract records backend dispatch operations for smoke evidence.
+next_action: Replace fixed loop internals with live Macroquad loop implementation.
+ENDTASK
+
+TASK api-dispatch-basic-surface
+title: Connect the public pycro API registry to the backend contract without breaking stub generation
+phase: phase-1-basic-example
+owner: api-worker
+status: complete
+depends_on: runtime-basic-example-loader, platform-desktop-macroquad-loop
+evidence: Runtime pycro API functions queue typed operations in module state.
+evidence: Runtime drains queued operations and dispatches render/assets/camera calls into EngineBackend.
+evidence: python/pycro/__init__.pyi remains registry-generated and stub drift checks still pass.
+next_action: Upgrade bridge dispatch to direct callable backend bindings with richer return-path semantics.
+ENDTASK
+
+TASK basic-example-execution-smoke
+title: Prove that examples/basic/main.py executes on the real desktop path
+phase: phase-1-basic-example
+owner: architecture-orchestrator
+status: complete
+depends_on: runtime-basic-example-loader, platform-desktop-macroquad-loop, api-dispatch-basic-surface
+evidence: cargo run -- examples/basic/main.py passes.
+evidence: setup() runs once, update(dt) runs through desktop loop owner, and backend api dispatch count is emitted.
+next_action: Add multi-frame smoke assertions and capability-specific dispatch expectations.
+ENDTASK
+
+STATUS VOCABULARY
+planned
+in_progress
+blocked
+in_review
+complete

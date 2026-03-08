@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "project": "pycro",
+  "phase": {
+    "id": "phase-1-basic-example",
+    "name": "Basic Example Execution",
+    "status": "complete"
+  },
+  "current_objective": {
+    "id": "objective-1-basic-example",
+    "title": "Execute examples/basic/main.py through the real engine path",
+    "status": "complete",
+    "success_evidence": [
+      "cargo run -- examples/basic/main.py executes through desktop frame-loop ownership",
+      "RustPython loads main.py and runs optional setup() exactly once",
+      "update(dt) is dispatched every frame configured by FrameLoopConfig",
+      "Queued pycro API operations are dispatched into EngineBackend"
+    ],
+    "blockers": [],
+    "orchestration_evidence": [
+      "architecture-orchestrator brief collected",
+      "runtime-worker implementation brief collected",
+      "platform-worker implementation brief collected",
+      "api-worker implementation brief collected",
+      "flow-visualizer role added for Mermaid diagram ownership",
+      "phase-1 runtime/platform/api/docs/qa orchestration pass complete",
+      "qa-reviewer outcome recorded: pass for phase-1 objective closeout"
+    ]
+  },
+  "current_branch": "codex/runtime-basic-example-loader",
+  "summary_contract": {
+    "allowed_fields": [
+      "changed_files",
+      "validation_evidence",
+      "risks",
+      "follow_ups",
+      "adr_refs",
+      "tracker_refs"
+    ],
+    "raw_logs_allowed": false
+  },
+  "tasks": [
+    {
+      "id": "bootstrap-foundation",
+      "title": "Validate and close the infrastructure bootstrap",
+      "phase": "phase-0-foundation",
+      "owner": "architecture-orchestrator",
+      "status": "complete",
+      "evidence": [
+        "Directory cleaned",
+        "Git initialized on codex/bootstrap-workspace",
+        "Governance docs and ADR log created",
+        "Cargo workspace scaffolded and later simplified to single-crate pycro_cli with module boundaries",
+        "Canonical stub file generated at python/pycro/__init__.pyi",
+        "cargo fmt --all --check passed",
+        "python3 scripts/validate_governance.py passed",
+        "cargo metadata --format-version 1 --locked --no-deps passed",
+        "cargo test passed",
+        "cargo clippy --all-targets -- -D warnings passed",
+        "cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi passed",
+        "python3 -m mypy --config-file pyproject.toml passed",
+        "qa-reviewer outcome recorded: pass for phase-0 closeout; no technical gate failures remain",
+        "docs-tracker synced tracker/state for phase handoff to phase-1",
+        "phase-1 handoff approved: runtime-basic-example-loader is the next active task"
+      ],
+      "next_action": "Phase 0 closed. Hand off to runtime-basic-example-loader as the active phase-1 task.",
+      "adr_refs": [
+        "0001",
+        "0002",
+        "0003"
+      ]
+    },
+    {
+      "id": "flow-mermaid-views",
+      "title": "Maintain Mermaid visualizations for lifecycle and dispatch",
+      "phase": "phase-0-foundation",
+      "owner": "flow-visualizer",
+      "status": "in_progress",
+      "depends_on": [
+        "bootstrap-foundation"
+      ],
+      "evidence": [
+        "docs/flow-mermaids.md created and parser-safe diagrams refreshed for lifecycle, dispatch, delivery, and phase-1 dependency order"
+      ],
+      "next_action": "Keep diagrams synced on every lifecycle/API contract change.",
+      "adr_refs": [
+        "0001",
+        "0002",
+        "0003"
+      ]
+    },
+    {
+      "id": "runtime-basic-example-loader",
+      "title": "Load a real script path and dispatch setup plus update(dt) through runtime module",
+      "phase": "phase-1-basic-example",
+      "owner": "runtime-worker",
+      "status": "complete",
+      "depends_on": [
+        "bootstrap-foundation"
+      ],
+      "evidence": [
+        "RustPythonVm introduced with persistent interpreter and real script loading",
+        "Runtime installs pycro module aliases and lifecycle callable surface inside RustPython",
+        "setup()/update(dt) dispatch execute on real script path with Python stdout flush"
+      ],
+      "next_action": "Improve RustPython exception/report formatting in the next runtime slice.",
+      "adr_refs": [
+        "0001"
+      ]
+    },
+    {
+      "id": "platform-desktop-macroquad-loop",
+      "title": "Provide the first desktop Macroquad loop and backend contract implementation",
+      "phase": "phase-1-basic-example",
+      "owner": "platform-worker",
+      "status": "complete",
+      "depends_on": [
+        "bootstrap-foundation"
+      ],
+      "evidence": [
+        "DesktopFrameLoop + FrameLoopConfig introduced as desktop loop owner boundary",
+        "CLI execution now runs update(dt) via frame-loop ownership",
+        "MacroquadBackendContract records backend dispatch operations for smoke evidence"
+      ],
+      "next_action": "Replace fixed loop internals with live Macroquad loop implementation.",
+      "adr_refs": [
+        "0001"
+      ]
+    },
+    {
+      "id": "api-dispatch-basic-surface",
+      "title": "Connect the public pycro API registry to the backend contract without breaking stub generation",
+      "phase": "phase-1-basic-example",
+      "owner": "api-worker",
+      "status": "complete",
+      "depends_on": [
+        "runtime-basic-example-loader",
+        "platform-desktop-macroquad-loop"
+      ],
+      "evidence": [
+        "Runtime pycro module now queues typed API operations in module state",
+        "Runtime drains queue and dispatches render/assets/camera calls into EngineBackend",
+        "Stub generator and metadata contract remain unchanged and validated"
+      ],
+      "next_action": "Upgrade bridge dispatch to direct callable backend bindings with richer return-path semantics.",
+      "adr_refs": [
+        "0002"
+      ]
+    },
+    {
+      "id": "basic-example-execution-smoke",
+      "title": "Prove that examples/basic/main.py executes on the real desktop path",
+      "phase": "phase-1-basic-example",
+      "owner": "architecture-orchestrator",
+      "status": "complete",
+      "depends_on": [
+        "runtime-basic-example-loader",
+        "platform-desktop-macroquad-loop",
+        "api-dispatch-basic-surface"
+      ],
+      "evidence": [
+        "cargo run -- examples/basic/main.py passes",
+        "setup() runs once and update(dt) executes through desktop loop owner",
+        "backend api dispatch count is emitted as smoke evidence"
+      ],
+      "next_action": "Add multi-frame smoke assertions and capability-specific dispatch expectations.",
+      "adr_refs": [
+        "0001",
+        "0002"
+      ]
+    }
+  ]
+}

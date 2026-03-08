@@ -1,0 +1,34 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - "codex/**"
+      - main
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install typing checker
+        run: python3 -m pip install mypy==1.18.2
+      - name: Governance
+        run: python3 scripts/validate_governance.py
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Lint
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Test
+        run: cargo test
+      - name: Stub Drift
+        run: cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi
+      - name: Typing Smoke
+        run: python3 -m mypy --config-file pyproject.toml

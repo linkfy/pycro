@@ -1,0 +1,7 @@
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "python"
+strict = true
+files = ["examples"]
+warn_unused_configs = true
+
