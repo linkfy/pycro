@@ -52,16 +52,21 @@ flowchart TD
     L --> G
 ```
 
-## Delivery Flow (Current Governance)
+## Delivery Flow (Current Governance And Manual Playtest Gate)
 
 ```mermaid
 flowchart TD
     A[architecture orchestrator] --> B[domain workers]
-    B --> C[qa reviewer]
-    C --> D{findings present}
-    D -- yes --> E[fix and re review]
-    E --> C
-    D -- no --> F[docs tracker sync tracker and state]
-    F --> G[flow visualizer refresh mermaids]
-    G --> H[commit eligible]
+    A --> C[example-scenario-worker]
+    B --> D[qa reviewer]
+    C --> E[user manual playtest feedback]
+    D --> F{findings present}
+    F -- yes --> G[fix and re review]
+    G --> D
+    F -- no --> H[docs tracker sync tracker and state]
+    E --> I{feedback recorded}
+    I -- no --> C
+    I -- yes --> H
+    H --> J[flow visualizer refresh mermaids]
+    J --> K[commit steward creates checkpoint commit]
 ```
