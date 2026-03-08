@@ -21,6 +21,7 @@ phase_closeout: phase-1-basic-example implementation slice closed; next phase ca
 qa_reviewer_outcome: pass (no blocking findings).
 next_focus: 1) bridge API directo con retornos ricos, 2) input/texturas/cobertura plataforma, 3) smoke CI con aserciones visuales/payload.
 concurrency_note: example-scenario-worker genera ejemplos jugables por feature en paralelo a esos frentes.
+follow_through_order: 1) bridge API directo con retornos más ricos; 2) ampliar input/texturas/cobertura plataforma; 3) smoke CI con aserciones visuales/payload; 4) example-scenario-worker en paralelo creando ejemplos jugables por feature para validación manual del usuario.
 
 TASK ORDER
 1. [x] Close the bootstrap milestone with review evidence.

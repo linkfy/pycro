@@ -25,6 +25,12 @@
       "flow-visualizer role added for Mermaid diagram ownership",
       "phase-1 runtime/platform/api/docs/qa orchestration pass complete",
       "qa-reviewer outcome recorded: pass for phase-1 objective closeout"
+    ],
+    "follow_through_order": [
+      "bridge API directo con retornos m\u00e1s ricos",
+      "ampliar input/texturas/cobertura plataforma",
+      "smoke CI con aserciones visuales/payload",
+      "example-scenario-worker en paralelo creando ejemplos jugables por feature para validaci\u00f3n manual del usuario"
     ]
   },
   "current_branch": "codex/runtime-basic-example-loader",
