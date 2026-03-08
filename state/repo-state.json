@@ -192,7 +192,9 @@
         "docs/flow-mermaids.md updated to show direct API bridge dispatch path with no queued operation list",
         "Runtime installs direct RustPython callables for pycro API and removes queue-drain dispatch path",
         "draw_text API added across metadata/runtime/backend and ADR 0005 created",
-        "examples flattened to examples/*.py with shared examples/assets and stopwatch_seconds.py scenario"
+        "examples flattened to examples/*.py with shared examples/assets and stopwatch_seconds.py scenario",
+        "example-scenario-worker policy now defaults texture scenarios to the Kenney shared pack and requires explicit asset-path documentation",
+        "Added pack-focused playable scenarios (pack_checkerboard_pan.py, pack_gradient_cycle.py, pack_noise_scanner.py) using examples/assets/kenney_development_essentials"
       ],
       "next_action": "record explicit manual user playtest feedback for interactive scenarios, then hand to commit-steward for checkpoint commit",
       "adr_refs": [

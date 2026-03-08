@@ -48,6 +48,8 @@ The main thread should avoid carrying large implementation context directly; del
 
 For user-visible engine features (for example: textures, movement, FX, audio, camera), `example-scenario-worker` must add or update a dedicated playable case under `examples/`. The final acceptance gate requires explicit user feedback after running the scenario, because agents cannot fully validate interactive event-loop behavior autonomously.
 Example layout rule: scenario scripts live at `examples/*.py` (flat). Shared assets live at `examples/assets/`.
+Texture policy for `example-scenario-worker`: texture-driven scenarios must default to `examples/assets/kenney_development_essentials/` assets and only use ad-hoc assets when the Kenney pack cannot cover the scenario.
+Scenario documentation policy: every new texture scenario must state which pack files it uses in `examples/README.md`.
 
 ## Documentation Discipline
 

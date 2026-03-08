@@ -99,6 +99,8 @@ evidence: docs/flow-mermaids.md updated to reflect direct API bridge path and re
 evidence: Runtime now installs direct RustPython callables for pycro API (queue drain path removed) and load_texture/frame_time/is_key_down return values propagate directly.
 evidence: Public API expanded with draw_text(text, position, font_size, color) and documented by ADR 0005 plus regenerated python/pycro/__init__.pyi.
 evidence: examples/ flattened to examples/*.py with shared examples/assets/ and stopwatch_seconds.py added for second-by-second manual validation.
+evidence: example-scenario-worker policy now defaults texture scenarios to the Kenney shared pack and requires explicit asset-path documentation.
+evidence: Added pack-focused playable scenarios (pack_checkerboard_pan.py, pack_gradient_cycle.py, pack_noise_scanner.py) using examples/assets/kenney_development_essentials.
 next_action: record explicit manual user playtest feedback for interactive scenarios, then hand to commit-steward for checkpoint commit
 ENDTASK
 
