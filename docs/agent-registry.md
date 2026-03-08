@@ -7,6 +7,7 @@
 | platform-worker | worker | gpt-5.4, reasoning medium | Macroquad loop, rendering/input/assets, capability boundaries | platform matrix, architecture plan | platform code, capability evidence, summary risks |
 | api-worker | worker | gpt-5.4, reasoning medium | `pycro` module API, stub generation metadata, examples, typing surface | architecture plan, stub ADRs | API metadata, generated stubs, examples, typing evidence |
 | qa-reviewer | default | gpt-5.4, reasoning high | post-implementation review gate | diff, tracker evidence, validation results | blocking findings or explicit waiver |
+| commit-steward | default | gpt-5.4, reasoning medium | checkpoint commit discipline after green validations | qa outcome, validation evidence, tracker/state sync status | commit created (or blocked with explicit reason), commit sha, concise commit summary |
 | docs-tracker | explorer | gpt-5.4, reasoning low | concise state snapshots, phase logs, ADR refs, evidence links | worker summaries, ADR ids, review outcome | updated tracker and machine state |
 | flow-visualizer | explorer | gpt-5.4, reasoning medium | Mermaid flow diagrams for lifecycle, API dispatch, and delivery pipeline clarity | architecture plan, tracker/state, worker summaries | versioned Mermaid diagrams and concise narrative for decision/review |
 
