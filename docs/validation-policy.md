@@ -17,3 +17,4 @@ Implementation work is not commit-ready until all applicable checks pass and evi
 - Lifecycle changes require runtime tests.
 - Public API changes require stub drift checks and typing smoke.
 - Platform guarantee changes require a platform matrix update and an ADR.
+- User-visible interactive features require a playable `examples/` scenario per feature and explicit user feedback recorded in tracker evidence.

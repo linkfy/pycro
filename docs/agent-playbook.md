@@ -18,6 +18,7 @@ The main thread should avoid carrying large implementation context directly; del
 
 - `architecture-orchestrator`
 - one or two domain workers
+- `example-scenario-worker` when a new runtime/platform/API feature needs a playable scenario in `examples/`
 - `qa-reviewer`
 - `docs-tracker`
 - `flow-visualizer` when the change affects lifecycle, dispatch, or integration sequencing
@@ -42,6 +43,10 @@ The main thread should avoid carrying large implementation context directly; del
 ## Commit Gate
 
 `commit-steward` is mandatory after green validations for implementation work. The steward creates a checkpoint commit immediately, or reports an explicit blocking reason if commit preconditions are not met.
+
+## Manual Playtest Gate
+
+For user-visible engine features (for example: textures, movement, FX, audio, camera), `example-scenario-worker` must add or update a dedicated playable case under `examples/`. The final acceptance gate requires explicit user feedback after running the scenario, because agents cannot fully validate interactive event-loop behavior autonomously.
 
 ## Documentation Discipline
 
