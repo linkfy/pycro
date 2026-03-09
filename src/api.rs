@@ -375,7 +375,13 @@ const DRAW_TEXT_ARGS: [PythonArg; 4] = [
     },
 ];
 
-const FUNCTIONS: [PythonFunction; 8] = [
+const SUBMIT_RENDER_ARGS: [PythonArg; 1] = [PythonArg {
+    name: "commands",
+    type_hint: "list[tuple[object, ...]]",
+    summary: "Ordered render command payload for batched submission.",
+}];
+
+const FUNCTIONS: [PythonFunction; 9] = [
     PythonFunction {
         name: "clear_background",
         family: ApiFamily::Render,
@@ -437,6 +443,14 @@ const FUNCTIONS: [PythonFunction; 8] = [
         family: ApiFamily::Render,
         summary: "Draw text in screen space using a baseline anchor.",
         args: &DRAW_TEXT_ARGS,
+        return_type: "None",
+        platforms: PlatformMatrix::cross_platform_safe(),
+    },
+    PythonFunction {
+        name: "submit_render",
+        family: ApiFamily::Render,
+        summary: "Queue multiple render commands in one Python-to-runtime call.",
+        args: &SUBMIT_RENDER_ARGS,
         return_type: "None",
         platforms: PlatformMatrix::cross_platform_safe(),
     },
