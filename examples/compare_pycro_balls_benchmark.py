@@ -24,7 +24,7 @@ AUTO_TARGETS = tuple(
 )
 AUTO_STEP_INTERVAL_SECONDS = float(os.getenv("BENCHMARK_AUTO_STEP_INTERVAL", "0.08"))
 AUTO_HOLD_SECONDS = float(os.getenv("BENCHMARK_AUTO_HOLD_SECONDS", "2.5"))
-AUTO_SESSION_SECONDS = float(os.getenv("BENCHMARK_AUTO_SESSION_SECONDS", "5"))
+AUTO_SESSION_SECONDS = float(os.getenv("BENCHMARK_AUTO_SESSION_SECONDS", "3"))
 
 RUNTIME_NAME = "pycro"
 STABLE_FPS_THRESHOLD = float(TARGET_FPS) * FPS_STABLE_RATIO
@@ -62,6 +62,19 @@ _summary_emitted = False
 _hud_refresh_in = 0.0
 _hud_lines: list[str] = []
 _session_initial_balls = INITIAL_BALLS
+_clear_render_command: list[object] = ["clear_background", (0.05, 0.06, 0.08, 1.0)]
+_circle_render_commands: list[list[object]] = []
+_hud_render_commands: list[list[object]] = [
+    ["draw_circle", (240.0, 98.0), 205.0, (0.0, 0.0, 0.0, 0.82)],
+    ["draw_circle", (340.0, 160.0), 150.0, (0.0, 0.0, 0.0, 0.82)],
+    ["draw_text", "", (20.0, 32.0), 28.0, (0.98, 0.98, 0.98, 1.0)],
+    ["draw_text", "", (20.0, 62.0), 24.0, (0.82, 0.90, 1.00, 1.0)],
+    ["draw_text", "", (20.0, 90.0), 24.0, (0.95, 0.84, 0.50, 1.0)],
+    ["draw_text", "", (20.0, 118.0), 24.0, (0.85, 0.92, 0.62, 1.0)],
+    ["draw_text", "", (20.0, 146.0), 22.0, (0.95, 0.84, 0.50, 1.0)],
+    ["draw_text", "", (20.0, 172.0), 22.0, (0.75, 0.87, 0.75, 1.0)],
+]
+_render_commands: list[list[object]] = []
 
 
 def _ball_count() -> int:
@@ -127,6 +140,8 @@ def _set_ball_count(count: int) -> None:
         _append_random_ball()
     while _ball_count() > target:
         _remove_last_ball()
+    _sync_circle_render_commands_for_ball_count()
+    _rebuild_render_commands()
 
 
 def _consume_left_repeat(is_down: bool, dt: float) -> bool:
@@ -220,6 +235,7 @@ def _refresh_hud_lines() -> None:
     _hud_lines.append(f"best stable balls: {_best_stable_balls}")
     _hud_lines.append(f"stable seconds: {_stable_sample_seconds}")
     _hud_lines.append(f"targets nearest: {_nearest_summary_cache}")
+    _sync_hud_render_commands()
 
 
 def _emit_summary(reason: str) -> None:
@@ -243,17 +259,27 @@ def _emit_summary(reason: str) -> None:
     )
 
 
-def _draw_hud() -> None:
-    backdrop = (0.0, 0.0, 0.0, 0.82)
-    pycro.draw_circle((240.0, 98.0), 205.0, backdrop)
-    pycro.draw_circle((340.0, 160.0), 150.0, backdrop)
+def _sync_circle_render_commands_for_ball_count() -> None:
+    target = _ball_count()
+    while len(_circle_render_commands) < target:
+        i = len(_circle_render_commands)
+        _circle_render_commands.append(
+            ["draw_circle", [_ball_x[i], _ball_y[i]], _ball_radius[i], _ball_color[i]]
+        )
+    while len(_circle_render_commands) > target:
+        _circle_render_commands.pop()
 
-    pycro.draw_text(_hud_lines[0], (20.0, 32.0), 28.0, (0.98, 0.98, 0.98, 1.0))
-    pycro.draw_text(_hud_lines[1], (20.0, 62.0), 24.0, (0.82, 0.90, 1.00, 1.0))
-    pycro.draw_text(_hud_lines[2], (20.0, 90.0), 24.0, (0.95, 0.84, 0.50, 1.0))
-    pycro.draw_text(_hud_lines[3], (20.0, 118.0), 24.0, (0.85, 0.92, 0.62, 1.0))
-    pycro.draw_text(_hud_lines[4], (20.0, 146.0), 22.0, (0.95, 0.84, 0.50, 1.0))
-    pycro.draw_text(_hud_lines[5], (20.0, 172.0), 22.0, (0.75, 0.87, 0.75, 1.0))
+
+def _sync_hud_render_commands() -> None:
+    for i, line in enumerate(_hud_lines):
+        _hud_render_commands[i + 2][1] = line
+
+
+def _rebuild_render_commands() -> None:
+    _render_commands.clear()
+    _render_commands.append(_clear_render_command)
+    _render_commands.extend(_circle_render_commands)
+    _render_commands.extend(_hud_render_commands)
 
 
 def setup() -> None:
@@ -268,6 +294,7 @@ def setup() -> None:
     _stable_sample_seconds = 0
     _record_nearest_targets()
     _refresh_hud_lines()
+    _rebuild_render_commands()
     _hud_refresh_in = HUD_REFRESH_SECONDS
     _log_event(
         "session_start",
@@ -331,6 +358,9 @@ def update(dt: float) -> None:
         _ball_y[i] = y
         _ball_vx[i] = vx
         _ball_vy[i] = vy
+        command_position: list[float] = _circle_render_commands[i][1]  # type: ignore[assignment]
+        command_position[0] = x
+        command_position[1] = y
 
     _wall_sample_time += wall_dt
     _sim_sample_time += sim_dt
@@ -370,9 +400,4 @@ def update(dt: float) -> None:
         _refresh_hud_lines()
         _hud_refresh_in = HUD_REFRESH_SECONDS
 
-    pycro.clear_background((0.05, 0.06, 0.08, 1.0))
-
-    for i in range(count):
-        pycro.draw_circle((_ball_x[i], _ball_y[i]), _ball_radius[i], _ball_color[i])
-
-    _draw_hud()
+    pycro.submit_render(_render_commands)  # type: ignore[arg-type]

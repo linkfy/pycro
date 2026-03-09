@@ -213,6 +213,8 @@ pub fn window_conf() -> Conf {
 #[derive(Debug)]
 pub struct MacroquadBackendContract {
     frame_time: f32,
+    dispatch_count: usize,
+    #[cfg(test)]
     dispatch_log: Vec<BackendDispatch>,
     textures: HashMap<String, Texture2D>,
 }
@@ -221,6 +223,8 @@ impl Default for MacroquadBackendContract {
     fn default() -> Self {
         Self {
             frame_time: 0.016,
+            dispatch_count: 0,
+            #[cfg(test)]
             dispatch_log: Vec::new(),
             textures: HashMap::new(),
         }
@@ -236,7 +240,20 @@ impl MacroquadBackendContract {
     /// Returns collected dispatch operations.
     #[must_use]
     pub fn dispatch_log(&self) -> &[BackendDispatch] {
-        &self.dispatch_log
+        #[cfg(test)]
+        {
+            &self.dispatch_log
+        }
+        #[cfg(not(test))]
+        {
+            &[]
+        }
+    }
+
+    /// Returns total dispatched backend operations.
+    #[must_use]
+    pub const fn dispatch_count(&self) -> usize {
+        self.dispatch_count
     }
 }
 
@@ -254,12 +271,16 @@ fn key_code_from_name(key: &str) -> Option<KeyCode> {
 
 impl EngineBackend for MacroquadBackendContract {
     fn clear_background(&mut self, color: Color) {
+        self.dispatch_count += 1;
+        #[cfg(test)]
         self.dispatch_log
             .push(BackendDispatch::ClearBackground(color));
         clear_background(color.into());
     }
 
     fn draw_circle(&mut self, position: Vec2, radius: f32, color: Color) {
+        self.dispatch_count += 1;
+        #[cfg(test)]
         self.dispatch_log.push(BackendDispatch::DrawCircle {
             position,
             radius,
@@ -277,6 +298,8 @@ impl EngineBackend for MacroquadBackendContract {
     }
 
     fn load_texture(&mut self, path: &str) -> Result<TextureHandle, String> {
+        self.dispatch_count += 1;
+        #[cfg(test)]
         self.dispatch_log
             .push(BackendDispatch::LoadTexture(path.to_owned()));
 
@@ -291,6 +314,8 @@ impl EngineBackend for MacroquadBackendContract {
     }
 
     fn draw_texture(&mut self, texture: &TextureHandle, position: Vec2, size: Vec2) {
+        self.dispatch_count += 1;
+        #[cfg(test)]
         self.dispatch_log.push(BackendDispatch::DrawTexture {
             texture: texture.clone(),
             position,
@@ -316,6 +341,8 @@ impl EngineBackend for MacroquadBackendContract {
     }
 
     fn set_camera_target(&mut self, target: Vec2) {
+        self.dispatch_count += 1;
+        #[cfg(test)]
         self.dispatch_log
             .push(BackendDispatch::SetCameraTarget(target));
 
@@ -331,6 +358,8 @@ impl EngineBackend for MacroquadBackendContract {
     }
 
     fn draw_text(&mut self, text: &str, position: Vec2, font_size: f32, color: Color) {
+        self.dispatch_count += 1;
+        #[cfg(test)]
         self.dispatch_log.push(BackendDispatch::DrawText {
             text: text.to_owned(),
             position,

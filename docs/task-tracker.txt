@@ -27,10 +27,11 @@ orchestration: architecture-orchestrator closed phase-4 stdlib objective, activa
 visualization: flow-visualizer update pending for phase-5 input/texture/platform flow changes.
 phase_closeout: pending
 qa_reviewer_outcome: pending
-next_focus: 1) keep phase-5 benchmark protocol on canonical wall_fps with short 3000/5s checks, 2) complete 3-run comparative evidence table for pycro vs pygame at 3000 (and 6000 escalation once stable), 3) continue non-benchmark input/texture/platform capability expansion before phase closeout.
+next_focus: 1) launch phase-3 investigation with parallel subagents (runtime/backend path, benchmark-script path, measurement auditor), 2) run before/after comparisons at 25000 using direct 3-second protocol, 3) target pycro wall_fps >= pygame-ce reference baseline (41-43) while preserving 3000/6000 guardrails.
+phase3_plan_doc: docs/perf-phase-3-plan.md
 concurrency_note: example-scenario-worker continues generating playable scenarios in parallel for user-visible interactions.
 follow_through_order: 1) runtime-draw-flush-batch slice implementation and evidence capture; 2) expand input/textures/platform coverage; 3) CI smoke with visual/payload assertions; 4) manual user playtest evidence collection.
-phase_pending_checklist: E) capture 3-run evidence table for pycro vs pygame using the short protocol (3000/5s baseline, escalate to 6000 when stable).
+phase_pending_checklist: R3-A) freeze 3-run direct before/after medians at 25000 with 3-second sessions and stack metadata, R3-B) execute parallel optimization slices and keep only patches with positive median delta, R3-C) verify no >5% regression at 3000/6000 before checkpoint commit.
 
 ISOLATED PARALLEL PHASE
 id: phase-compare-benchmark
@@ -39,7 +40,7 @@ status: in_progress
 isolation: non_blocking_parallel_stream
 objective: Implement equivalent pycro and pygame benchmark scripts with the same controls and per-second FPS sampling.
 success_evidence: Both scripts support Left/Right ball count changes in steps of 50, random-color bouncing balls, and HUD metrics (`balls`, `fps`, `target_fps`, `best stable balls`).
-next_focus: 1) run comparative passes on target hardware; 2) capture stable-ball thresholds for each runtime; 3) record acceptance evidence in tracker/state.
+next_focus: 1) run all exploratory comparisons with direct 3-second protocol per runtime (no mixed logs), 2) keep pygame-ce 41-43 as reference target and macroquad-direct as ceiling evidence, 3) execute before/after tables per optimization slice and keep only positive slices.
 
 TASK ORDER
 1. [x] Close the bootstrap milestone with review evidence.
@@ -190,7 +191,11 @@ evidence: Added public API `submit_render(commands)` with runtime batch parser/q
 evidence: ADR 0009 accepted for batched render submission API contract and stub/source-of-truth updates.
 evidence: Short canonical benchmark protocol now uses 3000 start + 5 second auto session with wall_fps as primary signal.
 evidence: `cargo run --release -- examples/compare_pycro_balls_benchmark.py` with short auto protocol reached stable wall_fps above 60 for both 3000 balls (~120 wall_fps summary) and 6000 balls (~79 wall_fps summary).
-next_action: complete remaining 3-run comparative evidence (pycro vs pygame) under the short 3000/5s protocol and keep 6000 escalation evidence updated when stability holds.
+evidence: Phase-3 baseline at 25000 (direct, 5s) improved pycro from ~19-20 to ~22 wall_fps after first runtime+benchmark optimization slice; still below pygame-ce reference.
+evidence: macroquad-direct 25000 benchmark reached ~112-117 wall_fps (user observed ~80.37), confirming macroquad backend is not the bottleneck and optimization focus must stay on Python->runtime bridge overhead.
+evidence: Direct 3-second baseline refresh at 25000 recorded pycro=23.29 wall_fps, pygame-ce(.venv314)=33.37 wall_fps, and macroquad_direct=81.16 wall_fps, confirming headroom remains backend-side and bottleneck remains bridge/runtime path.
+evidence: Phase-3 execution plan documented in docs/perf-phase-3-plan.md with parallel subagent ownership, before/after median loop, and guardrail gates.
+next_action: execute phase-3 parallel slices with 3-second direct before/after comparisons at 25000, then persist medians and keep only slices that move pycro toward or above pygame-ce.
 ENDTASK
 
 TASK ci-visual-payload-smoke
@@ -234,10 +239,16 @@ evidence: `examples/compare_pycro_balls_benchmark.py` added with per-second FPS 
 evidence: `examples/compare_pygame_balls_benchmark.py` added with equivalent simulation and HUD contract.
 evidence: `examples/compare/README.md` added with run protocol and results template for pycro vs pygame measurements.
 evidence: both compare scripts now emit homogeneous benchmark logs (`session_start`, `sample`, `summary`) with stable/unstable status, stable_sample_seconds, and nearest target tracking for 3000/4000.
-evidence: Auto benchmark defaults now align to short protocol (`initial_balls=3000`, `session_seconds=5`) and accept `BENCHMARK_AUTO_INITIAL_BALLS` so scripted runs can escalate to 6000.
-evidence: Release-path pycro evidence confirms >60 wall_fps stability at 3000 and 6000 in 5-second auto runs.
+evidence: Auto benchmark defaults now align to short protocol (`initial_balls=3000`, `session_seconds=3`) and accept `BENCHMARK_AUTO_INITIAL_BALLS` so scripted runs can escalate to 6000.
+evidence: Release-path pycro evidence confirms >60 wall_fps stability at 3000 and 6000 in short auto runs; 25000 remains below pygame-ce reference and is now the optimization focus.
 evidence: Headless pygame short-protocol run at 3000/5s reported ~55.84 wall_fps summary (below 57 stable threshold), preserving a useful contrast baseline for pycro optimizations.
-next_action: run and persist full 3-run pycro vs pygame comparative table at 3000/5s, then keep 6000 escalation checks as follow-on stress evidence.
+evidence: Direct pygame runs under Python 3.14.2 + pygame-ce 2.5.7 (SDL 2.32.10) at 25000/5s reported ~40.84-42.58 wall_fps, confirming the user-observed 41-43 reference range on modern pygame-ce stacks.
+evidence: Legacy local stack Python 3.9.5 + pygame 2.4.0 (SDL 2.26.4) produced only ~19-20 wall_fps at 25000/5s, so stack/version parity is now mandatory benchmark metadata.
+evidence: macroquad direct benchmark (`cargo run --release --bin macroquad_direct_balls_benchmark`) at 25000 produced ~112-117 wall_fps in this environment, establishing backend headroom above pycro and pygame-ce.
+evidence: Phase-3 benchmark protocol defaults were reduced to 3-second sessions for faster before/after iteration loops.
+evidence: Direct 3-second baseline refresh at 25000 recorded pycro=23.29 wall_fps, pygame-ce(.venv314)=33.37 wall_fps, and macroquad_direct=81.16 wall_fps.
+evidence: docs/perf-phase-3-plan.md defines parallel subagent slices, ownership boundaries, and before/after median acceptance criteria for context reset handoff.
+next_action: execute phase-3 parallel slices with 3-second direct before/after comparisons at 25000, then persist medians and keep only slices that move pycro toward or above pygame-ce.
 ENDTASK
 
 STATUS VOCABULARY

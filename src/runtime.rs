@@ -4,7 +4,7 @@ use crate::api::{
     ENTRYPOINT_SCRIPT, MODULE_NAME, SETUP_FUNCTION, UPDATE_FUNCTION, registration_plan,
 };
 use crate::backend::{Color, EngineBackend, MacroquadBackendContract, TextureHandle, Vec2};
-use rustpython_vm::builtins::{PyBaseExceptionRef, PyDictRef};
+use rustpython_vm::builtins::{PyBaseExceptionRef, PyDictRef, PyList, PyTuple};
 use rustpython_vm::scope::Scope;
 use rustpython_vm::{AsObject, Interpreter, PyObjectRef, PyResult, VirtualMachine};
 use std::collections::HashSet;
@@ -217,7 +217,7 @@ impl std::fmt::Debug for RustPythonVm {
         let backend_dispatches = self
             .backend
             .lock()
-            .map(|backend| backend.dispatch_log().len())
+            .map(|backend| backend.dispatch_count())
             .unwrap_or_default();
         let queued_draw_ops = self
             .draw_batch
@@ -312,31 +312,68 @@ impl RustPythonVm {
     }
 
     fn parse_vec2_py(vm: &VirtualMachine, object: PyObjectRef, context: &str) -> PyResult<Vec2> {
-        let values: Vec<f64> = object
-            .try_into_value(vm)
-            .map_err(|_| vm.new_value_error(format!("{context}: expected Vec2 tuple")))?;
-        if values.len() != 2 {
-            return Err(vm.new_value_error(format!("{context}: expected Vec2 tuple length 2")));
-        }
-        Ok(Vec2 {
-            x: values[0] as f32,
-            y: values[1] as f32,
+        Self::with_sequence_items_py(vm, &object, "Vec2 tuple", |items| {
+            if items.len() != 2 {
+                return Err(vm.new_value_error(format!("{context}: expected Vec2 tuple length 2")));
+            }
+            let x: f64 = items[0].clone().try_into_value(vm).map_err(|_| {
+                vm.new_value_error(format!("{context}: expected Vec2 tuple elements as float"))
+            })?;
+            let y: f64 = items[1].clone().try_into_value(vm).map_err(|_| {
+                vm.new_value_error(format!("{context}: expected Vec2 tuple elements as float"))
+            })?;
+            Ok(Vec2 {
+                x: x as f32,
+                y: y as f32,
+            })
         })
     }
 
     fn parse_color_py(vm: &VirtualMachine, object: PyObjectRef, context: &str) -> PyResult<Color> {
-        let values: Vec<f64> = object
-            .try_into_value(vm)
-            .map_err(|_| vm.new_value_error(format!("{context}: expected Color tuple")))?;
-        if values.len() != 4 {
-            return Err(vm.new_value_error(format!("{context}: expected Color tuple length 4")));
-        }
-        Ok(Color {
-            r: values[0] as f32,
-            g: values[1] as f32,
-            b: values[2] as f32,
-            a: values[3] as f32,
+        Self::with_sequence_items_py(vm, &object, "Color tuple", |items| {
+            if items.len() != 4 {
+                return Err(vm.new_value_error(format!("{context}: expected Color tuple length 4")));
+            }
+            let r: f64 = items[0].clone().try_into_value(vm).map_err(|_| {
+                vm.new_value_error(format!("{context}: expected Color tuple elements as float"))
+            })?;
+            let g: f64 = items[1].clone().try_into_value(vm).map_err(|_| {
+                vm.new_value_error(format!("{context}: expected Color tuple elements as float"))
+            })?;
+            let b: f64 = items[2].clone().try_into_value(vm).map_err(|_| {
+                vm.new_value_error(format!("{context}: expected Color tuple elements as float"))
+            })?;
+            let a: f64 = items[3].clone().try_into_value(vm).map_err(|_| {
+                vm.new_value_error(format!("{context}: expected Color tuple elements as float"))
+            })?;
+            Ok(Color {
+                r: r as f32,
+                g: g as f32,
+                b: b as f32,
+                a: a as f32,
+            })
         })
+    }
+
+    fn with_sequence_items_py<T>(
+        vm: &VirtualMachine,
+        object: &PyObjectRef,
+        expected: &str,
+        f: impl FnOnce(&[PyObjectRef]) -> PyResult<T>,
+    ) -> PyResult<T> {
+        if let Some(tuple) = object.payload_if_subclass::<PyTuple>(vm) {
+            return f(tuple.as_slice());
+        }
+        if let Some(list) = object.payload_if_subclass::<PyList>(vm) {
+            let items = list.borrow_vec();
+            return f(&items);
+        }
+
+        let values: Vec<PyObjectRef> = object
+            .clone()
+            .try_into_value(vm)
+            .map_err(|_| vm.new_value_error(format!("expected {expected}")))?;
+        f(&values)
     }
 
     fn with_backend_py<T>(
@@ -376,162 +413,144 @@ impl RustPythonVm {
 
     fn parse_submit_render_command_py(
         vm: &VirtualMachine,
-        command: PyObjectRef,
+        command: &PyObjectRef,
         index: usize,
     ) -> PyResult<QueuedDrawOp> {
-        let fields: Vec<PyObjectRef> = command.try_into_value(vm).map_err(|_| {
-            vm.new_value_error(format!(
-                "submit_render commands[{index}]: expected command tuple/list"
-            ))
-        })?;
-        if fields.is_empty() {
-            return Err(vm.new_value_error(format!(
-                "submit_render commands[{index}]: command must not be empty"
-            )));
-        }
+        Self::with_sequence_items_py(vm, command, "command tuple/list", |fields| {
+            if fields.is_empty() {
+                return Err(vm.new_value_error(format!(
+                    "submit_render commands[{index}]: command must not be empty"
+                )));
+            }
 
-        let command_name: String = fields[0].clone().try_into_value(vm).map_err(|_| {
-            vm.new_value_error(format!(
-                "submit_render commands[{index}][0]: expected command name string"
-            ))
-        })?;
+            let command_name: String = fields[0].clone().try_into_value(vm).map_err(|_| {
+                vm.new_value_error(format!(
+                    "submit_render commands[{index}][0]: expected command name string"
+                ))
+            })?;
 
-        match command_name.as_str() {
-            "clear_background" => {
-                if fields.len() != 2 {
-                    return Err(vm.new_value_error(format!(
-                        "submit_render commands[{index}]: clear_background expects 1 argument"
-                    )));
+            match command_name.as_str() {
+                "clear_background" => {
+                    if fields.len() != 2 {
+                        return Err(vm.new_value_error(format!(
+                            "submit_render commands[{index}]: clear_background expects 1 argument"
+                        )));
+                    }
+                    let color = Self::parse_color_py(
+                        vm,
+                        fields[1].clone(),
+                        &format!("submit_render commands[{index}] clear_background"),
+                    )?;
+                    Ok(QueuedDrawOp::ClearBackground(color))
                 }
-                let color = Self::parse_color_py(
-                    vm,
-                    fields[1].clone(),
-                    &format!("submit_render commands[{index}] clear_background"),
-                )?;
-                Ok(QueuedDrawOp::ClearBackground(color))
-            }
-            "draw_circle" => {
-                if fields.len() != 4 {
-                    return Err(vm.new_value_error(format!(
-                        "submit_render commands[{index}]: draw_circle expects 3 arguments"
-                    )));
+                "draw_circle" => {
+                    if fields.len() != 4 {
+                        return Err(vm.new_value_error(format!(
+                            "submit_render commands[{index}]: draw_circle expects 3 arguments"
+                        )));
+                    }
+                    let position = Self::parse_vec2_py(
+                        vm,
+                        fields[1].clone(),
+                        &format!("submit_render commands[{index}] draw_circle position"),
+                    )?;
+                    let radius: f64 = fields[2].clone().try_into_value(vm).map_err(|_| {
+                        vm.new_value_error(format!(
+                            "submit_render commands[{index}] draw_circle radius: expected float"
+                        ))
+                    })?;
+                    let color = Self::parse_color_py(
+                        vm,
+                        fields[3].clone(),
+                        &format!("submit_render commands[{index}] draw_circle color"),
+                    )?;
+                    Ok(QueuedDrawOp::DrawCircle {
+                        position,
+                        radius: radius as f32,
+                        color,
+                    })
                 }
-                let position = Self::parse_vec2_py(
-                    vm,
-                    fields[1].clone(),
-                    &format!("submit_render commands[{index}] draw_circle position"),
-                )?;
-                let radius: f64 = fields[2].clone().try_into_value(vm).map_err(|_| {
-                    vm.new_value_error(format!(
-                        "submit_render commands[{index}] draw_circle radius: expected float"
-                    ))
-                })?;
-                let color = Self::parse_color_py(
-                    vm,
-                    fields[3].clone(),
-                    &format!("submit_render commands[{index}] draw_circle color"),
-                )?;
-                Ok(QueuedDrawOp::DrawCircle {
-                    position,
-                    radius: radius as f32,
-                    color,
-                })
-            }
-            "draw_texture" => {
-                if fields.len() != 4 {
-                    return Err(vm.new_value_error(format!(
-                        "submit_render commands[{index}]: draw_texture expects 3 arguments"
-                    )));
+                "draw_texture" => {
+                    if fields.len() != 4 {
+                        return Err(vm.new_value_error(format!(
+                            "submit_render commands[{index}]: draw_texture expects 3 arguments"
+                        )));
+                    }
+                    let texture: String = fields[1].clone().try_into_value(vm).map_err(|_| {
+                        vm.new_value_error(format!(
+                            "submit_render commands[{index}] draw_texture texture: expected TextureHandle"
+                        ))
+                    })?;
+                    let position = Self::parse_vec2_py(
+                        vm,
+                        fields[2].clone(),
+                        &format!("submit_render commands[{index}] draw_texture position"),
+                    )?;
+                    let size = Self::parse_vec2_py(
+                        vm,
+                        fields[3].clone(),
+                        &format!("submit_render commands[{index}] draw_texture size"),
+                    )?;
+                    Ok(QueuedDrawOp::DrawTexture {
+                        texture,
+                        position,
+                        size,
+                    })
                 }
-                let texture: String = fields[1].clone().try_into_value(vm).map_err(|_| {
-                    vm.new_value_error(format!(
-                        "submit_render commands[{index}] draw_texture texture: expected TextureHandle"
-                    ))
-                })?;
-                let position = Self::parse_vec2_py(
-                    vm,
-                    fields[2].clone(),
-                    &format!("submit_render commands[{index}] draw_texture position"),
-                )?;
-                let size = Self::parse_vec2_py(
-                    vm,
-                    fields[3].clone(),
-                    &format!("submit_render commands[{index}] draw_texture size"),
-                )?;
-                Ok(QueuedDrawOp::DrawTexture {
-                    texture,
-                    position,
-                    size,
-                })
-            }
-            "set_camera_target" => {
-                if fields.len() != 2 {
-                    return Err(vm.new_value_error(format!(
-                        "submit_render commands[{index}]: set_camera_target expects 1 argument"
-                    )));
+                "set_camera_target" => {
+                    if fields.len() != 2 {
+                        return Err(vm.new_value_error(format!(
+                            "submit_render commands[{index}]: set_camera_target expects 1 argument"
+                        )));
+                    }
+                    let target = Self::parse_vec2_py(
+                        vm,
+                        fields[1].clone(),
+                        &format!("submit_render commands[{index}] set_camera_target"),
+                    )?;
+                    Ok(QueuedDrawOp::SetCameraTarget(target))
                 }
-                let target = Self::parse_vec2_py(
-                    vm,
-                    fields[1].clone(),
-                    &format!("submit_render commands[{index}] set_camera_target"),
-                )?;
-                Ok(QueuedDrawOp::SetCameraTarget(target))
-            }
-            "draw_text" => {
-                if fields.len() != 5 {
-                    return Err(vm.new_value_error(format!(
-                        "submit_render commands[{index}]: draw_text expects 4 arguments"
-                    )));
+                "draw_text" => {
+                    if fields.len() != 5 {
+                        return Err(vm.new_value_error(format!(
+                            "submit_render commands[{index}]: draw_text expects 4 arguments"
+                        )));
+                    }
+                    let text: String = fields[1].clone().try_into_value(vm).map_err(|_| {
+                        vm.new_value_error(format!(
+                            "submit_render commands[{index}] draw_text text: expected str"
+                        ))
+                    })?;
+                    let position = Self::parse_vec2_py(
+                        vm,
+                        fields[2].clone(),
+                        &format!("submit_render commands[{index}] draw_text position"),
+                    )?;
+                    let font_size: f64 = fields[3].clone().try_into_value(vm).map_err(|_| {
+                        vm.new_value_error(format!(
+                            "submit_render commands[{index}] draw_text font_size: expected float"
+                        ))
+                    })?;
+                    let color = Self::parse_color_py(
+                        vm,
+                        fields[4].clone(),
+                        &format!("submit_render commands[{index}] draw_text color"),
+                    )?;
+                    Ok(QueuedDrawOp::DrawText {
+                        text,
+                        position,
+                        font_size: font_size as f32,
+                        color,
+                    })
                 }
-                let text: String = fields[1].clone().try_into_value(vm).map_err(|_| {
-                    vm.new_value_error(format!(
-                        "submit_render commands[{index}] draw_text text: expected str"
-                    ))
-                })?;
-                let position = Self::parse_vec2_py(
-                    vm,
-                    fields[2].clone(),
-                    &format!("submit_render commands[{index}] draw_text position"),
-                )?;
-                let font_size: f64 = fields[3].clone().try_into_value(vm).map_err(|_| {
-                    vm.new_value_error(format!(
-                        "submit_render commands[{index}] draw_text font_size: expected float"
-                    ))
-                })?;
-                let color = Self::parse_color_py(
-                    vm,
-                    fields[4].clone(),
-                    &format!("submit_render commands[{index}] draw_text color"),
-                )?;
-                Ok(QueuedDrawOp::DrawText {
-                    text,
-                    position,
-                    font_size: font_size as f32,
-                    color,
-                })
+                _ => Err(vm.new_value_error(format!(
+                    "submit_render commands[{index}]: unsupported command `{command_name}`"
+                ))),
             }
-            _ => Err(vm.new_value_error(format!(
-                "submit_render commands[{index}]: unsupported command `{command_name}`"
-            ))),
-        }
+        })
     }
 
     fn flush_draw_batch_ops(&mut self) -> Result<(), RuntimeError> {
-        let pending_ops = {
-            let mut draw_batch =
-                self.draw_batch
-                    .lock()
-                    .map_err(|_| RuntimeError::FunctionCall {
-                        function: "draw_batch_flush".to_owned(),
-                        details: "draw batch mutex lock failed".to_owned(),
-                    })?;
-            std::mem::take(&mut *draw_batch)
-        };
-
-        if pending_ops.is_empty() {
-            return Ok(());
-        }
-
         let mut backend = self
             .backend
             .lock()
@@ -540,7 +559,15 @@ impl RustPythonVm {
                 details: "backend mutex lock failed".to_owned(),
             })?;
 
-        for op in pending_ops {
+        let mut draw_batch = self
+            .draw_batch
+            .lock()
+            .map_err(|_| RuntimeError::FunctionCall {
+                function: "draw_batch_flush".to_owned(),
+                details: "draw batch mutex lock failed".to_owned(),
+            })?;
+
+        for op in draw_batch.drain(..) {
             match op {
                 QueuedDrawOp::ClearBackground(color) => backend.clear_background(color),
                 QueuedDrawOp::DrawCircle {
@@ -710,12 +737,21 @@ impl RustPythonVm {
                     let draw_batch = Arc::clone(&draw_batch);
                     vm.new_function(
                         "submit_render",
-                        move |commands: Vec<PyObjectRef>, vm: &VirtualMachine| {
-                            let mut ops = Vec::with_capacity(commands.len());
-                            for (index, command) in commands.into_iter().enumerate() {
-                                ops.push(Self::parse_submit_render_command_py(vm, command, index)?);
-                            }
-                            Self::queue_draw_ops_py(vm, &draw_batch, ops)
+                        move |commands: PyObjectRef, vm: &VirtualMachine| {
+                            Self::with_sequence_items_py(
+                                vm,
+                                &commands,
+                                "list of commands",
+                                |items| {
+                                    let mut ops = Vec::with_capacity(items.len());
+                                    for (index, command) in items.iter().enumerate() {
+                                        ops.push(Self::parse_submit_render_command_py(
+                                            vm, command, index,
+                                        )?);
+                                    }
+                                    Self::queue_draw_ops_py(vm, &draw_batch, ops)
+                                },
+                            )
                         },
                     )
                     .into()

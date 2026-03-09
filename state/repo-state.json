@@ -29,10 +29,13 @@
       "example-scenario-worker in parallel with playable feature scenarios for manual user validation"
     ],
     "phase_pending_checklist": [
-      "capture 3-run comparative evidence for pycro vs pygame using short protocol (3000/5s) and keep 6000 escalation stress checks"
-    ]
+      "R3-A: freeze 3-run direct before/after medians at 25000 with 3-second sessions and stack metadata",
+      "R3-B: execute parallel optimization slices and keep only patches with positive median delta",
+      "R3-C: verify no >5% regression at 3000/6000 before checkpoint commit"
+    ],
+    "phase3_plan_doc": "docs/perf-phase-3-plan.md"
   },
-  "current_branch": "codex/runtime-draw-flush-batch",
+  "current_branch": "codex/perf-25000-investigation",
   "summary_contract": {
     "allowed_fields": [
       "changed_files",
@@ -272,10 +275,14 @@
         "qa-reviewer finding resolved: on update failure runtime discards queued draw batch; regression guard runtime::tests::update_failure_discards_queued_draw_batch added",
         "Public API now includes submit_render(commands) with batch parsing/queueing in runtime and parity guard runtime::tests::submit_render_matches_legacy_draw_path_order_and_payload",
         "ADR 0009 accepted for submit_render batch API contract and source-of-truth stub updates",
-        "Short benchmark protocol standardized to 3000 initial balls and 5-second auto sessions with wall_fps as canonical metric",
-        "Release benchmark evidence: pycro remains stable above 60 wall_fps at 3000 and 6000 balls in 5-second auto runs"
+        "Short benchmark protocol standardized to 3000 initial balls and 3-second auto sessions with wall_fps as canonical metric",
+        "Release benchmark evidence: pycro remains stable above 60 wall_fps at 3000 and 6000 balls in short auto runs",
+        "Phase-3 baseline at 25000 (direct, 5s) improved pycro from ~19-20 to ~22 wall_fps after first runtime+benchmark optimization slice; still below pygame-ce reference",
+        "macroquad-direct 25000 benchmark reached ~112-117 wall_fps (user observed ~80.37), confirming macroquad backend is not the bottleneck",
+        "Direct 3-second baseline refresh at 25000: pycro=23.29 wall_fps, pygame-ce(.venv314)=33.37 wall_fps, macroquad_direct=81.16 wall_fps",
+        "Phase-3 execution plan captured in docs/perf-phase-3-plan.md with parallel subagent ownership and before/after median gates"
       ],
-      "next_action": "complete remaining 3-run comparative evidence (pycro vs pygame) under the short 3000/5s protocol and keep 6000 escalation evidence updated when stability holds.",
+      "next_action": "execute phase-3 parallel slices with 3-second direct before/after comparisons at 25000, then persist medians and keep only slices that move pycro toward or above pygame-ce.",
       "adr_refs": [
         "0001",
         "0009"
@@ -347,11 +354,16 @@
         "examples/compare_pygame_balls_benchmark.py added with equivalent simulation and HUD contract",
         "examples/compare/README.md added with run protocol and results template",
         "Both compare scripts now emit homogeneous logs with stable/unstable status, stable_sample_seconds, and nearest target tracking for configured targets",
-        "Auto benchmark defaults now use short protocol (3000 initial balls, 5-second session) and BENCHMARK_AUTO_INITIAL_BALLS is honored for scripted escalation runs",
-        "Release pycro evidence confirms >60 wall_fps stability for 3000 and 6000 in 5-second auto sessions",
-        "Headless pygame short-protocol run at 3000/5s produced ~55.84 wall_fps summary, below the 57 stable threshold"
+        "Auto benchmark defaults now use short protocol (3000 initial balls, 3-second session) and BENCHMARK_AUTO_INITIAL_BALLS is honored for scripted escalation runs",
+        "Release pycro evidence confirms >60 wall_fps stability for 3000 and 6000 in short auto sessions",
+        "Headless pygame short-protocol run at 3000/5s produced ~55.84 wall_fps summary, below the 57 stable threshold",
+        "Direct pygame runs under Python 3.14.2 + pygame-ce 2.5.7 (SDL 2.32.10) at 25000/5s reported ~40.84-42.58 wall_fps, matching the user-observed 41-43 reference range",
+        "Legacy local stack Python 3.9.5 + pygame 2.4.0 (SDL 2.26.4) produced only ~19-20 wall_fps at 25000/5s; stack/version parity is now mandatory benchmark metadata",
+        "macroquad direct benchmark at 25000 produced ~112-117 wall_fps in this environment, establishing backend headroom above pycro and pygame-ce",
+        "Direct 3-second baseline refresh at 25000: pycro=23.29 wall_fps, pygame-ce(.venv314)=33.37 wall_fps, macroquad_direct=81.16 wall_fps",
+        "docs/perf-phase-3-plan.md defines parallel subagent slices, ownership boundaries, and before/after median acceptance criteria for context-reset handoff"
       ],
-      "next_action": "run and persist full 3-run pycro vs pygame comparative table at 3000/5s, then keep 6000 escalation checks as follow-on stress evidence.",
+      "next_action": "execute phase-3 parallel slices with 3-second direct before/after comparisons at 25000, then persist medians and keep only slices that move pycro toward or above pygame-ce.",
       "adr_refs": [
         "0001"
       ]
@@ -370,9 +382,9 @@
         "Benchmark protocol and results table template are documented under examples/compare"
       ],
       "follow_through_order": [
-        "run pycro benchmark passes and record stable ball counts",
-        "run pygame benchmark passes and record stable ball counts",
-        "persist comparative evidence in tracker/state before phase closeout"
+        "freeze direct baseline medians at 25000 with 3-second sessions",
+        "run parallel optimization slices (runtime/backend, benchmark harness, measurement auditor)",
+        "persist before/after evidence in tracker/state and keep only positive-median patches"
       ]
     }
   ]

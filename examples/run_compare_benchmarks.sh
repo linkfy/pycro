@@ -37,7 +37,7 @@ run_auto_matrix() {
 
   local runs="${BENCHMARK_RUNS:-3}"
   local targets_csv="${BENCHMARK_TARGET_MATRIX:-3000}"
-  local session_seconds="${BENCHMARK_AUTO_SESSION_SECONDS:-5}"
+  local session_seconds="${BENCHMARK_AUTO_SESSION_SECONDS:-3}"
   local step_interval="${BENCHMARK_AUTO_STEP_INTERVAL:-0.08}"
   local hold_seconds="${BENCHMARK_AUTO_HOLD_SECONDS:-2.0}"
   local auto_initial_balls="${BENCHMARK_AUTO_INITIAL_BALLS:-3000}"
@@ -47,7 +47,7 @@ run_auto_matrix() {
   mkdir -p "${out_dir}"
 
   local session_seconds_int="${session_seconds%.*}"
-  local pycro_frames_default=$((session_seconds_int * 60 + 180))
+  local pycro_frames_default=$((session_seconds_int * 180 + 180))
   local pycro_frames="${PYCRO_FRAMES:-${pycro_frames_default}}"
 
   IFS=',' read -r -a targets <<< "${targets_csv}"

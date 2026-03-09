@@ -53,7 +53,7 @@ async fn run_script_contract(script_path: &str) -> Result<(), String> {
             let flush_elapsed = flush_start.elapsed();
 
             if perf_enabled {
-                let total_dispatches = runtime.vm().backend().dispatch_log().len();
+                let total_dispatches = runtime.vm().backend().dispatch_count();
                 perf.record(
                     dt,
                     frame_start.elapsed(),
@@ -70,7 +70,7 @@ async fn run_script_contract(script_path: &str) -> Result<(), String> {
     println!("frames executed: {}", report.frames_executed);
     println!(
         "backend api dispatches: {}",
-        runtime.vm().backend().dispatch_log().len()
+        runtime.vm().backend().dispatch_count()
     );
     Ok(())
 }
