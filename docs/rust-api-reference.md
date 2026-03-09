@@ -82,7 +82,6 @@ Public authored API functions (from `FUNCTIONS`):
 - `draw_texture(texture: TextureHandle, position: Vec2, size: Vec2) -> None`
 - `set_camera_target(target: Vec2) -> None`
 - `draw_text(text: str, position: Vec2, font_size: float, color: Color) -> None`
-- `submit_render(commands: list[tuple[object, ...]]) -> None`
 
 Deterministic outputs:
 

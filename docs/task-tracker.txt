@@ -23,14 +23,13 @@ id: objective-5-platform-input-texture-coverage
 title: Expand input handling, texture workflows, and platform capability coverage
 status: in_progress
 success_evidence: Input and texture workflows are expanded with platform-capability evidence and no lifecycle/API regressions.
-orchestration: architecture-orchestrator closed phase-4 stdlib objective, activated phase-5 platform-input-texture coverage, and is currently executing runtime-draw-flush-batch on branch codex/runtime-draw-flush-batch as an objective-5 slice.
+orchestration: architecture-orchestrator closed phase-4 stdlib objective and activated phase-5 platform-input-texture coverage.
 visualization: flow-visualizer update pending for phase-5 input/texture/platform flow changes.
 phase_closeout: pending
 qa_reviewer_outcome: pending
-next_focus: 1) keep phase-5 benchmark protocol on canonical wall_fps with short 3000/5s checks, 2) complete 3-run comparative evidence table for pycro vs pygame at 3000 (and 6000 escalation once stable), 3) continue non-benchmark input/texture/platform capability expansion before phase closeout.
+next_focus: 1) expand input handling across scenarios, 2) strengthen texture workflow/path/error coverage, 3) capture platform capability evidence with updated matrix references.
 concurrency_note: example-scenario-worker continues generating playable scenarios in parallel for user-visible interactions.
-follow_through_order: 1) runtime-draw-flush-batch slice implementation and evidence capture; 2) expand input/textures/platform coverage; 3) CI smoke with visual/payload assertions; 4) manual user playtest evidence collection.
-phase_pending_checklist: E) capture 3-run evidence table for pycro vs pygame using the short protocol (3000/5s baseline, escalate to 6000 when stable).
+follow_through_order: 1) expand input/textures/platform coverage; 2) CI smoke with visual/payload assertions; 3) manual user playtest evidence collection.
 
 ISOLATED PARALLEL PHASE
 id: phase-compare-benchmark
@@ -178,19 +177,7 @@ owner: platform-worker
 status: in_progress
 depends_on: runtime-stdlib-enablement
 evidence: Phase-5 activated with dedicated branch codex/platform-input-texture-coverage after phase-4 closeout.
-evidence: Active execution slice moved to branch codex/runtime-draw-flush-batch for runtime draw batching and frame flush integration.
-evidence: Runtime now queues draw operations during update(dt) and flushes once per frame from main loop via runtime.flush_draw_batch().
-evidence: runtime::tests::draw_ops_are_queued_in_batch_order_until_frame_flush and runtime::tests::draw_batch_flush_clears_per_frame added as regression guards.
-evidence: PYCRO_FRAMES=3 cargo run -- examples/runtime_draw_flush_batch.py passes with per-frame draw call logs and backend dispatch evidence.
-evidence: Controlled benchmark comparison (current vs baseline branch codex/platform-input-texture-coverage) shows no improvement at target loads; both remain at 20.0 FPS for 3000 and 4000 balls in the current protocol.
-evidence: Runtime perf instrumentation (PYCRO_PERF=1) shows high-load bottleneck dominated by Python update cost (~103 ms/frame) versus draw flush (~12.6 ms/frame) at ~4009 dispatches/frame near 4000 balls.
-evidence: Benchmark integrity rule added to docs/validation-policy.md and docs/agent-playbook.md to prevent false-positive gains from moving user gameplay loops into Rust.
-evidence: qa-reviewer flagged stale draw-batch risk on update failure; runtime fix now discards queued draw ops on update error and adds runtime::tests::update_failure_discards_queued_draw_batch.
-evidence: Added public API `submit_render(commands)` with runtime batch parser/queue path and kept legacy draw_* compatibility; parity guard `runtime::tests::submit_render_matches_legacy_draw_path_order_and_payload` confirms equivalent payload/order.
-evidence: ADR 0009 accepted for batched render submission API contract and stub/source-of-truth updates.
-evidence: Short canonical benchmark protocol now uses 3000 start + 5 second auto session with wall_fps as primary signal.
-evidence: `cargo run --release -- examples/compare_pycro_balls_benchmark.py` with short auto protocol reached stable wall_fps above 60 for both 3000 balls (~120 wall_fps summary) and 6000 balls (~79 wall_fps summary).
-next_action: complete remaining 3-run comparative evidence (pycro vs pygame) under the short 3000/5s protocol and keep 6000 escalation evidence updated when stability holds.
+next_action: deliver expanded input + texture capability evidence with updated platform matrix references and validation gates.
 ENDTASK
 
 TASK ci-visual-payload-smoke
@@ -233,11 +220,7 @@ evidence: Isolated benchmark stream activated in parallel to the roadmap phases.
 evidence: `examples/compare_pycro_balls_benchmark.py` added with per-second FPS sampling and Left/Right ball-count controls.
 evidence: `examples/compare_pygame_balls_benchmark.py` added with equivalent simulation and HUD contract.
 evidence: `examples/compare/README.md` added with run protocol and results template for pycro vs pygame measurements.
-evidence: both compare scripts now emit homogeneous benchmark logs (`session_start`, `sample`, `summary`) with stable/unstable status, stable_sample_seconds, and nearest target tracking for 3000/4000.
-evidence: Auto benchmark defaults now align to short protocol (`initial_balls=3000`, `session_seconds=5`) and accept `BENCHMARK_AUTO_INITIAL_BALLS` so scripted runs can escalate to 6000.
-evidence: Release-path pycro evidence confirms >60 wall_fps stability at 3000 and 6000 in 5-second auto runs.
-evidence: Headless pygame short-protocol run at 3000/5s reported ~55.84 wall_fps summary (below 57 stable threshold), preserving a useful contrast baseline for pycro optimizations.
-next_action: run and persist full 3-run pycro vs pygame comparative table at 3000/5s, then keep 6000 escalation checks as follow-on stress evidence.
+next_action: Run manual benchmark passes on target hardware and record stable-ball evidence for both runtimes.
 ENDTASK
 
 STATUS VOCABULARY

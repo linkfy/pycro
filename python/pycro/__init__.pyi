@@ -15,7 +15,7 @@ Vec2: TypeAlias = tuple[float, float]
 TextureHandle: TypeAlias = str
 """Opaque texture handle returned by the engine."""
 
-__all__ = ["Color", "Vec2", "TextureHandle", "clear_background", "draw_circle", "is_key_down", "frame_time", "load_texture", "draw_texture", "set_camera_target", "draw_text", "submit_render"]
+__all__ = ["Color", "Vec2", "TextureHandle", "clear_background", "draw_circle", "is_key_down", "frame_time", "load_texture", "draw_texture", "set_camera_target", "draw_text"]
 
 def clear_background(color: Color) -> None:
     """Clear the current frame to a normalized RGBA color. Supported on desktop=planned, web=planned, android=planned, ios=planned."""
@@ -47,9 +47,5 @@ def set_camera_target(target: Vec2) -> None:
 
 def draw_text(text: str, position: Vec2, font_size: float, color: Color) -> None:
     """Draw text in screen space using a baseline anchor. Supported on desktop=planned, web=planned, android=planned, ios=planned."""
-    ...
-
-def submit_render(commands: list[tuple[object, ...]]) -> None:
-    """Queue multiple render commands in one Python-to-runtime call. Supported on desktop=planned, web=planned, android=planned, ios=planned."""
     ...
 

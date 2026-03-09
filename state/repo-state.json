@@ -20,19 +20,15 @@
     "orchestration_evidence": [
       "phase-4 objective closed with stdlib/runtime evidence and QA pass",
       "phase-5 objective activated in tracker/state",
-      "active phase-5 slice moved to codex/runtime-draw-flush-batch for runtime draw batching and frame-end flush integration"
+      "branch alignment confirmed for codex/platform-input-texture-coverage"
     ],
     "follow_through_order": [
-      "runtime-draw-flush-batch slice implementation and evidence capture",
       "expand input/textures/platform coverage",
       "CI smoke with visual/payload assertions",
       "example-scenario-worker in parallel with playable feature scenarios for manual user validation"
-    ],
-    "phase_pending_checklist": [
-      "capture 3-run comparative evidence for pycro vs pygame using short protocol (3000/5s) and keep 6000 escalation stress checks"
     ]
   },
-  "current_branch": "codex/runtime-draw-flush-batch",
+  "current_branch": "codex/platform-input-texture-coverage",
   "summary_contract": {
     "allowed_fields": [
       "changed_files",
@@ -261,24 +257,11 @@
         "runtime-stdlib-enablement"
       ],
       "evidence": [
-        "Phase-5 activated with dedicated branch codex/platform-input-texture-coverage after phase-4 closeout",
-        "Active execution slice moved to branch codex/runtime-draw-flush-batch for runtime draw batching and frame flush integration",
-        "Runtime now queues draw operations during update(dt) and flushes once per frame from main loop via runtime.flush_draw_batch()",
-        "runtime::tests::draw_ops_are_queued_in_batch_order_until_frame_flush and runtime::tests::draw_batch_flush_clears_per_frame added as regression guards",
-        "PYCRO_FRAMES=3 cargo run -- examples/runtime_draw_flush_batch.py passes with per-frame draw-call logs and backend dispatch evidence",
-        "Controlled benchmark comparison versus baseline branch shows no improvement at target loads: 3000 balls = 20.0 FPS and 4000 balls = 20.0 FPS on both branches in current protocol",
-        "PYCRO_PERF=1 telemetry indicates high-load bottleneck is dominated by Python update cost (~103 ms/frame) versus draw flush (~12.6 ms/frame) at ~4009 dispatches/frame near 4000 balls",
-        "Benchmark integrity rule added in docs/validation-policy.md and docs/agent-playbook.md to prevent false-positive gains from moving user gameplay loops into Rust",
-        "qa-reviewer finding resolved: on update failure runtime discards queued draw batch; regression guard runtime::tests::update_failure_discards_queued_draw_batch added",
-        "Public API now includes submit_render(commands) with batch parsing/queueing in runtime and parity guard runtime::tests::submit_render_matches_legacy_draw_path_order_and_payload",
-        "ADR 0009 accepted for submit_render batch API contract and source-of-truth stub updates",
-        "Short benchmark protocol standardized to 3000 initial balls and 5-second auto sessions with wall_fps as canonical metric",
-        "Release benchmark evidence: pycro remains stable above 60 wall_fps at 3000 and 6000 balls in 5-second auto runs"
+        "Phase-5 activated with dedicated branch codex/platform-input-texture-coverage after phase-4 closeout"
       ],
-      "next_action": "complete remaining 3-run comparative evidence (pycro vs pygame) under the short 3000/5s protocol and keep 6000 escalation evidence updated when stability holds.",
+      "next_action": "deliver expanded input + texture capability evidence with updated platform matrix references and validation gates.",
       "adr_refs": [
-        "0001",
-        "0009"
+        "0001"
       ]
     },
     {
@@ -345,13 +328,9 @@
         "Isolated benchmark stream activated in parallel to roadmap phases",
         "examples/compare_pycro_balls_benchmark.py added with per-second FPS sampling and Left/Right controls",
         "examples/compare_pygame_balls_benchmark.py added with equivalent simulation and HUD contract",
-        "examples/compare/README.md added with run protocol and results template",
-        "Both compare scripts now emit homogeneous logs with stable/unstable status, stable_sample_seconds, and nearest target tracking for configured targets",
-        "Auto benchmark defaults now use short protocol (3000 initial balls, 5-second session) and BENCHMARK_AUTO_INITIAL_BALLS is honored for scripted escalation runs",
-        "Release pycro evidence confirms >60 wall_fps stability for 3000 and 6000 in 5-second auto sessions",
-        "Headless pygame short-protocol run at 3000/5s produced ~55.84 wall_fps summary, below the 57 stable threshold"
+        "examples/compare/README.md added with run protocol and results template"
       ],
-      "next_action": "run and persist full 3-run pycro vs pygame comparative table at 3000/5s, then keep 6000 escalation checks as follow-on stress evidence.",
+      "next_action": "Run manual benchmark passes on target hardware and record stable-ball evidence for both runtimes.",
       "adr_refs": [
         "0001"
       ]
