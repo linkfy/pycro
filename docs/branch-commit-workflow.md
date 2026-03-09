@@ -2,8 +2,9 @@
 
 ## Branch Policy
 
-- No work on `main`.
-- Use `codex/<domain>-<task>` branches only.
+- No direct implementation work on `main`.
+- Use `codex/<domain>-<task>` branches for implementation.
+- `main` is the verified integration branch: merge changes there only after expected validations pass and behavior is confirmed.
 - Keep branch names narrow and task-scoped.
 
 ## Commit Policy
@@ -24,4 +25,3 @@ Create or update an ADR for any change to:
 - build or packaging strategy
 - stub generation contract
 - platform guarantees
-
