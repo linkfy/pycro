@@ -10,19 +10,25 @@ QUICK INDEX
 5. [x] api-dispatch-basic-surface: Connect the public pycro API registry to the backend contract without breaking stub generation. Complete.
 6. [x] basic-example-execution-smoke: Prove that examples/basic_main.py executes on the real desktop path. Complete.
 7. [x] api-direct-bridge-rich-returns: Replace queued API dispatch with direct backend bridge and rich return paths. Phase 2 closed with qa waiver notes recorded.
+8. [x] runtime-python-module-imports: Guarantee `main.py` can import sidecar Python modules (for example `player.py`) through RustPython entry-script resolution. Phase 3 closed.
+9. [x] runtime-stdlib-enablement: Enable RustPython stdlib imports (`math`, `os`, etc.) for gameplay scripts. Phase 4 closed with stdlib compatibility evidence.
+10. [ ] platform-input-texture-coverage: Expand input handling, texture workflows, and platform capability coverage after stdlib enablement (upcoming phase-5 roadmap).
+11. [ ] ci-visual-payload-smoke: Add CI smoke coverage for visual/payload assertions on representative scenarios (upcoming phase-6 roadmap).
+12. [ ] manual-playtest-evidence-gate: Capture explicit user playtest outcomes for interactive scenarios and persist acceptance evidence (upcoming phase-7 roadmap).
+13. [ ] platform-backend-selection-policy: Define and validate backend-selection policy (OpenGL/Metal/etc) per platform/architecture with reproducible evidence (future proposal).
 
 CURRENT OBJECTIVE
-id: objective-2-api-direct-bridge-rich-returns
-title: Replace queued API dispatch with direct backend bridge and rich return paths
+id: objective-4-runtime-stdlib-enablement
+title: Enable RustPython stdlib imports (`math`, `os`, etc.) for gameplay scripts
 status: complete
-success_evidence: Runtime binds pycro API calls directly to EngineBackend callables, return values/errors propagate back to Python without queued operation draining, and existing stub generation/type checks remain deterministic.
-orchestration: architecture-orchestrator activated the phase-2 objective and delegated runtime/api/platform/docs/qa coordination for direct-bridge delivery.
-visualization: flow-visualizer diagrams updated to show direct API bridge dispatch path without queued operation list.
-phase_closeout: phase-2-api-direct-bridge is closed; next planning focus is phase-3 coverage + CI visual assertions.
-qa_reviewer_outcome: pass with explicit waivers (cargo clippy/test/doc blocked by sandbox file-lock permissions; desktop manual playtest blocked in sandbox due miniquad/apple runtime panic path).
-next_focus: 1) broaden input/textures/platform coverage, 2) CI smoke with visual/payload assertions, 3) collect manual user playtest feedback outside sandbox.
-concurrency_note: example-scenario-worker produces playable examples per user-visible feature in parallel to these tracks.
-follow_through_order: 1) direct API bridge with richer return semantics; 2) expand input/textures/platform coverage; 3) CI smoke with visual/payload assertions; 4) example-scenario-worker in parallel with playable feature scenarios for manual user validation.
+success_evidence: Runtime supports native stdlib imports for gameplay scripts, `math`/`os` usage is covered by runtime tests, and example scenarios run without custom import workarounds.
+orchestration: architecture-orchestrator closed phase-3 import compatibility and activated phase-4 stdlib enablement.
+visualization: flow-visualizer refreshed runtime lifecycle diagram for stdlib + local import compatibility path.
+phase_closeout: complete
+qa_reviewer_outcome: pass
+next_focus: 1) expand input/textures/platform coverage, 2) CI smoke with visual/payload assertions, 3) collect manual user playtest evidence for interactive scenarios.
+concurrency_note: example-scenario-worker continues generating playable scenarios in parallel.
+follow_through_order: 1) expand input/textures/platform coverage; 2) CI smoke with visual/payload assertions; 3) manual user playtest evidence collection.
 
 TASK ORDER
 1. [x] Close the bootstrap milestone with review evidence.
@@ -31,7 +37,13 @@ TASK ORDER
 4. [x] Make api module dispatch real calls into the backend contract while preserving the stub contract.
 5. [x] Add an integration smoke proving examples/basic_main.py actually executes.
 6. [x] Activate and deliver api-direct-bridge-rich-returns (direct backend bindings and rich return-path semantics).
-7. [-] Keep Mermaid diagrams updated via flow-visualizer subagent as contracts evolve.
+7. [x] Deliver runtime-python-module-imports (entry-script local import resolution).
+8. [x] Plan and deliver runtime-stdlib-enablement (native stdlib imports for scripts).
+9. [-] Keep Mermaid diagrams updated via flow-visualizer subagent as contracts evolve.
+10. [ ] Plan and deliver platform-input-texture-coverage (expanded input/textures/platform capabilities).
+11. [ ] Plan and deliver ci-visual-payload-smoke (CI screenshot/payload assertion gate).
+12. [ ] Plan and deliver manual-playtest-evidence-gate (interactive feature acceptance evidence from user playtests).
+13. [ ] Plan and deliver platform-backend-selection-policy (backend defaults/overrides and validation matrix per platform).
 
 TASK bootstrap-foundation
 title: Validate and close the infrastructure bootstrap
@@ -100,10 +112,39 @@ evidence: Runtime now installs direct RustPython callables for pycro API (queue 
 evidence: Public API expanded with draw_text(text, position, font_size, color) and documented by ADR 0005 plus regenerated python/pycro/__init__.pyi.
 evidence: examples/ flattened to examples/*.py with shared examples/assets/ and stopwatch_seconds.py added for second-by-second manual validation.
 evidence: example-scenario-worker policy now defaults texture scenarios to the Kenney shared pack and requires explicit asset-path documentation.
-evidence: Added pack-focused playable scenarios (pack_checkerboard_pan.py, pack_gradient_cycle.py, pack_noise_scanner.py) using examples/assets/kenney_development_essentials.
+evidence: Added pack-focused playable scenarios (checkerboard_pan.py, gradient_cycle.py, noise_scanner.py) using examples/assets/kenney_development_essentials.
 evidence: governance validation passed; mypy passed; stub drift check passed via target/debug/generate_stubs.
 evidence: qa-reviewer outcome set to pass with waivers for sandbox-blocked cargo clippy/test/doc and sandbox desktop playtest panic path.
 next_action: Start phase-3 planning for input/textures coverage expansion and CI visual assertion smoke; collect manual user playtest feedback outside sandbox.
+ENDTASK
+
+TASK runtime-python-module-imports
+title: Guarantee local Python module imports from the entry script directory
+phase: phase-3-python-module-imports
+owner: runtime-worker
+status: complete
+depends_on: api-direct-bridge-rich-returns
+evidence: Phase-3 objective activated to guarantee `main.py` sidecar imports (`player.py`) through runtime import-path configuration.
+evidence: ADR 0006 accepted for entry-script local import resolution contract.
+evidence: runtime::tests::load_main_supports_importing_sidecar_python_modules_from_script_directory passes.
+evidence: PYCRO_FRAMES=2 cargo run -- examples/import_main.py passes and imports player.py correctly.
+evidence: PYCRO_FRAMES=2 cargo run -- examples/minigame_coin_chase.py passes after import-loader fix (no cross-script ModuleNotFoundError).
+next_action: phase-3 closed; continue with runtime-stdlib-enablement.
+ENDTASK
+
+TASK runtime-stdlib-enablement
+title: Enable RustPython stdlib imports (`math`, `os`, etc.) for gameplay scripts
+phase: phase-4-runtime-stdlib
+owner: runtime-worker
+status: complete
+depends_on: runtime-python-module-imports
+evidence: Phase-4 activated after phase-3 import compatibility closeout.
+evidence: ADR 0007 accepted for runtime stdlib compatibility contract (`math`, `os`) while keeping sidecar import precedence.
+evidence: runtime::tests::load_main_supports_stdlib_math_and_os_imports passes (covers math.sqrt/cos/sin/hypot and os.getcwd/getenv/path.basename).
+evidence: runtime::tests::load_main_prefers_sidecar_module_over_stdlib_module_name_collision passes.
+evidence: runtime::tests::load_main_supports_importing_sidecar_python_modules_from_script_directory remains green (regression guard).
+evidence: PYCRO_FRAMES=3 cargo run -- examples/stdlib_math_os.py passes with direct `import math` and `import os` (no custom import workaround).
+next_action: begin next objective on expanded input/textures/platform coverage and CI visual/payload assertion smoke.
 ENDTASK
 
 TASK basic-example-execution-smoke
@@ -116,6 +157,46 @@ evidence: cargo run -- examples/basic_main.py passes.
 evidence: setup() runs once, update(dt) runs inside Macroquad loop ownership, and backend api dispatch count is emitted.
 evidence: PYCRO_FRAMES=2 cargo run -- examples/basic_main.py validates non-simulated execution with deterministic frame budget.
 next_action: Add CI-friendly screenshot/assertion smoke for render payloads.
+ENDTASK
+
+TASK platform-input-texture-coverage
+title: Expand input handling, texture workflows, and platform capability coverage
+phase: phase-5-platform-input-texture
+owner: platform-worker
+status: planned
+depends_on: runtime-stdlib-enablement
+evidence: Roadmap item recorded for post-stdlib phase activation and tracker/state sync.
+next_action: Activate dedicated phase branch and deliver expanded input + texture capability evidence with updated platform matrix references.
+ENDTASK
+
+TASK ci-visual-payload-smoke
+title: Add CI smoke coverage for visual and payload assertions on representative scenarios
+phase: phase-6-ci-visual-payload
+owner: architecture-orchestrator
+status: planned
+depends_on: platform-input-texture-coverage
+evidence: Roadmap item recorded as a planned validation gate after platform/input-texture expansion.
+next_action: Define deterministic CI assertions and wire scenario smoke runs into automation.
+ENDTASK
+
+TASK manual-playtest-evidence-gate
+title: Capture explicit user playtest outcomes for interactive scenario acceptance
+phase: phase-7-manual-playtest-evidence
+owner: example-scenario-worker
+status: planned
+depends_on: ci-visual-payload-smoke
+evidence: Roadmap item recorded to enforce manual acceptance evidence for interactive features agents cannot fully validate.
+next_action: Run designated playable scenarios with user and store acceptance outcomes in tracker/state closeout evidence.
+ENDTASK
+
+TASK platform-backend-selection-policy
+title: Define and validate backend-selection policy per platform/architecture
+phase: future-proposal-backend-policy
+owner: architecture-orchestrator
+status: planned
+depends_on: manual-playtest-evidence-gate
+evidence: Proposal recorded after user-observed visual artifact differences across Apple backend choices (OpenGL vs Metal) at high motion speed.
+next_action: Prepare ADR proposal and add runtime-configurable backend selection with scenario-based comparison evidence per platform.
 ENDTASK
 
 STATUS VOCABULARY

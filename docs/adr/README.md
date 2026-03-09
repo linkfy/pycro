@@ -7,6 +7,9 @@
 - `0003`: Docs-first governance and review workflow
 - `0004`: Single-crate simplification and module-first structure
 - `0005`: Python text rendering API (`draw_text`)
+- `0006`: Entry-script local import resolution
+- `0007`: Runtime stdlib compatibility for gameplay imports (`math`, `os`)
+- `0008`: macOS ARM backend default to OpenGL (temporary)
 
 ## Process
 

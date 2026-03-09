@@ -17,10 +17,12 @@
 Load order:
 
 1. Resolve and load `main.py`.
-2. Register the `pycro` module from the `api` registry.
-3. Execute module top-level code.
-4. Call `setup()` if present.
-5. Call `update(dt)` once per frame.
+2. Add the entry-script directory to RustPython import search path so sidecar modules can be imported (for example `main.py` importing `player.py`).
+3. Register the `pycro` module from the `api` registry.
+4. Install runtime stdlib compatibility modules required by phase objectives (`math`, `os`) and preload sidecar modules from the entry-script directory, preserving sidecar precedence on name collisions.
+5. Execute module top-level code.
+6. Call `setup()` if present.
+7. Call `update(dt)` once per frame.
 
 ## Public API Source Of Truth
 
@@ -53,6 +55,18 @@ Each public function must include:
 - Stub drift validation: generator `--check` over `python/pycro/__init__.pyi`
 - Typing smoke: example scripts resolved against the stub package
 - Integration smoke: lifecycle sequencing and Macroquad bridge calls
+
+## Future Improvement Notes (Graphics Backend Policy)
+
+- Current backend implementation is Macroquad-owned; backend API choice (for example OpenGL/Metal on Apple platforms) should become an explicit runtime policy surface instead of ad-hoc code edits.
+- Proposed future contract:
+  - platform-aware default backend choice,
+  - explicit override input (environment/config),
+  - startup report of selected backend for reproducible issue diagnosis.
+- Any adoption of backend-selection controls should include:
+  - docs update in platform matrix,
+  - scenario-based comparison evidence,
+  - ADR documenting tradeoffs (artifact behavior, pacing, compatibility).
 
 ## First Execution Objective
 

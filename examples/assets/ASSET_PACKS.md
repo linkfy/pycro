@@ -15,3 +15,17 @@ Recommended starter files for new scenarios:
 - `examples/assets/kenney_development_essentials/Gradient/gradient-radial.png`
 - `examples/assets/kenney_development_essentials/Checkerboard/checkerboard.png`
 - `examples/assets/kenney_development_essentials/Noise/perlin-noise.png`
+
+## Kenney Platformer Art Deluxe (CC0)
+
+- Source page: `https://kenney.nl/assets/platformer-art-deluxe`
+- Download URL used: `https://www.kenney.nl/media/pages/assets/platformer-art-deluxe/749ae05a41-1677696393/kenney_platformer-art-deluxe.zip`
+- Local path: `examples/assets/kenney_platformer_art_deluxe/`
+- Included upstream license file: `examples/assets/kenney_platformer_art_deluxe/license.txt`
+
+Recommended files for minigame prototypes:
+
+- `examples/assets/kenney_platformer_art_deluxe/Base pack/bg.png`
+- `examples/assets/kenney_platformer_art_deluxe/Base pack/Tiles/grassMid.png`
+- `examples/assets/kenney_platformer_art_deluxe/Base pack/Items/coinGold.png`
+- `examples/assets/kenney_platformer_art_deluxe/Base pack/Player/p1_front.png`

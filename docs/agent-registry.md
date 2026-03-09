@@ -9,7 +9,7 @@
 | example-scenario-worker | worker | gpt-5.4, reasoning medium | playable feature scenarios under `examples/` for manual validation, defaulting texture scenarios to the Kenney shared pack | feature brief, API/platform constraints, existing examples, `examples/assets/ASSET_PACKS.md` | new/updated example scripts per feature, run instructions, expected behavior checklist, explicit pack asset paths used |
 | qa-reviewer | default | gpt-5.4, reasoning high | post-implementation review gate | diff, tracker evidence, validation results | blocking findings or explicit waiver |
 | commit-steward | default | gpt-5.4, reasoning medium | checkpoint commit discipline after green validations | qa outcome, validation evidence, tracker/state sync status | commit created (or blocked with explicit reason), commit sha, concise commit summary |
-| docs-tracker | explorer | gpt-5.4, reasoning low | concise state snapshots, phase logs, ADR refs, evidence links | worker summaries, ADR ids, review outcome | updated tracker and machine state |
+| docs-tracker | explorer | gpt-5.4, reasoning low | continuous task-tracker/state sync, concise state snapshots, phase logs, ADR refs, roadmap index hygiene, evidence links | worker summaries, ADR ids, review outcome, objective/phase transitions | updated `docs/task-tracker.txt` and `state/repo-state.json` with matching objective/task status and roadmap items |
 | flow-visualizer | explorer | gpt-5.4, reasoning medium | Mermaid flow diagrams for lifecycle, API dispatch, and delivery pipeline clarity | architecture plan, tracker/state, worker summaries | versioned Mermaid diagrams and concise narrative for decision/review |
 
 ## Worker Summary Contract

@@ -53,7 +53,9 @@ Scenario documentation policy: every new texture scenario must state which pack 
 
 ## Documentation Discipline
 
-- `docs-tracker` updates the task tracker, ADR references, and machine state summary.
+- `docs-tracker` continuously maintains sync between `docs/task-tracker.txt` and `state/repo-state.json` (objective status, task status, task order, and quick-index roadmap entries).
+- `docs-tracker` keeps future phase roadmap items visible as unchecked `[ ]` quick-index entries until those phases are activated.
+- `docs-tracker` updates tracker-linked ADR references and machine state summary fields without copying raw execution logs.
 - `flow-visualizer` updates Mermaid diagrams so lifecycle and dispatch behavior are reviewable without reading implementation code first.
 - The machine state file is a compact snapshot for agents. Do not append transcripts or verbose logs.
 - Before every phase commit, documentation must be refreshed and recompiled (for example `cargo doc --no-deps` and stub/cheatsheet refresh checks), with concise evidence captured in tracker/state.

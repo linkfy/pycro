@@ -32,24 +32,27 @@ flowchart LR
     C --> D[python/pycro/__init__.pyi]
 ```
 
-## Runtime Lifecycle (Phase 2 Active: Direct API Bridge)
+## Runtime Lifecycle (Phase 4 Active: Stdlib + Local Import Compatibility)
 
 ```mermaid
 flowchart TD
     A[main receives script path]
     A --> B[runtime installs pycro module from api registry]
-    B --> C[runtime loads and executes main.py through RustPython]
-    C --> D{setup exists}
-    D -- yes --> E[call setup once]
-    D -- no --> F[skip setup]
-    E --> G[DesktopFrameLoop dispatches dt inside Macroquad loop]
-    F --> G
-    G --> H[call update dt]
-    H --> I[python code calls pycro api]
-    I --> J[direct API bridge calls EngineBackend callable]
-    J --> K[backend executes real Macroquad operation]
-    K --> L[rich return value or error mapped back to Python]
-    L --> G
+    B --> C[runtime configures entry-script directory on sys.path]
+    C --> D[runtime installs stdlib compatibility modules math/os when no local sidecar collision]
+    D --> E[runtime preloads sidecar modules from script directory]
+    E --> F[runtime loads and executes main.py through RustPython]
+    F --> G{setup exists}
+    G -- yes --> H[call setup once]
+    G -- no --> I[skip setup]
+    H --> J[DesktopFrameLoop dispatches dt inside Macroquad loop]
+    I --> J
+    J --> K[call update dt]
+    K --> L[python code calls pycro api, stdlib, or sidecar modules]
+    L --> M[direct API bridge calls EngineBackend callable]
+    M --> N[backend executes real Macroquad operation]
+    N --> O[rich return value or error mapped back to Python]
+    O --> J
 ```
 
 ## Delivery Flow (Current Governance And Manual Playtest Gate)

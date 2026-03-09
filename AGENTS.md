@@ -19,11 +19,13 @@ Operating rules:
 
 - Treat the docs above as the source of truth. If code and docs diverge, stop and reconcile.
 - Never work on `main`. Use `codex/<domain>-<task>` branches only.
+- For every newly activated phase, create and switch to a dedicated `codex/<domain>-<phase>` branch before implementation starts; do not continue phase work on a branch created for a previous phase.
 - One verified step per commit. Every implementation commit must include tracker updates, validation evidence, and a `qa-reviewer` outcome or an explicit waiver.
 - When all required validations pass, create a checkpoint commit immediately so there is always a stable rollback point.
 - Any change to lifecycle, public API, build strategy, stub generation contract, or platform guarantees requires an ADR entry under `docs/adr/`.
 - Workers do not hand raw logs to the orchestrator. They update concise summaries only: changed files, validation evidence, risks, follow-ups, and ADR/task references.
 - Use a dedicated `commit-steward` subagent to create checkpoint commits after required validations pass.
+- Use a dedicated `docs-tracker` subagent to keep `docs/task-tracker.txt` and `state/repo-state.json` continuously synchronized, including upcoming unchecked roadmap phases.
 - Use a dedicated `example-scenario-worker` subagent to create/update playable scenarios under `examples/` for every new user-visible feature.
 - Keep `examples/` flat: scenario scripts must live directly under `examples/*.py` (no per-scenario subfolders). Shared assets live under `examples/assets/`.
 - Keep implementation work delegated to subagent teams whenever feasible; the main thread should prioritize orchestration, integration, and final verification to preserve context.

@@ -3,6 +3,7 @@
 
 use macroquad::input::{KeyCode, is_key_down, is_quit_requested};
 use macroquad::math::vec2;
+use macroquad::miniquad::conf::AppleGfxApi;
 use macroquad::prelude::{
     Camera2D, Color as MqColor, DrawTextureParams, Rect, Texture2D, WHITE, clear_background,
     draw_circle, draw_rectangle, draw_text, draw_texture_ex, screen_height, screen_width,
@@ -191,12 +192,21 @@ impl DesktopFrameLoop {
 /// Window configuration used by the real Macroquad loop owner.
 #[must_use]
 pub fn window_conf() -> Conf {
-    Conf {
+    let mut conf = Conf {
         window_title: "pycro".to_owned(),
         window_width: 1280,
         window_height: 720,
         ..Conf::default()
+    };
+
+    #[cfg(target_os = "macos")]
+    {
+        if std::env::consts::ARCH == "aarch64" {
+            conf.platform.apple_gfx_api = AppleGfxApi::OpenGl;
+        }
     }
+
+    conf
 }
 
 /// First backend implementation behind the contract boundary.

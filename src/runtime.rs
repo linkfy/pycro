@@ -7,7 +7,9 @@ use crate::backend::{Color, EngineBackend, MacroquadBackendContract, TextureHand
 use rustpython_vm::builtins::{PyBaseExceptionRef, PyDictRef};
 use rustpython_vm::scope::Scope;
 use rustpython_vm::{AsObject, Interpreter, PyObjectRef, PyResult, VirtualMachine};
+use std::collections::HashSet;
 use std::fs;
+use std::path::Path;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 /// Runtime configuration for Python script loading.
@@ -424,6 +426,364 @@ impl RustPythonVm {
 
         Ok(())
     }
+
+    fn configure_import_path_for_script(
+        vm: &VirtualMachine,
+        path: &str,
+    ) -> Result<(), RuntimeError> {
+        let script_dir = Path::new(path)
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .to_path_buf();
+        let script_dir =
+            fs::canonicalize(script_dir).unwrap_or_else(|_| Path::new(".").to_path_buf());
+        let script_dir = script_dir.to_string_lossy().to_string();
+        let sys_path =
+            vm.sys_module
+                .get_attr("path", vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+        vm.call_method(sys_path.as_object(), "insert", (0, script_dir))
+            .map_err(|error| RuntimeError::ScriptLoad {
+                path: path.to_owned(),
+                details: Self::exception_details(vm, &error),
+            })?;
+        Ok(())
+    }
+
+    fn install_stdlib_compat_modules(vm: &VirtualMachine, path: &str) -> Result<(), RuntimeError> {
+        let sys_modules =
+            vm.sys_module
+                .get_attr("modules", vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+
+        let script_dir = Path::new(path).parent().unwrap_or_else(|| Path::new("."));
+
+        if !script_dir.join("math.py").exists() {
+            let math_attrs = vm.ctx.new_dict();
+            math_attrs
+                .set_item("__name__", vm.ctx.new_str("math").into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+            math_attrs
+                .set_item("pi", vm.ctx.new_float(std::f64::consts::PI).into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+            let math_sqrt = vm.new_function("sqrt", move |value: f64, vm: &VirtualMachine| {
+                if value < 0.0 {
+                    return Err(vm.new_value_error("math domain error".to_owned()));
+                }
+                Ok(value.sqrt())
+            });
+            let math_sin = vm.new_function("sin", move |value: f64| value.sin());
+            let math_cos = vm.new_function("cos", move |value: f64| value.cos());
+            let math_hypot = vm.new_function("hypot", move |x: f64, y: f64| x.hypot(y));
+            math_attrs
+                .set_item("sqrt", math_sqrt.into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+            math_attrs
+                .set_item("sin", math_sin.into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+            math_attrs
+                .set_item("cos", math_cos.into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+            math_attrs
+                .set_item("hypot", math_hypot.into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+            let math_module = vm.new_module("math", math_attrs.clone(), None);
+            sys_modules
+                .set_item("math", math_module.into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+        }
+
+        if !script_dir.join("os.py").exists() {
+            let os_attrs = vm.ctx.new_dict();
+            os_attrs
+                .set_item("__name__", vm.ctx.new_str("os").into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+            os_attrs
+                .set_item(
+                    "name",
+                    vm.ctx.new_str(std::env::consts::OS.to_owned()).into(),
+                    vm,
+                )
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+            os_attrs
+                .set_item(
+                    "sep",
+                    vm.ctx.new_str(std::path::MAIN_SEPARATOR.to_string()).into(),
+                    vm,
+                )
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+            let pathsep = if cfg!(windows) { ";" } else { ":" };
+            os_attrs
+                .set_item("pathsep", vm.ctx.new_str(pathsep).into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+            let linesep = if cfg!(windows) { "\r\n" } else { "\n" };
+            os_attrs
+                .set_item("linesep", vm.ctx.new_str(linesep).into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+            let os_getcwd = vm.new_function("getcwd", move |vm: &VirtualMachine| {
+                std::env::current_dir()
+                    .map(|cwd| cwd.to_string_lossy().into_owned())
+                    .map_err(|error| vm.new_runtime_error(format!("os.getcwd failed: {error}")))
+            });
+            let os_getenv = vm
+                .new_function("getenv", move |key: String, default: Option<String>| {
+                    std::env::var(&key).ok().or(default)
+                });
+            os_attrs
+                .set_item("getcwd", os_getcwd.into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+            os_attrs
+                .set_item("getenv", os_getenv.into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+
+            let os_path_attrs = vm.ctx.new_dict();
+            os_path_attrs
+                .set_item("__name__", vm.ctx.new_str("os.path").into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+            let os_path_basename = vm.new_function("basename", move |value: String| {
+                Path::new(value.as_str())
+                    .file_name()
+                    .map(|name| name.to_string_lossy().into_owned())
+                    .unwrap_or_default()
+            });
+            os_path_attrs
+                .set_item("basename", os_path_basename.into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+            let os_path_module = vm.new_module("os.path", os_path_attrs.clone(), None);
+            sys_modules
+                .set_item("os.path", os_path_module.clone().into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+            os_attrs
+                .set_item("path", os_path_module.into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+
+            let os_module = vm.new_module("os", os_attrs.clone(), None);
+            sys_modules
+                .set_item("os", os_module.into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+        }
+
+        Ok(())
+    }
+
+    fn imported_sidecar_module_names(source: &str) -> Vec<String> {
+        let mut modules = Vec::new();
+        for raw_line in source.lines() {
+            let line = raw_line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            if let Some(remainder) = line.strip_prefix("import ") {
+                for chunk in remainder.split(',') {
+                    let name = chunk
+                        .split_whitespace()
+                        .next()
+                        .unwrap_or_default()
+                        .split('.')
+                        .next()
+                        .unwrap_or_default();
+                    if !name.is_empty() {
+                        modules.push(name.to_owned());
+                    }
+                }
+                continue;
+            }
+            if let Some(remainder) = line.strip_prefix("from ") {
+                let name = remainder
+                    .split_whitespace()
+                    .next()
+                    .unwrap_or_default()
+                    .split('.')
+                    .next()
+                    .unwrap_or_default();
+                if !name.is_empty() {
+                    modules.push(name.to_owned());
+                }
+            }
+        }
+        modules.sort();
+        modules.dedup();
+        modules
+    }
+
+    fn preload_sidecar_modules_for_script(
+        vm: &VirtualMachine,
+        path: &str,
+        entry_source: &str,
+    ) -> Result<(), RuntimeError> {
+        let sys_modules =
+            vm.sys_module
+                .get_attr("modules", vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
+
+        let script_path = Path::new(path);
+        let script_dir = script_path.parent().unwrap_or_else(|| Path::new("."));
+
+        fn preload_one_sidecar_module(
+            vm: &VirtualMachine,
+            path: &str,
+            script_dir: &Path,
+            sys_modules: &PyObjectRef,
+            module_name: &str,
+            visiting: &mut HashSet<String>,
+            loaded: &mut HashSet<String>,
+        ) -> Result<(), RuntimeError> {
+            if loaded.contains(module_name) || visiting.contains(module_name) {
+                return Ok(());
+            }
+            let module_path = script_dir.join(format!("{module_name}.py"));
+            if !module_path.exists() {
+                return Ok(());
+            }
+
+            visiting.insert(module_name.to_owned());
+
+            let source =
+                fs::read_to_string(&module_path).map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: format!(
+                        "failed to read sidecar module {}: {error}",
+                        module_path.display()
+                    ),
+                })?;
+
+            for dependency in RustPythonVm::imported_sidecar_module_names(&source) {
+                preload_one_sidecar_module(
+                    vm,
+                    path,
+                    script_dir,
+                    sys_modules,
+                    dependency.as_str(),
+                    visiting,
+                    loaded,
+                )?;
+            }
+
+            let attrs = vm.ctx.new_dict();
+            attrs
+                .set_item("__name__", vm.ctx.new_str(module_name).into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: RustPythonVm::exception_details(vm, &error),
+                })?;
+            attrs
+                .set_item(
+                    "__file__",
+                    vm.ctx
+                        .new_str(module_path.to_string_lossy().as_ref())
+                        .into(),
+                    vm,
+                )
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: RustPythonVm::exception_details(vm, &error),
+                })?;
+
+            let module = vm.new_module(module_name, attrs.clone(), None);
+            sys_modules
+                .set_item(module_name, module.into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: RustPythonVm::exception_details(vm, &error),
+                })?;
+
+            let module_scope = Scope::with_builtins(None, attrs, vm);
+            vm.run_code_string(
+                module_scope,
+                &source,
+                module_path.to_string_lossy().into_owned(),
+            )
+            .map_err(|error| RuntimeError::ScriptLoad {
+                path: path.to_owned(),
+                details: RustPythonVm::exception_details(vm, &error),
+            })?;
+
+            visiting.remove(module_name);
+            loaded.insert(module_name.to_owned());
+            Ok(())
+        }
+
+        let mut visiting = HashSet::new();
+        let mut loaded = HashSet::new();
+        for module_name in Self::imported_sidecar_module_names(entry_source) {
+            preload_one_sidecar_module(
+                vm,
+                path,
+                script_dir,
+                &sys_modules,
+                module_name.as_str(),
+                &mut visiting,
+                &mut loaded,
+            )?;
+        }
+        Ok(())
+    }
 }
 
 impl PythonVm for RustPythonVm {
@@ -483,6 +843,16 @@ impl PythonVm for RustPythonVm {
 
         let scope = self.scope.clone().ok_or(RuntimeError::NotLoaded)?;
         self.with_scope(scope, |vm, scope| {
+            Self::configure_import_path_for_script(vm, path)?;
+            Self::install_stdlib_compat_modules(vm, path)?;
+            Self::preload_sidecar_modules_for_script(vm, path, &source)?;
+            scope
+                .globals
+                .set_item("__file__", vm.ctx.new_str(path).into(), vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?;
             vm.run_code_string(scope, &source, path.to_owned())
                 .map(|_| ())
                 .map_err(|error| RuntimeError::ScriptLoad {
@@ -615,6 +985,23 @@ mod tests {
         path
     }
 
+    fn write_temp_project(prefix: &str, files: &[(&str, &str)]) -> PathBuf {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time should be after unix epoch")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "pycro-runtime-project-{prefix}-{}-{timestamp}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).expect("temporary project root should be creatable");
+        for (name, contents) in files {
+            let path = root.join(name);
+            fs::write(path, contents).expect("temporary project file should be writable");
+        }
+        root
+    }
+
     #[test]
     fn setup_runs_once_and_update_runs_per_frame() {
         let vm = FakeVm {
@@ -729,5 +1116,200 @@ def update(dt):
         }
 
         fs::remove_file(script_path).expect("temporary script should be removable");
+    }
+
+    #[test]
+    fn load_main_supports_importing_sidecar_python_modules_from_script_directory() {
+        let root = write_temp_project(
+            "imports",
+            &[
+                (
+                    "main.py",
+                    r#"
+import player
+
+hero = None
+
+def setup():
+    global hero
+    hero = player.create_player("Rhea")
+
+def update(dt):
+    if hero is None:
+        raise RuntimeError("hero should be initialized in setup")
+    player.tick(hero, dt)
+"#,
+                ),
+                (
+                    "player.py",
+                    r#"
+class Player:
+    def __init__(self, name):
+        self.name = name
+        self.x = 200.0
+        self.y = 160.0
+
+def create_player(name):
+    return Player(name)
+
+def tick(player, dt):
+    player.x = player.x + (60.0 * dt)
+"#,
+                ),
+            ],
+        );
+        let script_path = root.join("main.py");
+
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime
+            .load_main()
+            .expect("main with sidecar import should load");
+        runtime
+            .update(0.016)
+            .expect("update should succeed using imported module");
+
+        fs::remove_dir_all(root).expect("temporary project should be removable");
+    }
+
+    #[test]
+    fn load_main_supports_stdlib_math_and_os_imports() {
+        let script = r#"
+import math
+import os
+
+def update(dt):
+    if abs(math.sqrt(81.0) - 9.0) > 1e-9:
+        raise RuntimeError("math.sqrt failed")
+    if abs(math.cos(0.0) - 1.0) > 1e-9:
+        raise RuntimeError("math.cos failed")
+    if abs(math.sin(0.0)) > 1e-9:
+        raise RuntimeError("math.sin failed")
+    if abs(math.hypot(3.0, 4.0) - 5.0) > 1e-9:
+        raise RuntimeError("math.hypot failed")
+    if math.pi <= 3.0:
+        raise RuntimeError("math.pi is unavailable")
+    cwd = os.getcwd()
+    if not cwd:
+        raise RuntimeError("os.getcwd returned empty path")
+    if os.path.basename(cwd) is None:
+        raise RuntimeError("os.path.basename unavailable")
+    if os.getenv("__PYCRO_MISSING_ENV__", "fallback") != "fallback":
+        raise RuntimeError("os.getenv default fallback failed")
+"#;
+        let script_path = write_temp_script("stdlib-imports", script);
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime
+            .load_main()
+            .expect("main with stdlib imports should load");
+        runtime
+            .update(0.016)
+            .expect("update should succeed using stdlib modules");
+
+        fs::remove_file(script_path).expect("temporary script should be removable");
+    }
+
+    #[test]
+    fn load_main_prefers_sidecar_module_over_stdlib_module_name_collision() {
+        let root = write_temp_project(
+            "imports-sidecar-overrides-stdlib",
+            &[
+                (
+                    "main.py",
+                    r#"
+import math
+
+def update(dt):
+    if math.SOURCE != "sidecar":
+        raise RuntimeError(f"expected sidecar module, got {math.SOURCE}")
+"#,
+                ),
+                (
+                    "math.py",
+                    r#"
+SOURCE = "sidecar"
+"#,
+                ),
+            ],
+        );
+        let script_path = root.join("main.py");
+
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime
+            .load_main()
+            .expect("main with sidecar math module should load");
+        runtime
+            .update(0.016)
+            .expect("update should resolve sidecar module first");
+
+        fs::remove_dir_all(root).expect("temporary project should be removable");
+    }
+
+    #[test]
+    fn load_main_prefers_sidecar_module_for_transitive_import_collision() {
+        let root = write_temp_project(
+            "imports-sidecar-transitive-overrides-stdlib",
+            &[
+                (
+                    "main.py",
+                    r#"
+import helper
+
+def update(dt):
+    helper.tick(dt)
+"#,
+                ),
+                (
+                    "helper.py",
+                    r#"
+import math
+
+def tick(dt):
+    if math.SOURCE != "sidecar-transitive":
+        raise RuntimeError(f"expected sidecar module, got {math.SOURCE}")
+"#,
+                ),
+                (
+                    "math.py",
+                    r#"
+SOURCE = "sidecar-transitive"
+"#,
+                ),
+            ],
+        );
+        let script_path = root.join("main.py");
+
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime
+            .load_main()
+            .expect("main with transitive sidecar math module should load");
+        runtime
+            .update(0.016)
+            .expect("update should resolve transitive sidecar module first");
+
+        fs::remove_dir_all(root).expect("temporary project should be removable");
     }
 }

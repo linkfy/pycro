@@ -43,6 +43,12 @@ Current lifecycle behavior (`ScriptRuntime`):
 5. Call optional `setup()` once.
 6. On each frame, call `update(dt)`.
 
+Phase-4 import compatibility behavior (`RustPythonVm::load_script`):
+
+- Adds entry-script directory to `sys.path`.
+- Installs runtime stdlib compatibility modules for `math` and `os`.
+- Preloads sidecar modules from the entry-script directory so local files still win on module-name collisions.
+
 Direct bridge status (current architecture):
 
 - Runtime installs callable Python functions that directly invoke `MacroquadBackendContract` through a shared mutex (`Arc<Mutex<...>>`).
