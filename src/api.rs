@@ -1,6 +1,6 @@
 //! Canonical Python API metadata and deterministic stub rendering.
 
-use crate::backend::{Color, EngineBackend, TextureHandle, Vec2};
+use crate::backend::{Color, EngineBackend, TextureHandle, Vec2, VectorRenderMode};
 use std::fmt::Write;
 
 /// The exported Python module name.
@@ -254,7 +254,7 @@ pub fn dispatch_backend_record(
             position,
             radius,
             color,
-        } => backend.draw_circle(position, radius, color),
+        } => backend.draw_circle(position, radius, color, VectorRenderMode::Default),
         BackendDispatchCommand::LoadTexture(path) => {
             backend.load_texture(path.as_str())?;
         }
@@ -298,7 +298,7 @@ const CLEAR_BACKGROUND_ARGS: [PythonArg; 1] = [PythonArg {
     summary: "Background color for the current frame.",
 }];
 
-const DRAW_CIRCLE_ARGS: [PythonArg; 3] = [
+const DRAW_CIRCLE_ARGS: [PythonArg; 4] = [
     PythonArg {
         name: "position",
         type_hint: "Vec2",
@@ -313,6 +313,11 @@ const DRAW_CIRCLE_ARGS: [PythonArg; 3] = [
         name: "color",
         type_hint: "Color",
         summary: "Fill color for the circle.",
+    },
+    PythonArg {
+        name: "options",
+        type_hint: "dict[str, object] | None = None",
+        summary: "Optional rendering hints (for example: {'as_sprite': True}).",
     },
 ];
 
@@ -375,7 +380,36 @@ const DRAW_TEXT_ARGS: [PythonArg; 4] = [
     },
 ];
 
-const FUNCTIONS: [PythonFunction; 8] = [
+const SUBMIT_RENDER_ARGS: [PythonArg; 1] = [PythonArg {
+    name: "commands",
+    type_hint: "list[tuple[object, ...]]",
+    summary: "Ordered render command payload for batched submission.",
+}];
+
+const SUBMIT_CIRCLE_BATCH_ARGS: [PythonArg; 4] = [
+    PythonArg {
+        name: "positions",
+        type_hint: "list[Vec2]",
+        summary: "Ordered circle center positions.",
+    },
+    PythonArg {
+        name: "radii",
+        type_hint: "list[float]",
+        summary: "Ordered circle radii.",
+    },
+    PythonArg {
+        name: "colors",
+        type_hint: "list[Color]",
+        summary: "Ordered circle colors.",
+    },
+    PythonArg {
+        name: "options",
+        type_hint: "dict[str, object] | None = None",
+        summary: "Optional rendering hints applied to all circles in the batch.",
+    },
+];
+
+const FUNCTIONS: [PythonFunction; 10] = [
     PythonFunction {
         name: "clear_background",
         family: ApiFamily::Render,
@@ -437,6 +471,22 @@ const FUNCTIONS: [PythonFunction; 8] = [
         family: ApiFamily::Render,
         summary: "Draw text in screen space using a baseline anchor.",
         args: &DRAW_TEXT_ARGS,
+        return_type: "None",
+        platforms: PlatformMatrix::cross_platform_safe(),
+    },
+    PythonFunction {
+        name: "submit_render",
+        family: ApiFamily::Render,
+        summary: "Queue multiple render commands in one Python-to-runtime call.",
+        args: &SUBMIT_RENDER_ARGS,
+        return_type: "None",
+        platforms: PlatformMatrix::cross_platform_safe(),
+    },
+    PythonFunction {
+        name: "submit_circle_batch",
+        family: ApiFamily::Render,
+        summary: "Queue many draw_circle operations in one specialized batch call.",
+        args: &SUBMIT_CIRCLE_BATCH_ARGS,
         return_type: "None",
         platforms: PlatformMatrix::cross_platform_safe(),
     },
@@ -544,7 +594,7 @@ mod tests {
         ApiFamily, BackendDispatchCommand, dispatch_backend_record, module_spec,
         parse_backend_dispatch_record, registration_plan, render_stub,
     };
-    use crate::backend::{Color, EngineBackend, TextureHandle, Vec2};
+    use crate::backend::{Color, EngineBackend, TextureHandle, Vec2, VectorRenderMode};
 
     #[test]
     fn metadata_covers_each_initial_family() {
@@ -620,7 +670,14 @@ mod tests {
             fn clear_background(&mut self, _color: Color) {
                 self.clear_calls += 1;
             }
-            fn draw_circle(&mut self, _position: Vec2, _radius: f32, _color: Color) {}
+            fn draw_circle(
+                &mut self,
+                _position: Vec2,
+                _radius: f32,
+                _color: Color,
+                _render_mode: VectorRenderMode,
+            ) {
+            }
             fn is_key_down(&self, _key: &str) -> bool {
                 false
             }

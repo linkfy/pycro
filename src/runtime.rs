@@ -3,14 +3,21 @@
 use crate::api::{
     ENTRYPOINT_SCRIPT, MODULE_NAME, SETUP_FUNCTION, UPDATE_FUNCTION, registration_plan,
 };
-use crate::backend::{Color, EngineBackend, MacroquadBackendContract, TextureHandle, Vec2};
-use rustpython_vm::builtins::{PyBaseExceptionRef, PyDictRef};
+use crate::backend::{
+    CircleDraw, Color, EngineBackend, MacroquadBackendContract, TextureHandle, Vec2,
+    VectorRenderMode,
+};
+use parking_lot::{Mutex, MutexGuard};
+use rustpython_vm::builtins::{PyBaseExceptionRef, PyDictRef, PyFloat, PyList, PyStr, PyTuple};
+use rustpython_vm::function::OptionalArg;
 use rustpython_vm::scope::Scope;
-use rustpython_vm::{AsObject, Interpreter, PyObjectRef, PyResult, VirtualMachine};
+use rustpython_vm::{AsObject, Interpreter, PyObjectRef, PyResult, Settings, VirtualMachine};
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Arc;
+use std::sync::OnceLock;
 
 /// Runtime configuration for Python script loading.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -97,6 +104,12 @@ pub trait PythonVm {
     fn has_function(&self, function: &str) -> Result<bool, RuntimeError>;
     /// Calls a function with runtime values.
     fn call_function(&mut self, function: &str, args: &[RuntimeValue]) -> Result<(), RuntimeError>;
+    /// Flushes render operations queued during `update(dt)`.
+    fn flush_draw_batch(&mut self) -> Result<(), RuntimeError>;
+    /// Discards queued render operations without dispatching them.
+    fn discard_draw_batch(&mut self) -> Result<(), RuntimeError>;
+    /// Flushes Python stdio streams.
+    fn flush_io(&mut self) -> Result<(), RuntimeError>;
 }
 
 /// Coordinates the runtime lifecycle contract.
@@ -154,8 +167,29 @@ where
         if !self.loaded {
             return Err(RuntimeError::NotLoaded);
         }
-        self.vm
-            .call_function(UPDATE_FUNCTION, &[RuntimeValue::Float(dt)])
+        let result = self
+            .vm
+            .call_function(UPDATE_FUNCTION, &[RuntimeValue::Float(dt)]);
+        if result.is_err() {
+            let _ = self.vm.discard_draw_batch();
+        }
+        result
+    }
+
+    /// Flushes the queued draw batch for the current frame.
+    pub fn flush_draw_batch(&mut self) -> Result<(), RuntimeError> {
+        if !self.loaded {
+            return Err(RuntimeError::NotLoaded);
+        }
+        self.vm.flush_draw_batch()
+    }
+
+    /// Flushes runtime stdio buffers.
+    pub fn flush_io(&mut self) -> Result<(), RuntimeError> {
+        if !self.loaded {
+            return Err(RuntimeError::NotLoaded);
+        }
+        self.vm.flush_io()
     }
 
     /// Returns immutable reference to underlying VM.
@@ -169,7 +203,192 @@ where
 pub struct RustPythonVm {
     interpreter: Interpreter,
     scope: Option<Scope>,
+    setup_callable: Option<PyObjectRef>,
+    update_callable: Option<PyObjectRef>,
     backend: Arc<Mutex<MacroquadBackendContract>>,
+    draw_batch: Arc<Mutex<QueuedDrawBatch>>,
+    submit_render_circle_cache: Arc<Mutex<Option<Arc<SubmitRenderCircleCache>>>>,
+    circle_batch_cache: Arc<Mutex<Option<CircleBatchCache>>>,
+    frame_time_seconds: Arc<AtomicU32>,
+    flush_stdio_on_update: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+enum QueuedDrawOp {
+    ClearBackground(Color),
+    DrawCircle {
+        position: Vec2,
+        radius: f32,
+        color: Color,
+        render_mode: VectorRenderMode,
+    },
+    DrawTexture {
+        texture: String,
+        position: Vec2,
+        size: Vec2,
+    },
+    SetCameraTarget(Vec2),
+    DrawText {
+        text: String,
+        position: Vec2,
+        font_size: f32,
+        color: Color,
+    },
+}
+
+type QueuedCircle = CircleDraw;
+
+#[derive(Clone, Debug, PartialEq)]
+enum QueuedBatchEntry {
+    Op(QueuedDrawOp),
+    CircleRun { start: usize, len: usize },
+}
+
+#[derive(Clone, Copy, Debug)]
+struct DrawBatchMark {
+    entry_len: usize,
+    circle_len: usize,
+}
+
+#[derive(Default, Debug)]
+struct QueuedDrawBatch {
+    entries: Vec<QueuedBatchEntry>,
+    circles: Vec<QueuedCircle>,
+}
+
+impl QueuedDrawBatch {
+    fn mark(&self) -> DrawBatchMark {
+        DrawBatchMark {
+            entry_len: self.entries.len(),
+            circle_len: self.circles.len(),
+        }
+    }
+
+    fn rollback(&mut self, mark: DrawBatchMark) {
+        self.entries.truncate(mark.entry_len);
+        self.circles.truncate(mark.circle_len);
+    }
+
+    fn reserve_ops(&mut self, additional_ops: usize) {
+        self.entries.reserve(additional_ops);
+        self.circles.reserve(additional_ops);
+    }
+
+    fn push_circle(&mut self, circle: QueuedCircle) {
+        let start = self.circles.len();
+        self.circles.push(circle);
+        match self.entries.last_mut() {
+            Some(QueuedBatchEntry::CircleRun { len, .. }) => *len += 1,
+            _ => self.entries.push(QueuedBatchEntry::CircleRun { start, len: 1 }),
+        }
+    }
+
+    fn finish_circle_run(&mut self, start: usize) {
+        let added_len = self.circles.len().saturating_sub(start);
+        if added_len == 0 {
+            return;
+        }
+        match self.entries.last_mut() {
+            Some(QueuedBatchEntry::CircleRun { len, .. }) => *len += added_len,
+            _ => self
+                .entries
+                .push(QueuedBatchEntry::CircleRun { start, len: added_len }),
+        }
+    }
+
+    fn push_op(&mut self, op: QueuedDrawOp) {
+        match op {
+            QueuedDrawOp::DrawCircle {
+                position,
+                radius,
+                color,
+                render_mode,
+            } => self.push_circle(QueuedCircle {
+                position,
+                radius,
+                color,
+                render_mode,
+            }),
+            other => self.entries.push(QueuedBatchEntry::Op(other)),
+        }
+    }
+
+    fn clear(&mut self) {
+        self.entries.clear();
+        self.circles.clear();
+    }
+
+    #[cfg(test)]
+    fn to_ops_vec(&self) -> Vec<QueuedDrawOp> {
+        let mut ops = Vec::with_capacity(self.len_ops());
+        for entry in &self.entries {
+            match entry {
+                QueuedBatchEntry::Op(op) => ops.push(op.clone()),
+                QueuedBatchEntry::CircleRun { start, len } => {
+                    for circle in &self.circles[*start..(*start + *len)] {
+                        ops.push(QueuedDrawOp::DrawCircle {
+                            position: circle.position,
+                            radius: circle.radius,
+                            color: circle.color,
+                            render_mode: circle.render_mode,
+                        });
+                    }
+                }
+            }
+        }
+        ops
+    }
+
+    #[cfg(test)]
+    fn take_ops_vec(&mut self) -> Vec<QueuedDrawOp> {
+        let ops = self.to_ops_vec();
+        self.clear();
+        ops
+    }
+
+    fn len_ops(&self) -> usize {
+        self.entries
+            .iter()
+            .map(|entry| match entry {
+                QueuedBatchEntry::Op(_) => 1,
+                QueuedBatchEntry::CircleRun { len, .. } => *len,
+            })
+            .sum()
+    }
+}
+
+#[derive(Clone, Debug)]
+struct CircleBatchCache {
+    radii_list_id: usize,
+    colors_list_id: usize,
+    radii: Vec<f32>,
+    colors: Vec<Color>,
+}
+
+#[derive(Clone, Debug)]
+struct CachedSubmitRenderCircle {
+    index: usize,
+    command_id: usize,
+    position_obj: PyObjectRef,
+    radius: f32,
+    color: Color,
+    options_obj: Option<PyObjectRef>,
+}
+
+#[derive(Clone, Debug)]
+enum CachedSubmitRenderLayoutEntry {
+    CircleRun { start: usize, len: usize },
+    NonCircle { command_index: usize },
+}
+
+#[derive(Clone, Debug)]
+struct SubmitRenderCircleCache {
+    commands_list_id: usize,
+    command_count: usize,
+    first_circle_command_id: usize,
+    last_circle_command_id: usize,
+    circles: Vec<CachedSubmitRenderCircle>,
+    layout: Vec<CachedSubmitRenderLayoutEntry>,
 }
 
 impl std::fmt::Debug for RustPythonVm {
@@ -177,12 +396,16 @@ impl std::fmt::Debug for RustPythonVm {
         let backend_dispatches = self
             .backend
             .lock()
-            .map(|backend| backend.dispatch_log().len())
-            .unwrap_or_default();
+            .dispatch_count();
+        let queued_draw_ops = self
+            .draw_batch
+            .lock()
+            .len_ops();
         formatter
             .debug_struct("RustPythonVm")
             .field("initialized", &self.scope.is_some())
             .field("backend_dispatches", &backend_dispatches)
+            .field("queued_draw_ops", &queued_draw_ops)
             .finish()
     }
 }
@@ -194,21 +417,65 @@ impl Default for RustPythonVm {
 }
 
 impl RustPythonVm {
+    fn submit_render_noop_enabled() -> bool {
+        static ENABLED: OnceLock<bool> = OnceLock::new();
+        *ENABLED.get_or_init(|| std::env::var("PYCRO_SUBMIT_RENDER_NOOP").is_ok_and(|value| value == "1"))
+    }
+
+    fn submit_render_direct_enabled() -> bool {
+        static ENABLED: OnceLock<bool> = OnceLock::new();
+        *ENABLED.get_or_init(|| std::env::var("PYCRO_SUBMIT_RENDER_DIRECT").is_ok_and(|value| value == "1"))
+    }
+
+    fn draw_text_noop_enabled() -> bool {
+        static ENABLED: OnceLock<bool> = OnceLock::new();
+        *ENABLED.get_or_init(|| std::env::var("PYCRO_DRAW_TEXT_NOOP").is_ok_and(|value| value == "1"))
+    }
+
+    fn interpreter_settings() -> Settings {
+        let mut settings = Settings::default();
+        settings.optimize = std::env::var("PYCRO_PY_OPTIMIZE")
+            .ok()
+            .and_then(|value| value.parse::<u8>().ok())
+            .unwrap_or(2);
+        settings
+    }
+
     /// Creates a VM backed by a persistent RustPython interpreter.
     #[must_use]
     pub fn new() -> Self {
         Self {
-            interpreter: Interpreter::without_stdlib(Default::default()),
+            interpreter: Interpreter::without_stdlib(Self::interpreter_settings()),
             scope: None,
+            setup_callable: None,
+            update_callable: None,
             backend: Arc::new(Mutex::new(MacroquadBackendContract::default())),
+            draw_batch: Arc::new(Mutex::new(QueuedDrawBatch::default())),
+            submit_render_circle_cache: Arc::new(Mutex::new(None)),
+            circle_batch_cache: Arc::new(Mutex::new(None)),
+            frame_time_seconds: Arc::new(AtomicU32::new(0.0f32.to_bits())),
+            flush_stdio_on_update: std::env::var("PYCRO_FLUSH_STDIO_ON_UPDATE")
+                .map(|value| value != "0")
+                .unwrap_or(false),
         }
     }
 
     /// Exposes the current backend for smoke evidence.
     pub fn backend(&self) -> MutexGuard<'_, MacroquadBackendContract> {
-        self.backend
+        self.backend.lock()
+    }
+
+    #[cfg(test)]
+    fn queued_draw_batch_snapshot(&self) -> Vec<QueuedDrawOp> {
+        self.draw_batch
             .lock()
-            .expect("runtime backend mutex lock must not be poisoned")
+            .to_ops_vec()
+    }
+
+    #[cfg(test)]
+    fn take_queued_draw_batch_for_test(&self) -> Vec<QueuedDrawOp> {
+        let mut draw_batch = self.draw_batch.lock();
+        draw_batch.take_ops_vec()
     }
 
     fn module_bootstrap_source() -> &'static str {
@@ -247,32 +514,157 @@ impl RustPythonVm {
         }
     }
 
-    fn parse_vec2_py(vm: &VirtualMachine, object: PyObjectRef, context: &str) -> PyResult<Vec2> {
-        let values: Vec<f64> = object
-            .try_into_value(vm)
-            .map_err(|_| vm.new_value_error(format!("{context}: expected Vec2 tuple")))?;
-        if values.len() != 2 {
+    fn parse_vec2_from_items_py(
+        vm: &VirtualMachine,
+        items: &[PyObjectRef],
+        context: &str,
+    ) -> PyResult<Vec2> {
+        if items.len() != 2 {
             return Err(vm.new_value_error(format!("{context}: expected Vec2 tuple length 2")));
         }
-        Ok(Vec2 {
-            x: values[0] as f32,
-            y: values[1] as f32,
+        let x = Self::parse_number_item_at_py(vm, &items[0], context, 0)?;
+        let y = Self::parse_number_item_at_py(vm, &items[1], context, 1)?;
+        Ok(Vec2 { x, y })
+    }
+
+    fn parse_vec2_py(vm: &VirtualMachine, object: &PyObjectRef, context: &str) -> PyResult<Vec2> {
+        if let Some(tuple) = object.payload_if_subclass::<PyTuple>(vm) {
+            return Self::parse_vec2_from_items_py(vm, tuple.as_slice(), context);
+        }
+        if let Some(list) = object.payload_if_subclass::<PyList>(vm) {
+            let items = list.borrow_vec();
+            return Self::parse_vec2_from_items_py(vm, &items, context);
+        }
+        Self::with_sequence_items_py(vm, object, "Vec2 tuple", |items| {
+            Self::parse_vec2_from_items_py(vm, items, context)
         })
     }
 
-    fn parse_color_py(vm: &VirtualMachine, object: PyObjectRef, context: &str) -> PyResult<Color> {
-        let values: Vec<f64> = object
-            .try_into_value(vm)
-            .map_err(|_| vm.new_value_error(format!("{context}: expected Color tuple")))?;
-        if values.len() != 4 {
+    fn parse_vec2_cached_position_py(
+        vm: &VirtualMachine,
+        object: &PyObjectRef,
+        context: &str,
+    ) -> PyResult<Vec2> {
+        if let Some(list) = object.payload_if_subclass::<PyList>(vm) {
+            let items = list.borrow_vec();
+            if items.len() == 2 {
+                let x = Self::parse_number_item_at_py(vm, &items[0], context, 0)?;
+                let y = Self::parse_number_item_at_py(vm, &items[1], context, 1)?;
+                return Ok(Vec2 { x, y });
+            }
+        }
+        Self::parse_vec2_py(vm, object, context)
+    }
+
+    fn parse_vec2_cached_position_fast_py(
+        vm: &VirtualMachine,
+        object: &PyObjectRef,
+    ) -> Option<Vec2> {
+        let list = object.payload_if_subclass::<PyList>(vm)?;
+        let items = list.borrow_vec();
+        let x = items.get(0)?.payload_if_subclass::<PyFloat>(vm)?.to_f64() as f32;
+        let y = items.get(1)?.payload_if_subclass::<PyFloat>(vm)?.to_f64() as f32;
+        if items.len() == 2 {
+            Some(Vec2 { x, y })
+        } else {
+            None
+        }
+    }
+
+    fn parse_color_from_items_py(
+        vm: &VirtualMachine,
+        items: &[PyObjectRef],
+        context: &str,
+    ) -> PyResult<Color> {
+        if items.len() != 4 {
             return Err(vm.new_value_error(format!("{context}: expected Color tuple length 4")));
         }
-        Ok(Color {
-            r: values[0] as f32,
-            g: values[1] as f32,
-            b: values[2] as f32,
-            a: values[3] as f32,
+        let r = Self::parse_number_item_at_py(vm, &items[0], context, 0)?;
+        let g = Self::parse_number_item_at_py(vm, &items[1], context, 1)?;
+        let b = Self::parse_number_item_at_py(vm, &items[2], context, 2)?;
+        let a = Self::parse_number_item_at_py(vm, &items[3], context, 3)?;
+        Ok(Color { r, g, b, a })
+    }
+
+    fn parse_number_item_at_py(
+        vm: &VirtualMachine,
+        item: &PyObjectRef,
+        context: &str,
+        index: usize,
+    ) -> PyResult<f32> {
+        if let Some(float) = item.payload_if_subclass::<PyFloat>(vm) {
+            return Ok(float.to_f64() as f32);
+        }
+        let value: f64 = item
+            .clone()
+            .try_into_value(vm)
+            .map_err(|_| {
+                vm.new_value_error(format!("{context}: expected float at index {index}"))
+            })?;
+        Ok(value as f32)
+    }
+
+    fn parse_color_py(vm: &VirtualMachine, object: &PyObjectRef, context: &str) -> PyResult<Color> {
+        if let Some(tuple) = object.payload_if_subclass::<PyTuple>(vm) {
+            return Self::parse_color_from_items_py(vm, tuple.as_slice(), context);
+        }
+        if let Some(list) = object.payload_if_subclass::<PyList>(vm) {
+            let items = list.borrow_vec();
+            return Self::parse_color_from_items_py(vm, &items, context);
+        }
+        Self::with_sequence_items_py(vm, object, "Color tuple", |items| {
+            Self::parse_color_from_items_py(vm, items, context)
         })
+    }
+
+    fn parse_vector_render_mode_options_py(
+        vm: &VirtualMachine,
+        options: Option<&PyObjectRef>,
+        context: &str,
+    ) -> PyResult<VectorRenderMode> {
+        let Some(options) = options else {
+            return Ok(VectorRenderMode::Default);
+        };
+        if vm.is_none(options) {
+            return Ok(VectorRenderMode::Default);
+        }
+        let dict: PyDictRef = options.clone().downcast().map_err(|_| {
+            vm.new_value_error(format!("{context}: options must be dict[str, object] | None"))
+        })?;
+
+        if let Some(value) = dict.get_item_opt("as_sprite", vm)? {
+            let as_sprite: bool = value.clone().try_into_value(vm).map_err(|_| {
+                vm.new_value_error(format!("{context}: options['as_sprite'] must be bool"))
+            })?;
+            return Ok(if as_sprite {
+                VectorRenderMode::ForceSprite
+            } else {
+                VectorRenderMode::ForceVector
+            });
+        }
+
+        Ok(VectorRenderMode::Default)
+    }
+
+    fn with_sequence_items_py<T>(
+        vm: &VirtualMachine,
+        object: &PyObjectRef,
+        expected: &str,
+        f: impl FnOnce(&[PyObjectRef]) -> PyResult<T>,
+    ) -> PyResult<T> {
+        if let Some(tuple) = object.payload_if_subclass::<PyTuple>(vm) {
+            return f(tuple.as_slice());
+        }
+        if let Some(list) = object.payload_if_subclass::<PyList>(vm) {
+            let items = list.borrow_vec();
+            return f(&items);
+        }
+
+        let values: Vec<PyObjectRef> = object
+            .clone()
+            .try_into_value(vm)
+            .map_err(|_| vm.new_value_error(format!("expected {expected}")))?;
+        f(&values)
     }
 
     fn with_backend_py<T>(
@@ -280,10 +672,613 @@ impl RustPythonVm {
         backend: &Arc<Mutex<MacroquadBackendContract>>,
         f: impl FnOnce(&mut MacroquadBackendContract) -> PyResult<T>,
     ) -> PyResult<T> {
-        let mut backend = backend
-            .lock()
-            .map_err(|_| vm.new_runtime_error("backend mutex lock failed".to_owned()))?;
+        let mut backend = backend.lock();
+        let _ = vm;
         f(&mut backend)
+    }
+
+    fn queue_draw_op_py(
+        vm: &VirtualMachine,
+        draw_batch: &Arc<Mutex<QueuedDrawBatch>>,
+        op: QueuedDrawOp,
+    ) -> PyResult<()> {
+        let mut draw_batch = draw_batch.lock();
+        let _ = vm;
+        draw_batch.push_op(op);
+        Ok(())
+    }
+
+    fn parse_submit_render_command_py(
+        vm: &VirtualMachine,
+        command: &PyObjectRef,
+        index: usize,
+    ) -> PyResult<QueuedDrawOp> {
+        Self::with_sequence_items_py(vm, command, "command tuple/list", |fields| {
+            if fields.is_empty() {
+                return Err(vm.new_value_error(format!(
+                    "submit_render commands[{index}]: command must not be empty"
+                )));
+            }
+
+            let command_name = fields[0]
+                .payload_if_subclass::<PyStr>(vm)
+                .ok_or_else(|| {
+                    vm.new_value_error(format!(
+                        "submit_render commands[{index}][0]: expected command name string"
+                    ))
+                })?
+                .as_str();
+
+            match command_name {
+                "clear_background" => {
+                    if fields.len() != 2 {
+                        return Err(vm.new_value_error(format!(
+                            "submit_render commands[{index}]: clear_background expects 1 argument"
+                        )));
+                    }
+                    let color = Self::parse_color_py(
+                        vm,
+                        &fields[1],
+                        &format!("submit_render commands[{index}] clear_background"),
+                    )?;
+                    Ok(QueuedDrawOp::ClearBackground(color))
+                }
+                "draw_circle" => {
+                    if !(fields.len() == 4 || fields.len() == 5) {
+                        return Err(vm.new_value_error(format!(
+                            "submit_render commands[{index}]: draw_circle expects 3 or 4 arguments"
+                        )));
+                    }
+                    let position =
+                        Self::parse_vec2_py(vm, &fields[1], "submit_render draw_circle position")?;
+                    let radius: f64 = fields[2].clone().try_into_value(vm).map_err(|_| {
+                        vm.new_value_error(format!(
+                            "submit_render commands[{index}] draw_circle radius: expected float"
+                        ))
+                    })?;
+                    let color =
+                        Self::parse_color_py(vm, &fields[3], "submit_render draw_circle color")?;
+                    let render_mode = Self::parse_vector_render_mode_options_py(
+                        vm,
+                        fields.get(4),
+                        "submit_render draw_circle",
+                    )?;
+                    Ok(QueuedDrawOp::DrawCircle {
+                        position,
+                        radius: radius as f32,
+                        color,
+                        render_mode,
+                    })
+                }
+                "draw_texture" => {
+                    if fields.len() != 4 {
+                        return Err(vm.new_value_error(format!(
+                            "submit_render commands[{index}]: draw_texture expects 3 arguments"
+                        )));
+                    }
+                    let texture: String = fields[1].clone().try_into_value(vm).map_err(|_| {
+                        vm.new_value_error(format!(
+                            "submit_render commands[{index}] draw_texture texture: expected TextureHandle"
+                        ))
+                    })?;
+                    let position =
+                        Self::parse_vec2_py(vm, &fields[2], "submit_render draw_texture position")?;
+                    let size =
+                        Self::parse_vec2_py(vm, &fields[3], "submit_render draw_texture size")?;
+                    Ok(QueuedDrawOp::DrawTexture {
+                        texture,
+                        position,
+                        size,
+                    })
+                }
+                "set_camera_target" => {
+                    if fields.len() != 2 {
+                        return Err(vm.new_value_error(format!(
+                            "submit_render commands[{index}]: set_camera_target expects 1 argument"
+                        )));
+                    }
+                    let target =
+                        Self::parse_vec2_py(vm, &fields[1], "submit_render set_camera_target")?;
+                    Ok(QueuedDrawOp::SetCameraTarget(target))
+                }
+                "draw_text" => {
+                    if Self::draw_text_noop_enabled() {
+                        return Ok(QueuedDrawOp::DrawText {
+                            text: String::new(),
+                            position: Vec2 { x: 0.0, y: 0.0 },
+                            font_size: 0.0,
+                            color: Color {
+                                r: 0.0,
+                                g: 0.0,
+                                b: 0.0,
+                                a: 0.0,
+                            },
+                        });
+                    }
+                    if fields.len() != 5 {
+                        return Err(vm.new_value_error(format!(
+                            "submit_render commands[{index}]: draw_text expects 4 arguments"
+                        )));
+                    }
+                    let text: String = fields[1].clone().try_into_value(vm).map_err(|_| {
+                        vm.new_value_error(format!(
+                            "submit_render commands[{index}] draw_text text: expected str"
+                        ))
+                    })?;
+                    let position =
+                        Self::parse_vec2_py(vm, &fields[2], "submit_render draw_text position")?;
+                    let font_size: f64 = fields[3].clone().try_into_value(vm).map_err(|_| {
+                        vm.new_value_error(format!(
+                            "submit_render commands[{index}] draw_text font_size: expected float"
+                        ))
+                    })?;
+                    let color =
+                        Self::parse_color_py(vm, &fields[4], "submit_render draw_text color")?;
+                    Ok(QueuedDrawOp::DrawText {
+                        text,
+                        position,
+                        font_size: font_size as f32,
+                        color,
+                    })
+                }
+                _ => Err(vm.new_value_error(format!(
+                    "submit_render commands[{index}]: unsupported command `{command_name}`"
+                ))),
+            }
+        })
+    }
+
+    fn queue_submit_circle_batch_py(
+        vm: &VirtualMachine,
+        draw_batch: &Arc<Mutex<QueuedDrawBatch>>,
+        circle_batch_cache: &Arc<Mutex<Option<CircleBatchCache>>>,
+        positions: &PyObjectRef,
+        radii: &PyObjectRef,
+        colors: &PyObjectRef,
+        render_mode: VectorRenderMode,
+    ) -> PyResult<()> {
+        Self::with_sequence_items_py(vm, positions, "list of positions", |position_items| {
+            Self::with_sequence_items_py(vm, radii, "list of radii", |radius_items| {
+                Self::with_sequence_items_py(vm, colors, "list of colors", |color_items| {
+                    if position_items.len() != radius_items.len()
+                        || position_items.len() != color_items.len()
+                    {
+                        return Err(vm.new_value_error(
+                            "submit_circle_batch: positions/radii/colors length mismatch"
+                                .to_owned(),
+                        ));
+                    }
+
+                    let radii_list_id = radii.get_id();
+                    let colors_list_id = colors.get_id();
+                    let mut circle_batch_cache = circle_batch_cache.lock();
+                    let needs_rebuild = match circle_batch_cache.as_ref() {
+                        Some(cache) => {
+                            cache.radii_list_id != radii_list_id
+                                || cache.colors_list_id != colors_list_id
+                                || cache.radii.len() != position_items.len()
+                        }
+                        None => true,
+                    };
+                    if needs_rebuild {
+                        let mut parsed_radii = Vec::with_capacity(position_items.len());
+                        let mut parsed_colors = Vec::with_capacity(position_items.len());
+                        for index in 0..position_items.len() {
+                            let radius: f64 = radius_items[index]
+                                .clone()
+                                .try_into_value(vm)
+                                .map_err(|_| {
+                                    vm.new_value_error(format!(
+                                        "submit_circle_batch radii[{index}]: expected float"
+                                    ))
+                                })?;
+                            let color = Self::parse_color_py(
+                                vm,
+                                &color_items[index],
+                                "submit_circle_batch color",
+                            )?;
+                            parsed_radii.push(radius as f32);
+                            parsed_colors.push(color);
+                        }
+                        *circle_batch_cache = Some(CircleBatchCache {
+                            radii_list_id,
+                            colors_list_id,
+                            radii: parsed_radii,
+                            colors: parsed_colors,
+                        });
+                    }
+                    let cache = circle_batch_cache
+                        .as_ref()
+                        .expect("cache must exist after rebuild check");
+
+                    let mut draw_batch = draw_batch.lock();
+                    let rollback_mark = draw_batch.mark();
+                    draw_batch.reserve_ops(position_items.len());
+                    let run_start = draw_batch.circles.len();
+
+                    for index in 0..position_items.len() {
+                        let position = if let Some(value) =
+                            Self::parse_vec2_cached_position_fast_py(vm, &position_items[index])
+                        {
+                            value
+                        } else {
+                            match Self::parse_vec2_cached_position_py(
+                                vm,
+                                &position_items[index],
+                                "submit_circle_batch position",
+                            ) {
+                                Ok(value) => value,
+                                Err(error) => {
+                                    draw_batch.rollback(rollback_mark);
+                                    return Err(error);
+                                }
+                            }
+                        };
+                        draw_batch.circles.push(QueuedCircle {
+                            position,
+                            radius: cache.radii[index],
+                            color: cache.colors[index],
+                            render_mode,
+                        });
+                    }
+                    draw_batch.finish_circle_run(run_start);
+                    Ok(())
+                })
+            })
+        })
+    }
+
+    fn parse_submit_render_draw_circle_cache_entry_py(
+        vm: &VirtualMachine,
+        command: &PyObjectRef,
+        index: usize,
+    ) -> Option<CachedSubmitRenderCircle> {
+        let fields = if let Some(tuple) = command.payload_if_subclass::<PyTuple>(vm) {
+            tuple.as_slice().to_vec()
+        } else if let Some(list) = command.payload_if_subclass::<PyList>(vm) {
+            list.borrow_vec().to_vec()
+        } else {
+            return None;
+        };
+        if !(fields.len() == 4 || fields.len() == 5) {
+            return None;
+        }
+        let command_name = fields[0].payload_if_subclass::<PyStr>(vm)?.as_str();
+        if command_name != "draw_circle" {
+            return None;
+        }
+        let radius: f64 = fields[2].clone().try_into_value(vm).ok()?;
+        let color = Self::parse_color_py(vm, &fields[3], "submit_render draw_circle color").ok()?;
+        Some(CachedSubmitRenderCircle {
+            index,
+            command_id: command.get_id(),
+            position_obj: fields[1].clone(),
+            radius: radius as f32,
+            color,
+            options_obj: fields.get(4).cloned(),
+        })
+    }
+
+    fn rebuild_submit_render_circle_cache_py(
+        vm: &VirtualMachine,
+        submit_render_circle_cache: &Arc<Mutex<Option<Arc<SubmitRenderCircleCache>>>>,
+        commands: &PyObjectRef,
+        items: &[PyObjectRef],
+    ) {
+        let mut circles = Vec::new();
+        for (index, command) in items.iter().enumerate() {
+            if let Some(entry) =
+                Self::parse_submit_render_draw_circle_cache_entry_py(vm, command, index)
+            {
+                circles.push(entry);
+            }
+        }
+        if circles.is_empty() {
+            return;
+        }
+        let mut layout = Vec::new();
+        let mut item_index = 0usize;
+        let mut circle_index = 0usize;
+        while item_index < items.len() {
+            if circles.get(circle_index).is_some_and(|circle| circle.index == item_index) {
+                let run_start = circle_index;
+                let mut run_len = 0usize;
+                while circles.get(circle_index).is_some_and(|circle| {
+                    circle.index == item_index + run_len
+                }) {
+                    circle_index += 1;
+                    run_len += 1;
+                }
+                layout.push(CachedSubmitRenderLayoutEntry::CircleRun {
+                    start: run_start,
+                    len: run_len,
+                });
+                item_index += run_len;
+            } else {
+                layout.push(CachedSubmitRenderLayoutEntry::NonCircle {
+                    command_index: item_index,
+                });
+                item_index += 1;
+            }
+        }
+        let mut cache_guard = submit_render_circle_cache.lock();
+        *cache_guard = Some(Arc::new(SubmitRenderCircleCache {
+            commands_list_id: commands.get_id(),
+            command_count: items.len(),
+            first_circle_command_id: circles
+                .first()
+                .map(|entry| entry.command_id)
+                .unwrap_or_default(),
+            last_circle_command_id: circles
+                .last()
+                .map(|entry| entry.command_id)
+                .unwrap_or_default(),
+            circles,
+            layout,
+        }));
+    }
+
+    fn queue_submit_render_from_circle_cache_py(
+        vm: &VirtualMachine,
+        draw_batch: &Arc<Mutex<QueuedDrawBatch>>,
+        submit_render_circle_cache: &Arc<Mutex<Option<Arc<SubmitRenderCircleCache>>>>,
+        commands: &PyObjectRef,
+        items: &[PyObjectRef],
+    ) -> PyResult<bool> {
+        let cache = {
+            let cache_guard = submit_render_circle_cache.lock();
+            cache_guard.clone()
+        };
+        let Some(cache) = cache else {
+            return Ok(false);
+        };
+        if cache.commands_list_id != commands.get_id() || cache.command_count != items.len() {
+            return Ok(false);
+        }
+        let Some(first_circle) = cache.circles.first() else {
+            return Ok(false);
+        };
+        let Some(last_circle) = cache.circles.last() else {
+            return Ok(false);
+        };
+        if items
+            .get(first_circle.index)
+            .is_none_or(|command| command.get_id() != cache.first_circle_command_id)
+            || items
+                .get(last_circle.index)
+                .is_none_or(|command| command.get_id() != cache.last_circle_command_id)
+        {
+            return Ok(false);
+        }
+
+        let mut draw_batch = draw_batch.lock();
+        let rollback_mark = draw_batch.mark();
+        draw_batch.reserve_ops(items.len());
+
+        for entry in &cache.layout {
+            match *entry {
+                CachedSubmitRenderLayoutEntry::CircleRun { start, len } => {
+                    let run_start = draw_batch.circles.len();
+                    for circle in &cache.circles[start..(start + len)] {
+                        let position = if let Some(value) =
+                            Self::parse_vec2_cached_position_fast_py(vm, &circle.position_obj)
+                        {
+                            value
+                        } else {
+                            match Self::parse_vec2_cached_position_py(
+                                vm,
+                                &circle.position_obj,
+                                "submit_render draw_circle position",
+                            ) {
+                                Ok(value) => value,
+                                Err(error) => {
+                                    draw_batch.rollback(rollback_mark);
+                                    return Err(error);
+                                }
+                            }
+                        };
+                        let render_mode = match Self::parse_vector_render_mode_options_py(
+                            vm,
+                            circle.options_obj.as_ref(),
+                            "submit_render draw_circle",
+                        ) {
+                            Ok(value) => value,
+                            Err(error) => {
+                                draw_batch.rollback(rollback_mark);
+                                return Err(error);
+                            }
+                        };
+                        draw_batch.circles.push(QueuedCircle {
+                            position,
+                            radius: circle.radius,
+                            color: circle.color,
+                            render_mode,
+                        });
+                    }
+                    draw_batch.finish_circle_run(run_start);
+                }
+                CachedSubmitRenderLayoutEntry::NonCircle { command_index } => {
+                    match Self::parse_submit_render_command_py(
+                        vm,
+                        &items[command_index],
+                        command_index,
+                    ) {
+                        Ok(op) => draw_batch.push_op(op),
+                        Err(error) => {
+                            draw_batch.rollback(rollback_mark);
+                            return Err(error);
+                        }
+                    }
+                }
+            }
+        }
+        Ok(true)
+    }
+
+    fn dispatch_submit_render_direct_py(
+        vm: &VirtualMachine,
+        backend: &Arc<Mutex<MacroquadBackendContract>>,
+        submit_render_circle_cache: &Arc<Mutex<Option<Arc<SubmitRenderCircleCache>>>>,
+        commands: &PyObjectRef,
+        items: &[PyObjectRef],
+    ) -> PyResult<()> {
+        let cache = {
+            let cache_guard = submit_render_circle_cache.lock();
+            cache_guard.clone()
+        };
+
+        if let Some(cache) = cache
+            && cache.commands_list_id == commands.get_id()
+            && cache.command_count == items.len()
+            && cache.circles.first().is_some()
+            && cache.circles.last().is_some()
+            && items
+                .get(cache.circles.first().map(|c| c.index).unwrap_or_default())
+                .is_some_and(|command| command.get_id() == cache.first_circle_command_id)
+            && items
+                .get(cache.circles.last().map(|c| c.index).unwrap_or_default())
+                .is_some_and(|command| command.get_id() == cache.last_circle_command_id)
+        {
+            let mut backend = backend.lock();
+            for entry in &cache.layout {
+                match *entry {
+                    CachedSubmitRenderLayoutEntry::CircleRun { start, len } => {
+                        let mut circles = Vec::with_capacity(len);
+                        for circle in &cache.circles[start..(start + len)] {
+                            let position = Self::parse_vec2_cached_position_fast_py(vm, &circle.position_obj)
+                                .or_else(|| {
+                                    Self::parse_vec2_cached_position_py(
+                                        vm,
+                                        &circle.position_obj,
+                                        "submit_render draw_circle position",
+                                    )
+                                    .ok()
+                                })
+                                .ok_or_else(|| {
+                                    vm.new_value_error(
+                                        "submit_render draw_circle position parse failed".to_owned(),
+                                    )
+                                })?;
+                            let render_mode = Self::parse_vector_render_mode_options_py(
+                                vm,
+                                circle.options_obj.as_ref(),
+                                "submit_render draw_circle",
+                            )?;
+                            circles.push(CircleDraw {
+                                position,
+                                radius: circle.radius,
+                                color: circle.color,
+                                render_mode,
+                            });
+                        }
+                        if circles.len() == 1 {
+                            let circle = circles[0];
+                            backend.draw_circle(
+                                circle.position,
+                                circle.radius,
+                                circle.color,
+                                circle.render_mode,
+                            );
+                        } else if !circles.is_empty() {
+                            backend.draw_circle_batch(&circles);
+                        }
+                    }
+                    CachedSubmitRenderLayoutEntry::NonCircle { command_index } => {
+                        match Self::parse_submit_render_command_py(
+                            vm,
+                            &items[command_index],
+                            command_index,
+                        )? {
+                            QueuedDrawOp::ClearBackground(color) => backend.clear_background(color),
+                            QueuedDrawOp::DrawCircle {
+                                position,
+                                radius,
+                                color,
+                                render_mode,
+                            } => backend.draw_circle(position, radius, color, render_mode),
+                            QueuedDrawOp::DrawTexture {
+                                texture,
+                                position,
+                                size,
+                            } => backend.draw_texture(&TextureHandle(texture), position, size),
+                            QueuedDrawOp::SetCameraTarget(target) => backend.set_camera_target(target),
+                            QueuedDrawOp::DrawText {
+                                text,
+                                position,
+                                font_size,
+                                color,
+                            } => backend.draw_text(text.as_str(), position, font_size, color),
+                        }
+                    }
+                }
+            }
+            return Ok(());
+        }
+
+        let mut backend = backend.lock();
+        for (index, command) in items.iter().enumerate() {
+            match Self::parse_submit_render_command_py(vm, command, index)? {
+                QueuedDrawOp::ClearBackground(color) => backend.clear_background(color),
+                QueuedDrawOp::DrawCircle {
+                    position,
+                    radius,
+                    color,
+                    render_mode,
+                } => backend.draw_circle(position, radius, color, render_mode),
+                QueuedDrawOp::DrawTexture {
+                    texture,
+                    position,
+                    size,
+                } => backend.draw_texture(&TextureHandle(texture), position, size),
+                QueuedDrawOp::SetCameraTarget(target) => backend.set_camera_target(target),
+                QueuedDrawOp::DrawText {
+                    text,
+                    position,
+                    font_size,
+                    color,
+                } => backend.draw_text(text.as_str(), position, font_size, color),
+            }
+        }
+        Self::rebuild_submit_render_circle_cache_py(vm, submit_render_circle_cache, commands, items);
+        Ok(())
+    }
+
+    fn flush_draw_batch_ops(&mut self) -> Result<(), RuntimeError> {
+        let mut backend = self.backend.lock();
+
+        let mut draw_batch = self.draw_batch.lock();
+
+        for entry in &draw_batch.entries {
+            match entry {
+                QueuedBatchEntry::Op(op) => match *op {
+                    QueuedDrawOp::ClearBackground(color) => backend.clear_background(color),
+                    QueuedDrawOp::DrawCircle {
+                        position,
+                        radius,
+                        color,
+                        render_mode,
+                    } => backend.draw_circle(position, radius, color, render_mode),
+                    QueuedDrawOp::DrawTexture {
+                        ref texture,
+                        position,
+                        size,
+                    } => backend.draw_texture(&TextureHandle(texture.clone()), position, size),
+                    QueuedDrawOp::SetCameraTarget(target) => backend.set_camera_target(target),
+                    QueuedDrawOp::DrawText {
+                        ref text,
+                        position,
+                        font_size,
+                        color,
+                    } => backend.draw_text(text.as_str(), position, font_size, color),
+                },
+                QueuedBatchEntry::CircleRun { start, len } => {
+                    backend.draw_circle_batch(&draw_batch.circles[*start..(*start + *len)]);
+                }
+            }
+        }
+        draw_batch.clear();
+
+        Ok(())
     }
 
     fn install_direct_api_functions(
@@ -291,38 +1286,55 @@ impl RustPythonVm {
         module_dict: &PyDictRef,
         plan: &ModuleInstallPlan,
         backend: Arc<Mutex<MacroquadBackendContract>>,
+        draw_batch: Arc<Mutex<QueuedDrawBatch>>,
+        submit_render_circle_cache: Arc<Mutex<Option<Arc<SubmitRenderCircleCache>>>>,
+        circle_batch_cache: Arc<Mutex<Option<CircleBatchCache>>>,
+        frame_time_seconds: Arc<AtomicU32>,
     ) -> Result<(), RuntimeError> {
         for function_name in &plan.exported_function_names {
             let function_obj = match *function_name {
                 "clear_background" => {
-                    let backend = Arc::clone(&backend);
+                    let draw_batch = Arc::clone(&draw_batch);
                     vm.new_function(
                         "clear_background",
                         move |color: PyObjectRef, vm: &VirtualMachine| {
-                            let color = Self::parse_color_py(vm, color, "clear_background")?;
-                            Self::with_backend_py(vm, &backend, |backend| {
-                                backend.clear_background(color);
-                                Ok(())
-                            })
+                            let color = Self::parse_color_py(vm, &color, "clear_background")?;
+                            Self::queue_draw_op_py(
+                                vm,
+                                &draw_batch,
+                                QueuedDrawOp::ClearBackground(color),
+                            )
                         },
                     )
                     .into()
                 }
                 "draw_circle" => {
-                    let backend = Arc::clone(&backend);
+                    let draw_batch = Arc::clone(&draw_batch);
                     vm.new_function(
                         "draw_circle",
                         move |position: PyObjectRef,
                               radius: f64,
                               color: PyObjectRef,
+                              options: OptionalArg<PyObjectRef>,
                               vm: &VirtualMachine| {
                             let position =
-                                Self::parse_vec2_py(vm, position, "draw_circle position")?;
-                            let color = Self::parse_color_py(vm, color, "draw_circle color")?;
-                            Self::with_backend_py(vm, &backend, |backend| {
-                                backend.draw_circle(position, radius as f32, color);
-                                Ok(())
-                            })
+                                Self::parse_vec2_py(vm, &position, "draw_circle position")?;
+                            let color = Self::parse_color_py(vm, &color, "draw_circle color")?;
+                            let render_mode = Self::parse_vector_render_mode_options_py(
+                                vm,
+                                options.into_option().as_ref(),
+                                "draw_circle",
+                            )?;
+                            Self::queue_draw_op_py(
+                                vm,
+                                &draw_batch,
+                                QueuedDrawOp::DrawCircle {
+                                    position,
+                                    radius: radius as f32,
+                                    color,
+                                    render_mode,
+                                },
+                            )
                         },
                     )
                     .into()
@@ -335,11 +1347,10 @@ impl RustPythonVm {
                     .into()
                 }
                 "frame_time" => {
-                    let backend = Arc::clone(&backend);
-                    vm.new_function("frame_time", move |vm: &VirtualMachine| {
-                        Self::with_backend_py(vm, &backend, |backend| {
-                            Ok(f64::from(backend.frame_time()))
-                        })
+                    let frame_time_seconds = Arc::clone(&frame_time_seconds);
+                    vm.new_function("frame_time", move |_vm: &VirtualMachine| -> PyResult<f64> {
+                        let dt = f32::from_bits(frame_time_seconds.load(Ordering::Relaxed));
+                        Ok(f64::from(dt))
                     })
                     .into()
                 }
@@ -356,7 +1367,7 @@ impl RustPythonVm {
                     .into()
                 }
                 "draw_texture" => {
-                    let backend = Arc::clone(&backend);
+                    let draw_batch = Arc::clone(&draw_batch);
                     vm.new_function(
                         "draw_texture",
                         move |texture: String,
@@ -364,32 +1375,38 @@ impl RustPythonVm {
                               size: PyObjectRef,
                               vm: &VirtualMachine| {
                             let position =
-                                Self::parse_vec2_py(vm, position, "draw_texture position")?;
-                            let size = Self::parse_vec2_py(vm, size, "draw_texture size")?;
-                            Self::with_backend_py(vm, &backend, |backend| {
-                                backend.draw_texture(&TextureHandle(texture), position, size);
-                                Ok(())
-                            })
+                                Self::parse_vec2_py(vm, &position, "draw_texture position")?;
+                            let size = Self::parse_vec2_py(vm, &size, "draw_texture size")?;
+                            Self::queue_draw_op_py(
+                                vm,
+                                &draw_batch,
+                                QueuedDrawOp::DrawTexture {
+                                    texture,
+                                    position,
+                                    size,
+                                },
+                            )
                         },
                     )
                     .into()
                 }
                 "set_camera_target" => {
-                    let backend = Arc::clone(&backend);
+                    let draw_batch = Arc::clone(&draw_batch);
                     vm.new_function(
                         "set_camera_target",
                         move |target: PyObjectRef, vm: &VirtualMachine| {
-                            let target = Self::parse_vec2_py(vm, target, "set_camera_target")?;
-                            Self::with_backend_py(vm, &backend, |backend| {
-                                backend.set_camera_target(target);
-                                Ok(())
-                            })
+                            let target = Self::parse_vec2_py(vm, &target, "set_camera_target")?;
+                            Self::queue_draw_op_py(
+                                vm,
+                                &draw_batch,
+                                QueuedDrawOp::SetCameraTarget(target),
+                            )
                         },
                     )
                     .into()
                 }
                 "draw_text" => {
-                    let backend = Arc::clone(&backend);
+                    let draw_batch = Arc::clone(&draw_batch);
                     vm.new_function(
                         "draw_text",
                         move |text: String,
@@ -397,12 +1414,117 @@ impl RustPythonVm {
                               font_size: f64,
                               color: PyObjectRef,
                               vm: &VirtualMachine| {
-                            let position = Self::parse_vec2_py(vm, position, "draw_text position")?;
-                            let color = Self::parse_color_py(vm, color, "draw_text color")?;
-                            Self::with_backend_py(vm, &backend, |backend| {
-                                backend.draw_text(text.as_str(), position, font_size as f32, color);
-                                Ok(())
-                            })
+                            let position =
+                                Self::parse_vec2_py(vm, &position, "draw_text position")?;
+                            let color = Self::parse_color_py(vm, &color, "draw_text color")?;
+                            Self::queue_draw_op_py(
+                                vm,
+                                &draw_batch,
+                                QueuedDrawOp::DrawText {
+                                    text,
+                                    position,
+                                    font_size: font_size as f32,
+                                    color,
+                                },
+                            )
+                        },
+                    )
+                    .into()
+                }
+                "submit_render" => {
+                    let draw_batch = Arc::clone(&draw_batch);
+                    let backend = Arc::clone(&backend);
+                    let submit_render_circle_cache = Arc::clone(&submit_render_circle_cache);
+                    vm.new_function(
+                        "submit_render",
+                        move |commands: PyObjectRef, vm: &VirtualMachine| {
+                            if Self::submit_render_noop_enabled() {
+                                let _ = (&commands, vm);
+                                return Ok(());
+                            }
+                            if Self::submit_render_direct_enabled() {
+                                return Self::with_sequence_items_py(
+                                    vm,
+                                    &commands,
+                                    "list of commands",
+                                    |items| {
+                                        Self::dispatch_submit_render_direct_py(
+                                            vm,
+                                            &backend,
+                                            &submit_render_circle_cache,
+                                            &commands,
+                                            items,
+                                        )
+                                    },
+                                );
+                            }
+                            Self::with_sequence_items_py(
+                                vm,
+                                &commands,
+                                "list of commands",
+                                |items| {
+                                    if Self::queue_submit_render_from_circle_cache_py(
+                                        vm,
+                                        &draw_batch,
+                                        &submit_render_circle_cache,
+                                        &commands,
+                                        items,
+                                    )? {
+                                        return Ok(());
+                                    }
+
+                                    let mut draw_batch = draw_batch.lock();
+                                    let rollback_mark = draw_batch.mark();
+                                    draw_batch.reserve_ops(items.len());
+                                    for (index, command) in items.iter().enumerate() {
+                                        match Self::parse_submit_render_command_py(
+                                            vm, command, index,
+                                        ) {
+                                            Ok(op) => draw_batch.push_op(op),
+                                            Err(error) => {
+                                                draw_batch.rollback(rollback_mark);
+                                                return Err(error);
+                                            }
+                                        }
+                                    }
+                                    drop(draw_batch);
+                                    Self::rebuild_submit_render_circle_cache_py(
+                                        vm,
+                                        &submit_render_circle_cache,
+                                        &commands,
+                                        items,
+                                    );
+                                    Ok(())
+                                },
+                            )
+                        },
+                    )
+                    .into()
+                }
+                "submit_circle_batch" => {
+                    let draw_batch = Arc::clone(&draw_batch);
+                    let circle_batch_cache = Arc::clone(&circle_batch_cache);
+                    vm.new_function(
+                        "submit_circle_batch",
+                        move |positions: PyObjectRef,
+                              radii: PyObjectRef,
+                              colors: PyObjectRef,
+                              options: OptionalArg<PyObjectRef>,
+                              vm: &VirtualMachine| {
+                            let render_mode = Self::parse_vector_render_mode_options_py(
+                                vm,
+                                options.into_option().as_ref(),
+                                "submit_circle_batch",
+                            )?;
+                            Self::queue_submit_circle_batch_py(
+                                vm,
+                                &draw_batch,
+                                &circle_batch_cache,
+                                &positions,
+                                &radii,
+                                &colors,
+                                render_mode,
+                            )
                         },
                     )
                     .into()
@@ -784,11 +1906,98 @@ impl RustPythonVm {
         }
         Ok(())
     }
+
+    fn maybe_disable_gc(vm: &VirtualMachine, path: &str) -> Result<(), RuntimeError> {
+        if !std::env::var("PYCRO_DISABLE_GC").is_ok_and(|value| value == "1") {
+            return Ok(());
+        }
+        let _ = vm.run_code_string(
+            vm.new_scope_with_builtins(),
+            "import gc\ngc.disable()\n",
+            "<pycro-gc-config>".to_owned(),
+        );
+        let _ = path;
+        Ok(())
+    }
+
+    fn maybe_jit_functions(
+        vm: &VirtualMachine,
+        scope: &Scope,
+        update_callable: &Option<PyObjectRef>,
+    ) -> Result<(), RuntimeError> {
+        let jit_mode = std::env::var("PYCRO_JIT_MODE").unwrap_or_else(|_| "off".to_owned());
+        let jit_report = std::env::var("PYCRO_JIT_REPORT").is_ok_and(|value| value == "1");
+        if !cfg!(target_arch = "x86_64") {
+            if jit_mode != "off" && jit_report {
+                eprintln!("[pycro-jit] unsupported target_arch for runtime __jit__ path");
+            }
+            return Ok(());
+        }
+        if jit_mode == "off" {
+            return Ok(());
+        }
+        if jit_mode == "update" {
+            if let Some(update_callable) = update_callable {
+                match vm.call_method(update_callable.as_object(), "__jit__", ()) {
+                    Ok(_) => {
+                        if jit_report {
+                            eprintln!("[pycro-jit] update:ok");
+                        }
+                    }
+                    Err(error) => {
+                        if jit_report {
+                            eprintln!("[pycro-jit] update:err {}", Self::exception_details(vm, &error));
+                        }
+                    }
+                }
+            } else if jit_report {
+                eprintln!("[pycro-jit] update:missing");
+            }
+            return Ok(());
+        }
+        if jit_mode == "all" {
+            let py_bool = if jit_report { "True" } else { "False" };
+            let jit_script = format!(
+                r#"
+_jit_ok = []
+_jit_err = []
+_callables = []
+_with_jit = []
+for _name, _obj in list(globals().items()):
+    if callable(_obj):
+        _callables.append(_name)
+    if hasattr(_obj, "__jit__"):
+        _with_jit.append(_name)
+        try:
+            _obj.__jit__()
+            _jit_ok.append(_name)
+        except Exception:
+            _jit_err.append(_name)
+if {py_bool}:
+    print("[pycro-jit] all:callables=" + ",".join(_callables))
+    print("[pycro-jit] all:has_jit=" + ",".join(_with_jit))
+    print("[pycro-jit] all:ok=" + ",".join(_jit_ok))
+    print("[pycro-jit] all:err=" + ",".join(_jit_err))
+"#
+            );
+            let _ = vm.run_code_string(
+                scope.clone(),
+                &jit_script,
+                "<pycro-jit-all>".to_owned(),
+            );
+            return Ok(());
+        }
+        Ok(())
+    }
 }
 
 impl PythonVm for RustPythonVm {
     fn install_module(&mut self, plan: ModuleInstallPlan) -> Result<(), RuntimeError> {
         let backend = Arc::clone(&self.backend);
+        let draw_batch = Arc::clone(&self.draw_batch);
+        let submit_render_circle_cache = Arc::clone(&self.submit_render_circle_cache);
+        let circle_batch_cache = Arc::clone(&self.circle_batch_cache);
+        let frame_time_seconds = Arc::clone(&self.frame_time_seconds);
         let scope = self.interpreter.enter(|vm| {
             let scope = vm.new_scope_with_builtins();
 
@@ -826,12 +2035,23 @@ impl PythonVm for RustPythonVm {
                 details: Self::exception_details(vm, &error),
             })?;
 
-            Self::install_direct_api_functions(vm, &attrs, &plan, backend)?;
+            Self::install_direct_api_functions(
+                vm,
+                &attrs,
+                &plan,
+                backend,
+                draw_batch,
+                submit_render_circle_cache,
+                circle_batch_cache,
+                frame_time_seconds,
+            )?;
 
             Ok(scope)
         })?;
 
         self.scope = Some(scope);
+        self.setup_callable = None;
+        self.update_callable = None;
         Ok(())
     }
 
@@ -842,9 +2062,10 @@ impl PythonVm for RustPythonVm {
         })?;
 
         let scope = self.scope.clone().ok_or(RuntimeError::NotLoaded)?;
-        self.with_scope(scope, |vm, scope| {
+        let (setup_callable, update_callable) = self.with_scope(scope, |vm, scope| {
             Self::configure_import_path_for_script(vm, path)?;
             Self::install_stdlib_compat_modules(vm, path)?;
+            Self::maybe_disable_gc(vm, path)?;
             Self::preload_sidecar_modules_for_script(vm, path, &source)?;
             scope
                 .globals
@@ -853,15 +2074,35 @@ impl PythonVm for RustPythonVm {
                     path: path.to_owned(),
                     details: Self::exception_details(vm, &error),
                 })?;
-            vm.run_code_string(scope, &source, path.to_owned())
+            vm.run_code_string(scope.clone(), &source, path.to_owned())
                 .map(|_| ())
                 .map_err(|error| RuntimeError::ScriptLoad {
                     path: path.to_owned(),
                     details: Self::exception_details(vm, &error),
                 })?;
+            let setup_callable = scope
+                .globals
+                .get_item_opt(SETUP_FUNCTION, vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?
+                .filter(|value| value.as_object().to_callable().is_some());
+            let update_callable = scope
+                .globals
+                .get_item_opt(UPDATE_FUNCTION, vm)
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.to_owned(),
+                    details: Self::exception_details(vm, &error),
+                })?
+                .filter(|value| value.as_object().to_callable().is_some());
+            Self::maybe_jit_functions(vm, &scope, &update_callable)?;
             Self::flush_stdio(vm);
-            Ok(())
-        })
+            Ok((setup_callable, update_callable))
+        })?;
+        self.setup_callable = setup_callable;
+        self.update_callable = update_callable;
+        Ok(())
     }
 
     fn has_function(&self, function: &str) -> Result<bool, RuntimeError> {
@@ -881,26 +2122,32 @@ impl PythonVm for RustPythonVm {
 
     fn call_function(&mut self, function: &str, args: &[RuntimeValue]) -> Result<(), RuntimeError> {
         let scope = self.scope.clone().ok_or(RuntimeError::NotLoaded)?;
-        let backend = Arc::clone(&self.backend);
+        let cached_callable = match function {
+            SETUP_FUNCTION => self.setup_callable.clone(),
+            UPDATE_FUNCTION => self.update_callable.clone(),
+            _ => None,
+        };
+        let frame_time_seconds = Arc::clone(&self.frame_time_seconds);
+        let flush_stdio_on_update = self.flush_stdio_on_update;
         self.with_scope(scope, |vm, scope| {
-            let callable = scope
-                .globals
-                .get_item_opt(function, vm)
-                .map_err(|error| RuntimeError::FunctionCall {
-                    function: function.to_owned(),
-                    details: Self::exception_details(vm, &error),
-                })?
-                .ok_or_else(|| RuntimeError::FunctionCall {
-                    function: function.to_owned(),
-                    details: "function not found in loaded script".to_owned(),
-                })?;
+            let callable = if let Some(callable) = cached_callable.clone() {
+                callable
+            } else {
+                scope
+                    .globals
+                    .get_item_opt(function, vm)
+                    .map_err(|error| RuntimeError::FunctionCall {
+                        function: function.to_owned(),
+                        details: Self::exception_details(vm, &error),
+                    })?
+                    .ok_or_else(|| RuntimeError::FunctionCall {
+                        function: function.to_owned(),
+                        details: "function not found in loaded script".to_owned(),
+                    })?
+            };
 
             if let [RuntimeValue::Float(dt)] = args {
-                let mut backend = backend.lock().map_err(|_| RuntimeError::FunctionCall {
-                    function: function.to_owned(),
-                    details: "backend mutex lock failed".to_owned(),
-                })?;
-                backend.set_frame_time(*dt);
+                frame_time_seconds.store(dt.to_bits(), Ordering::Relaxed);
             }
 
             match args {
@@ -918,6 +2165,26 @@ impl PythonVm for RustPythonVm {
                 details: Self::exception_details(vm, &error),
             })?;
 
+            if function != UPDATE_FUNCTION || flush_stdio_on_update {
+                Self::flush_stdio(vm);
+            }
+            Ok(())
+        })
+    }
+
+    fn flush_draw_batch(&mut self) -> Result<(), RuntimeError> {
+        self.flush_draw_batch_ops()
+    }
+
+    fn discard_draw_batch(&mut self) -> Result<(), RuntimeError> {
+        let mut draw_batch = self.draw_batch.lock();
+        draw_batch.clear();
+        Ok(())
+    }
+
+    fn flush_io(&mut self) -> Result<(), RuntimeError> {
+        let scope = self.scope.clone().ok_or(RuntimeError::NotLoaded)?;
+        self.with_scope(scope, |vm, _scope| {
             Self::flush_stdio(vm);
             Ok(())
         })
@@ -927,9 +2194,10 @@ impl PythonVm for RustPythonVm {
 #[cfg(test)]
 mod tests {
     use super::{
-        ModuleInstallPlan, PythonVm, RuntimeConfig, RuntimeError, RuntimeValue, RustPythonVm,
-        ScriptRuntime,
+        ModuleInstallPlan, PythonVm, QueuedDrawOp, RuntimeConfig, RuntimeError, RuntimeValue,
+        RustPythonVm, ScriptRuntime,
     };
+    use crate::backend::{BackendDispatch, Color, Vec2, VectorRenderMode};
     use std::fs;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -939,6 +2207,9 @@ mod tests {
         setup_present: bool,
         update_present: bool,
         calls: Vec<String>,
+        flush_calls: usize,
+        discard_calls: usize,
+        fail_on_update: bool,
     }
 
     impl PythonVm for FakeVm {
@@ -963,11 +2234,31 @@ mod tests {
             function: &str,
             args: &[RuntimeValue],
         ) -> Result<(), RuntimeError> {
+            if function == "update" && self.fail_on_update {
+                return Err(RuntimeError::FunctionCall {
+                    function: "update".to_owned(),
+                    details: "simulated update failure".to_owned(),
+                });
+            }
             let mut label = function.to_owned();
             if let [RuntimeValue::Float(dt)] = args {
                 label = format!("{label}({dt:.3})");
             }
             self.calls.push(label);
+            Ok(())
+        }
+
+        fn flush_draw_batch(&mut self) -> Result<(), RuntimeError> {
+            self.flush_calls += 1;
+            Ok(())
+        }
+
+        fn discard_draw_batch(&mut self) -> Result<(), RuntimeError> {
+            self.discard_calls += 1;
+            Ok(())
+        }
+
+        fn flush_io(&mut self) -> Result<(), RuntimeError> {
             Ok(())
         }
     }
@@ -1000,6 +2291,10 @@ mod tests {
             fs::write(path, contents).expect("temporary project file should be writable");
         }
         root
+    }
+
+    fn backend_dispatches(runtime: &ScriptRuntime<RustPythonVm>) -> Vec<BackendDispatch> {
+        runtime.vm().backend().dispatch_log().to_vec()
     }
 
     #[test]
@@ -1039,6 +2334,320 @@ mod tests {
     }
 
     #[test]
+    fn update_failure_discards_queued_draw_batch() {
+        let vm = FakeVm {
+            setup_present: false,
+            update_present: true,
+            fail_on_update: true,
+            ..FakeVm::default()
+        };
+        let mut runtime = ScriptRuntime::new(vm, RuntimeConfig::default());
+
+        runtime.load_main().expect("load_main should succeed");
+        let error = runtime
+            .update(0.016)
+            .expect_err("update should fail in fake vm");
+        assert!(matches!(error, RuntimeError::FunctionCall { .. }));
+        assert_eq!(runtime.vm().discard_calls, 1);
+        assert_eq!(runtime.vm().flush_calls, 0);
+    }
+
+    #[test]
+    fn draw_ops_are_queued_in_batch_order_until_frame_flush() {
+        let script = r#"
+import pycro
+
+def update(dt):
+    tex = pycro.load_texture("examples/assets/does-not-exist.png")
+    pycro.clear_background((0.1, 0.2, 0.3, 1.0))
+    pycro.draw_circle((10.0, 20.0), 5.0, (0.9, 0.8, 0.7, 1.0))
+    pycro.draw_texture(tex, (30.0, 40.0), (64.0, 48.0))
+    pycro.set_camera_target((70.0, 80.0))
+    pycro.draw_text("queued", (90.0, 100.0), 18.0, (0.5, 0.6, 0.7, 1.0))
+"#;
+        let script_path = write_temp_script("draw-batch-order", script);
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime.load_main().expect("load_main should succeed");
+        runtime.update(0.016).expect("update should succeed");
+
+        let before_flush = backend_dispatches(&runtime);
+        assert_eq!(
+            before_flush,
+            vec![BackendDispatch::LoadTexture(
+                "examples/assets/does-not-exist.png".to_owned()
+            )]
+        );
+
+        let queued_draw_batch = runtime.vm().queued_draw_batch_snapshot();
+        assert_eq!(
+            queued_draw_batch,
+            vec![
+                QueuedDrawOp::ClearBackground(Color {
+                    r: 0.1,
+                    g: 0.2,
+                    b: 0.3,
+                    a: 1.0
+                }),
+                QueuedDrawOp::DrawCircle {
+                    position: Vec2 { x: 10.0, y: 20.0 },
+                    radius: 5.0,
+                    color: Color {
+                        r: 0.9,
+                        g: 0.8,
+                        b: 0.7,
+                        a: 1.0
+                    },
+                    render_mode: VectorRenderMode::Default,
+                },
+                QueuedDrawOp::DrawTexture {
+                    texture: "examples/assets/does-not-exist.png".to_owned(),
+                    position: Vec2 { x: 30.0, y: 40.0 },
+                    size: Vec2 { x: 64.0, y: 48.0 }
+                },
+                QueuedDrawOp::SetCameraTarget(Vec2 { x: 70.0, y: 80.0 }),
+                QueuedDrawOp::DrawText {
+                    text: "queued".to_owned(),
+                    position: Vec2 { x: 90.0, y: 100.0 },
+                    font_size: 18.0,
+                    color: Color {
+                        r: 0.5,
+                        g: 0.6,
+                        b: 0.7,
+                        a: 1.0
+                    }
+                },
+            ]
+        );
+        assert_eq!(
+            runtime.vm().take_queued_draw_batch_for_test(),
+            queued_draw_batch,
+            "flush should apply the queue in insertion order"
+        );
+        assert!(
+            runtime.vm().queued_draw_batch_snapshot().is_empty(),
+            "flush should clear the queue for the next frame"
+        );
+
+        fs::remove_file(script_path).expect("temporary script should be removable");
+    }
+
+    #[test]
+    fn draw_batch_flush_clears_per_frame() {
+        let script = r#"
+import pycro
+
+_count = 0
+
+def update(dt):
+    global _count
+    _count += 1
+    pycro.draw_circle((10.0 + _count, 20.0), float(_count), (1.0, 0.0, 0.0, 1.0))
+"#;
+        let script_path = write_temp_script("draw-batch-clear", script);
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime.load_main().expect("load_main should succeed");
+        runtime
+            .update(0.016)
+            .expect("frame 1 update should succeed");
+        let after_first_flush = runtime.vm().take_queued_draw_batch_for_test();
+        assert_eq!(
+            after_first_flush,
+            vec![QueuedDrawOp::DrawCircle {
+                position: Vec2 { x: 11.0, y: 20.0 },
+                radius: 1.0,
+                color: Color {
+                    r: 1.0,
+                    g: 0.0,
+                    b: 0.0,
+                    a: 1.0
+                },
+                render_mode: VectorRenderMode::Default,
+            }]
+        );
+
+        runtime
+            .update(0.032)
+            .expect("frame 2 update should succeed");
+        assert_eq!(
+            runtime.vm().queued_draw_batch_snapshot(),
+            vec![QueuedDrawOp::DrawCircle {
+                position: Vec2 { x: 12.0, y: 20.0 },
+                radius: 2.0,
+                color: Color {
+                    r: 1.0,
+                    g: 0.0,
+                    b: 0.0,
+                    a: 1.0
+                },
+                render_mode: VectorRenderMode::Default,
+            }],
+            "frame 1 draw must not replay in frame 2 queue"
+        );
+
+        assert_eq!(
+            runtime.vm().take_queued_draw_batch_for_test(),
+            vec![QueuedDrawOp::DrawCircle {
+                position: Vec2 { x: 12.0, y: 20.0 },
+                radius: 2.0,
+                color: Color {
+                    r: 1.0,
+                    g: 0.0,
+                    b: 0.0,
+                    a: 1.0
+                },
+                render_mode: VectorRenderMode::Default,
+            }]
+        );
+
+        fs::remove_file(script_path).expect("temporary script should be removable");
+    }
+
+    #[test]
+    fn submit_render_matches_legacy_draw_path_order_and_payload() {
+        let direct_script = r#"
+import pycro
+
+def update(dt):
+    tex = pycro.load_texture("examples/assets/does-not-exist.png")
+    pycro.clear_background((0.1, 0.2, 0.3, 1.0))
+    pycro.draw_circle((10.0, 20.0), 5.0, (0.9, 0.8, 0.7, 1.0))
+    pycro.draw_texture(tex, (30.0, 40.0), (64.0, 48.0))
+    pycro.set_camera_target((70.0, 80.0))
+    pycro.draw_text("queued", (90.0, 100.0), 18.0, (0.5, 0.6, 0.7, 1.0))
+"#;
+        let submit_script = r#"
+import pycro
+
+def update(dt):
+    tex = pycro.load_texture("examples/assets/does-not-exist.png")
+    pycro.submit_render([
+        ("clear_background", (0.1, 0.2, 0.3, 1.0)),
+        ("draw_circle", (10.0, 20.0), 5.0, (0.9, 0.8, 0.7, 1.0)),
+        ("draw_texture", tex, (30.0, 40.0), (64.0, 48.0)),
+        ("set_camera_target", (70.0, 80.0)),
+        ("draw_text", "queued", (90.0, 100.0), 18.0, (0.5, 0.6, 0.7, 1.0)),
+    ])
+"#;
+        let direct_path = write_temp_script("draw-direct", direct_script);
+        let submit_path = write_temp_script("draw-submit", submit_script);
+
+        let mut direct_runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: direct_path.to_string_lossy().into_owned(),
+            },
+        );
+        let mut submit_runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: submit_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        direct_runtime
+            .load_main()
+            .expect("direct runtime load_main should succeed");
+        submit_runtime
+            .load_main()
+            .expect("submit runtime load_main should succeed");
+        direct_runtime
+            .update(0.016)
+            .expect("direct runtime update should succeed");
+        submit_runtime
+            .update(0.016)
+            .expect("submit runtime update should succeed");
+
+        assert_eq!(
+            submit_runtime.vm().queued_draw_batch_snapshot(),
+            direct_runtime.vm().queued_draw_batch_snapshot(),
+            "submit_render must queue the same draw payload/order as legacy draw_* calls"
+        );
+
+        assert_eq!(
+            backend_dispatches(&submit_runtime),
+            vec![BackendDispatch::LoadTexture(
+                "examples/assets/does-not-exist.png".to_owned()
+            )],
+            "submit_render should preserve direct-return dispatch behavior for load_texture"
+        );
+        assert_eq!(
+            backend_dispatches(&direct_runtime),
+            backend_dispatches(&submit_runtime),
+            "submit_render and legacy draw_* should keep identical direct backend dispatches before flush"
+        );
+
+        fs::remove_file(direct_path).expect("temporary script should be removable");
+        fs::remove_file(submit_path).expect("temporary script should be removable");
+    }
+
+    #[test]
+    fn submit_circle_batch_queues_expected_draw_circles() {
+        let script = r#"
+import pycro
+
+def update(dt):
+    pycro.submit_circle_batch(
+        [(10.0, 20.0), (30.0, 40.0)],
+        [5.0, 6.0],
+        [(0.9, 0.8, 0.7, 1.0), (0.1, 0.2, 0.3, 1.0)],
+    )
+"#;
+        let script_path = write_temp_script("submit-circle-batch", script);
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime.load_main().expect("load_main should succeed");
+        runtime.update(0.016).expect("update should succeed");
+
+        assert_eq!(
+            runtime.vm().queued_draw_batch_snapshot(),
+            vec![
+                QueuedDrawOp::DrawCircle {
+                    position: Vec2 { x: 10.0, y: 20.0 },
+                    radius: 5.0,
+                    color: Color {
+                        r: 0.9,
+                        g: 0.8,
+                        b: 0.7,
+                        a: 1.0
+                    },
+                    render_mode: VectorRenderMode::Default,
+                },
+                QueuedDrawOp::DrawCircle {
+                    position: Vec2 { x: 30.0, y: 40.0 },
+                    radius: 6.0,
+                    color: Color {
+                        r: 0.1,
+                        g: 0.2,
+                        b: 0.3,
+                        a: 1.0
+                    },
+                    render_mode: VectorRenderMode::Default,
+                }
+            ],
+            "submit_circle_batch must queue ordered draw_circle operations"
+        );
+
+        fs::remove_file(script_path).expect("temporary script should be removable");
+    }
+
+    #[test]
     fn direct_bridge_returns_backend_values_for_frame_time_and_texture_handle() {
         let script = r#"
 import pycro
@@ -1074,7 +2683,22 @@ def update(dt):
 
         runtime.load_main().expect("load_main should succeed");
         runtime.update(0.05).expect("first update should succeed");
+        assert_eq!(
+            backend_dispatches(&runtime),
+            vec![BackendDispatch::LoadTexture(
+                "examples/assets/does-not-exist.png".to_owned()
+            )],
+            "load_texture should remain direct and not require draw-batch flush"
+        );
         runtime.update(0.09).expect("second update should succeed");
+        assert_eq!(
+            backend_dispatches(&runtime),
+            vec![
+                BackendDispatch::LoadTexture("examples/assets/does-not-exist.png".to_owned()),
+                BackendDispatch::LoadTexture("examples/assets/does-not-exist.png".to_owned()),
+            ],
+            "direct-return API semantics must remain unchanged frame-to-frame"
+        );
 
         fs::remove_file(script_path).expect("temporary script should be removable");
     }

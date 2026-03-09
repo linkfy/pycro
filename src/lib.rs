@@ -1,5 +1,10 @@
 //! Single-project engine surface: CLI + runtime + API + backend contract.
 
+/// Global allocator tuned for allocation-heavy runtime workloads.
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static GLOBAL_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 pub mod api;
 pub mod backend;
 pub mod runtime;

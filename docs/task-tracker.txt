@@ -23,13 +23,15 @@ id: objective-5-platform-input-texture-coverage
 title: Expand input handling, texture workflows, and platform capability coverage
 status: in_progress
 success_evidence: Input and texture workflows are expanded with platform-capability evidence and no lifecycle/API regressions.
-orchestration: architecture-orchestrator closed phase-4 stdlib objective and activated phase-5 platform-input-texture coverage.
+orchestration: phase-3 performance clean kickoff is now active on branch codex/perf-phase3-clean-start with docs-tracker/state synchronized before accepting optimization patches.
 visualization: flow-visualizer update pending for phase-5 input/texture/platform flow changes.
 phase_closeout: pending
 qa_reviewer_outcome: pending
-next_focus: 1) expand input handling across scenarios, 2) strengthen texture workflow/path/error coverage, 3) capture platform capability evidence with updated matrix references.
+next_focus: 1) keep runtime hotspot + harness audit + measurement auditor aligned on slice-2 evidence capture, 2) use the quick 25000/2.5s direct 2x protocol for keep/reject decisions on new runtime patches, 3) rerun 3000/6000 guardrails before accepting phase-3 optimizations.
+phase3_plan_doc: docs/perf-phase-3-plan.md
 concurrency_note: example-scenario-worker continues generating playable scenarios in parallel for user-visible interactions.
-follow_through_order: 1) expand input/textures/platform coverage; 2) CI smoke with visual/payload assertions; 3) manual user playtest evidence collection.
+follow_through_order: 1) runtime-draw-flush-batch slice implementation and evidence capture; 2) expand input/textures/platform coverage; 3) CI smoke with visual/payload assertions; 4) manual user playtest evidence collection.
+phase_pending_checklist: R3-A) freeze 2-run direct before/after summaries at 25000 with 2.5-second sessions and stack metadata, R3-B) execute parallel optimization slices and keep only patches with positive quick-protocol delta, R3-C) verify no >5% regression at 3000/6000 before checkpoint commit.
 
 ISOLATED PARALLEL PHASE
 id: phase-compare-benchmark
@@ -38,7 +40,7 @@ status: in_progress
 isolation: non_blocking_parallel_stream
 objective: Implement equivalent pycro and pygame benchmark scripts with the same controls and per-second FPS sampling.
 success_evidence: Both scripts support Left/Right ball count changes in steps of 50, random-color bouncing balls, and HUD metrics (`balls`, `fps`, `target_fps`, `best stable balls`).
-next_focus: 1) run comparative passes on target hardware; 2) capture stable-ball thresholds for each runtime; 3) record acceptance evidence in tracker/state.
+next_focus: 1) run exploratory comparisons with direct 2.5-second 2-run protocol per runtime (no mixed logs), 2) keep pygame-ce 41-43 as reference target and macroquad-direct as ceiling evidence, 3) execute before/after tables per optimization slice and keep only positive slices.
 
 TASK ORDER
 1. [x] Close the bootstrap milestone with review evidence.
@@ -177,7 +179,34 @@ owner: platform-worker
 status: in_progress
 depends_on: runtime-stdlib-enablement
 evidence: Phase-5 activated with dedicated branch codex/platform-input-texture-coverage after phase-4 closeout.
-next_action: deliver expanded input + texture capability evidence with updated platform matrix references and validation gates.
+evidence: Active execution slice moved to branch codex/runtime-draw-flush-batch for runtime draw batching and frame flush integration.
+evidence: Runtime now queues draw operations during update(dt) and flushes once per frame from main loop via runtime.flush_draw_batch().
+evidence: runtime::tests::draw_ops_are_queued_in_batch_order_until_frame_flush and runtime::tests::draw_batch_flush_clears_per_frame added as regression guards.
+evidence: PYCRO_FRAMES=3 cargo run -- examples/runtime_draw_flush_batch.py passes with per-frame draw call logs and backend dispatch evidence.
+evidence: Controlled benchmark comparison (current vs baseline branch codex/platform-input-texture-coverage) shows no improvement at target loads; both remain at 20.0 FPS for 3000 and 4000 balls in the current protocol.
+evidence: Runtime perf instrumentation (PYCRO_PERF=1) shows high-load bottleneck dominated by Python update cost (~103 ms/frame) versus draw flush (~12.6 ms/frame) at ~4009 dispatches/frame near 4000 balls.
+evidence: Benchmark integrity rule added to docs/validation-policy.md and docs/agent-playbook.md to prevent false-positive gains from moving user gameplay loops into Rust.
+evidence: qa-reviewer flagged stale draw-batch risk on update failure; runtime fix now discards queued draw ops on update error and adds runtime::tests::update_failure_discards_queued_draw_batch.
+evidence: Added public API `submit_render(commands)` with runtime batch parser/queue path and kept legacy draw_* compatibility; parity guard `runtime::tests::submit_render_matches_legacy_draw_path_order_and_payload` confirms equivalent payload/order.
+evidence: ADR 0009 accepted for batched render submission API contract and stub/source-of-truth updates.
+evidence: Short canonical benchmark protocol now uses 3000 start + 5 second auto session with wall_fps as primary signal.
+evidence: `cargo run --release -- examples/compare_pycro_balls_benchmark.py` with short auto protocol reached stable wall_fps above 60 for both 3000 balls (~120 wall_fps summary) and 6000 balls (~79 wall_fps summary).
+evidence: Phase-3 baseline at 25000 (direct, 5s) improved pycro from ~19-20 to ~22 wall_fps after first runtime+benchmark optimization slice; still below pygame-ce reference.
+evidence: macroquad-direct 25000 benchmark reached ~112-117 wall_fps (user observed ~80.37), confirming macroquad backend is not the bottleneck and optimization focus must stay on Python->runtime bridge overhead.
+evidence: Direct 3-second baseline refresh at 25000 recorded pycro=23.29 wall_fps, pygame-ce(.venv314)=33.37 wall_fps, and macroquad_direct=81.16 wall_fps, confirming headroom remains backend-side and bottleneck remains bridge/runtime path.
+evidence: Phase-3 execution plan documented in docs/perf-phase-3-plan.md with parallel subagent ownership, before/after median loop, and guardrail gates.
+evidence: Clean kickoff on codex/perf-phase3-clean-start removed stale examples/compare/results* artifacts before new measurements.
+evidence: Clean kickoff deployed three investigators in parallel (runtime hotspot, harness audit, measurement auditor) and consolidated risks around measurement drift, mixed-run contamination, and metadata incompleteness.
+evidence: Direct baseline at 25000/3s captured as 3x runs per runtime with current summary medians: pycro≈23.83 wall_fps, pygame-ce(.venv314)≈40.00 wall_fps, macroquad_direct≈77.28 wall_fps (pygame summary includes one noisy outlier run).
+evidence: One pygame-ce direct run showed elapsed≈3.84 with summary wall_fps=0.00; marked as noisy data requiring repeat/filter handling per protocol.
+evidence: Optimization slice S1 applied in runtime submit_render path (borrowed PyStr command-name parse + direct draw_batch enqueue with rollback, removing temporary ops Vec) to reduce per-frame allocation/parsing overhead.
+evidence: S1 quick 25000/3s direct pycro check (3x) produced summary wall_fps 24.16 / 24.07 / 23.86 (median≈24.07) versus clean-start summary median≈23.83; provisional +0.24 wall_fps pending sample-normalized acceptance gate + 3000/6000 guardrail reruns.
+evidence: Optimization slice S2 updated Rust runtime internals with QueuedDrawBatch circle compaction (`CircleRun`), cached `submit_render` command storage behind `Arc`, a cached-position Vec2 fast path for `draw_circle`, cached `setup()`/`update(dt)` callables after `load_main()`, and configurable per-update stdio flushing with default off.
+evidence: Phase-3 quick benchmark decision protocol now uses direct 25000-ball runs with 2.5-second sessions and 2 runs per candidate before 3000/6000 guardrail verification.
+evidence: Latest slice-2 direct pycro summaries at 25000 recorded wall_fps 25.43 / 25.09 / 25.06 / 24.57, improving over the prior pre-slice-2 baseline band of roughly 22.5-23.4 wall_fps.
+next_action: keep the 25000/2.5s 2-run quick protocol for patch triage, rerun 3000/6000 guardrails before acceptance, and record full stack/session metadata on every retained comparison.
+closeout_doc: docs/perf-phase-3-closeout.md
+pending_summary: target 41+ at 25000 remains open; CI visual smoke + manual playtest gate + backend selection ADR are still pending.
 ENDTASK
 
 TASK ci-visual-payload-smoke
@@ -220,7 +249,29 @@ evidence: Isolated benchmark stream activated in parallel to the roadmap phases.
 evidence: `examples/compare_pycro_balls_benchmark.py` added with per-second FPS sampling and Left/Right ball-count controls.
 evidence: `examples/compare_pygame_balls_benchmark.py` added with equivalent simulation and HUD contract.
 evidence: `examples/compare/README.md` added with run protocol and results template for pycro vs pygame measurements.
-next_action: Run manual benchmark passes on target hardware and record stable-ball evidence for both runtimes.
+evidence: both compare scripts now emit homogeneous benchmark logs (`session_start`, `sample`, `summary`) with stable/unstable status, stable_sample_seconds, and nearest target tracking for 3000/4000.
+evidence: Auto benchmark defaults now align to short protocol and accept `BENCHMARK_AUTO_INITIAL_BALLS` so scripted runs can escalate to 6000.
+evidence: Release-path pycro evidence confirms >60 wall_fps stability at 3000 and 6000 in short auto runs; 25000 remains below pygame-ce reference and is now the optimization focus.
+evidence: Headless pygame short-protocol run at 3000/5s reported ~55.84 wall_fps summary (below 57 stable threshold), preserving a useful contrast baseline for pycro optimizations.
+evidence: Direct pygame runs under Python 3.14.2 + pygame-ce 2.5.7 (SDL 2.32.10) at 25000/5s reported ~40.84-42.58 wall_fps, confirming the user-observed 41-43 reference range on modern pygame-ce stacks.
+evidence: Legacy local stack Python 3.9.5 + pygame 2.4.0 (SDL 2.26.4) produced only ~19-20 wall_fps at 25000/5s, so stack/version parity is now mandatory benchmark metadata.
+evidence: macroquad direct benchmark (`cargo run --release --bin macroquad_direct_balls_benchmark`) at 25000 produced ~112-117 wall_fps in this environment, establishing backend headroom above pycro and pygame-ce.
+evidence: Phase-3 benchmark protocol defaults were reduced to 3-second sessions for faster before/after iteration loops.
+evidence: Direct 3-second baseline refresh at 25000 recorded pycro=23.29 wall_fps, pygame-ce(.venv314)=33.37 wall_fps, and macroquad_direct=81.16 wall_fps.
+evidence: docs/perf-phase-3-plan.md defines parallel subagent slices, ownership boundaries, and before/after median acceptance criteria for context reset handoff.
+evidence: Clean kickoff on codex/perf-phase3-clean-start removed stale examples/compare/results* artifacts before phase-3 baseline capture.
+evidence: Runtime hotspot investigator, benchmark harness auditor, and measurement auditor launched in parallel; consolidated risk summary flags noisy outliers, protocol drift, and incomplete metadata as patch-blocking risks.
+evidence: Direct 25000/3s baseline now tracked as 3x per runtime with current summary medians: pycro≈23.83, pygame-ce(.venv314)≈40.00, macroquad_direct≈77.28 wall_fps (pygame includes one noisy outlier run).
+evidence: One pygame-ce run reported elapsed≈3.84 with summary wall_fps=0.00 and is explicitly tagged as noisy data pending repeat/filter per measurement protocol.
+evidence: Optimization slice S1 on runtime submit_render reduced command-name allocation and removed temporary ops vector during batch enqueue (rollback preserved on parse error).
+evidence: S1 quick direct pycro rerun at 25000/3s (3x) reported summary wall_fps 24.16 / 24.07 / 23.86 (median≈24.07), a provisional uplift over clean-start summary median≈23.83; full acceptance remains gated by sample-normalized scoring and guardrails.
+evidence: Benchmark summary bug fix applied on pycro+pygame compare scripts: `summary wall_fps/sim_fps` now uses full-session accumulators, eliminating false `0.00` summaries at 3000/6000 when per-second counters reset near timeout.
+evidence: Phase-3 quick comparison protocol now uses direct 25000-ball runs with 2.5-second sessions and 2 runs per candidate for faster before/after decisions.
+evidence: Optimization slice S2 in runtime added QueuedDrawBatch `CircleRun`, `Arc`-backed submit_render command caching, cached-position Vec2 fast path for `draw_circle`, cached lifecycle callables for `setup`/`update`, and configurable update-time stdio flushing defaulting off.
+evidence: Latest slice-2 pycro direct summaries at 25000 measured wall_fps 25.43 / 25.09 / 25.06 / 24.57 versus a prior baseline band around 22.5-23.4 wall_fps.
+next_action: keep the 25000/2.5s 2-run quick protocol for optimization triage, enforce 3000/6000 regression guardrails on kept patches, and require full runtime stack metadata in every baseline/comparison record.
+closeout_doc: docs/perf-phase-3-closeout.md
+pending_summary: expand vector->sprite optimization beyond circles and add primitive-specific benchmark slices.
 ENDTASK
 
 STATUS VOCABULARY

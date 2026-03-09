@@ -129,7 +129,7 @@
 
     <h2>Exported API (<code>__all__</code>)</h2>
     <div class="panel">
-      <code>["Color", "Vec2", "TextureHandle", "clear_background", "draw_circle", "is_key_down", "frame_time", "load_texture", "draw_texture", "set_camera_target", "draw_text"]</code>
+      <code>["Color", "Vec2", "TextureHandle", "clear_background", "draw_circle", "is_key_down", "frame_time", "load_texture", "draw_texture", "set_camera_target", "draw_text", "submit_render"]</code>
     </div>
 
     <h2>Functions</h2>
@@ -142,6 +142,8 @@
         <small>Draw a filled circle using world-space coordinates.</small>
         <p><code>draw_text(text: str, position: Vec2, font_size: float, color: Color) -&gt; None</code></p>
         <small>Draw text in screen space using a baseline anchor.</small>
+        <p><code>submit_render(commands: list[tuple[object, ...]]) -&gt; None</code></p>
+        <small>Queue multiple render commands in one Python-to-runtime call.</small>
       </section>
 
       <section class="panel">

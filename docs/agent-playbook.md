@@ -30,6 +30,16 @@ The main thread should avoid carrying large implementation context directly; del
 - explorer agents only
 - no repo mutations
 
+### Performance Slice (FPS)
+
+- `architecture-orchestrator`
+- one or two runtime/platform workers for Rust-only optimizations
+- benchmark investigators (explorer) in parallel
+- `docs-tracker`
+- `perf-study-recorder` in parallel after every positive result to append `mejoras_a_esutdiar.md`
+- `perf-study-recorder` is a hard gate for FPS work: after every positive benchmark delta, spawn it immediately before starting the next optimization slice.
+- `qa-reviewer` before any implementation commit
+
 ### Incident Fix
 
 - `architecture-orchestrator`
@@ -56,6 +66,14 @@ Scenario documentation policy: every new texture scenario must state which pack 
 - `docs-tracker` continuously maintains sync between `docs/task-tracker.txt` and `state/repo-state.json` (objective status, task status, task order, and quick-index roadmap entries).
 - `docs-tracker` keeps future phase roadmap items visible as unchecked `[ ]` quick-index entries until those phases are activated.
 - `docs-tracker` updates tracker-linked ADR references and machine state summary fields without copying raw execution logs.
+- `perf-study-recorder` appends every measured positive FPS delta to `mejoras_a_esutdiar.md` in tutorial format: technique, why it helps, risk, validation protocol, and benchmark evidence.
 - `flow-visualizer` updates Mermaid diagrams so lifecycle and dispatch behavior are reviewable without reading implementation code first.
 - The machine state file is a compact snapshot for agents. Do not append transcripts or verbose logs.
 - Before every phase commit, documentation must be refreshed and recompiled (for example `cargo doc --no-deps` and stub/cheatsheet refresh checks), with concise evidence captured in tracker/state.
+
+## Benchmark Integrity Rule (Python Gameplay)
+
+- Agent-delivered performance claims must reflect the real pycro user model: gameplay logic authored and executed in Python.
+- Do not present FPS gains as canonical if they come from moving user gameplay loops/entities/simulation logic into Rust internals.
+- Engine/runtime overhead optimizations are valid when equivalent gameplay remains in Python scripts.
+- Rust-side automation of gameplay logic is allowed only as diagnostic instrumentation and must be reported separately from canonical benchmark outcomes.

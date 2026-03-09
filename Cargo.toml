@@ -9,6 +9,8 @@ default-run = "pycro_cli"
 [dependencies]
 macroquad = "0.4"
 rustpython-vm = "0.4"
+mimalloc = "0.1"
+parking_lot = "0.12"
 
 [lints.clippy]
 dbg_macro = "deny"
@@ -18,3 +20,10 @@ unwrap_used = "deny"
 [lints.rust]
 missing_docs = "deny"
 unsafe_code = "forbid"
+
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
