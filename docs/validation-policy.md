@@ -20,6 +20,13 @@ Implementation work is not commit-ready until all applicable checks pass and evi
 - Platform guarantee changes require a platform matrix update and an ADR.
 - User-visible interactive features require a playable `examples/` scenario per feature and explicit user feedback recorded in tracker evidence.
 
+## Benchmark Integrity Rule (Python Gameplay)
+
+- Performance improvements must preserve the Python gameplay execution model as the measured subject.
+- Do not claim runtime FPS gains from moving user gameplay loops/entities/simulation logic from Python scripts into Rust internals.
+- Optimizations are valid when they improve engine/runtime overhead while keeping equivalent gameplay logic authored and executed from Python.
+- If any benchmark requires Rust-side automation of gameplay logic for diagnosis, record it as a separate diagnostic metric and not as the canonical pycro user-facing performance result.
+
 ## Phase Pre-Commit Documentation Checklist (Mandatory)
 
 - Refresh `docs/rust-api-reference.md` when runtime/api/backend contracts change.

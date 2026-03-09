@@ -10,6 +10,7 @@
 - `0006`: Entry-script local import resolution
 - `0007`: Runtime stdlib compatibility for gameplay imports (`math`, `os`)
 - `0008`: macOS ARM backend default to OpenGL (temporary)
+- `0009`: Batched render submission API (`submit_render`)
 
 ## Process
 
