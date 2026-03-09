@@ -54,6 +54,12 @@ The main thread should avoid carrying large implementation context directly; del
 
 `commit-steward` is mandatory after green validations for implementation work. The steward creates a checkpoint commit immediately, or reports an explicit blocking reason if commit preconditions are not met.
 
+## Integration Branch Rule
+
+- `main` is the repository integration branch.
+- Agents must implement on `codex/<domain>-<task>` branches and merge into `main` only after validation gates are satisfied.
+- Before requesting/performing merge to `main`, confirm expected behavior with runnable evidence (tests/build + benchmark or scenario checks when relevant).
+
 ## Manual Playtest Gate
 
 For user-visible engine features (for example: textures, movement, FX, audio, camera), `example-scenario-worker` must add or update a dedicated playable case under `examples/`. The final acceptance gate requires explicit user feedback after running the scenario, because agents cannot fully validate interactive event-loop behavior autonomously.

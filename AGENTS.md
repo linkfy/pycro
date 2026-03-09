@@ -18,7 +18,7 @@ Read these first:
 Operating rules:
 
 - Treat the docs above as the source of truth. If code and docs diverge, stop and reconcile.
-- Never work on `main`. Use `codex/<domain>-<task>` branches only.
+- Never implement directly on `main`. Use `codex/<domain>-<task>` branches for active work, then merge into `main` only after full verification (tests + required validations + user runtime check when applicable).
 - For every newly activated phase, create and switch to a dedicated `codex/<domain>-<phase>` branch before implementation starts; do not continue phase work on a branch created for a previous phase.
 - One verified step per commit. Every implementation commit must include tracker updates, validation evidence, and a `qa-reviewer` outcome or an explicit waiver.
 - When all required validations pass, create a checkpoint commit immediately so there is always a stable rollback point.
