@@ -67,6 +67,10 @@ async fn run_script_contract(script_path: &str) -> Result<(), String> {
         })
         .await?;
 
+    runtime
+        .flush_io()
+        .map_err(|error| format!("runtime io flush error: {error}"))?;
+
     println!("frames executed: {}", report.frames_executed);
     println!(
         "backend api dispatches: {}",

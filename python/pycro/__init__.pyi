@@ -15,13 +15,13 @@ Vec2: TypeAlias = tuple[float, float]
 TextureHandle: TypeAlias = str
 """Opaque texture handle returned by the engine."""
 
-__all__ = ["Color", "Vec2", "TextureHandle", "clear_background", "draw_circle", "is_key_down", "frame_time", "load_texture", "draw_texture", "set_camera_target", "draw_text", "submit_render"]
+__all__ = ["Color", "Vec2", "TextureHandle", "clear_background", "draw_circle", "is_key_down", "frame_time", "load_texture", "draw_texture", "set_camera_target", "draw_text", "submit_render", "submit_circle_batch"]
 
 def clear_background(color: Color) -> None:
     """Clear the current frame to a normalized RGBA color. Supported on desktop=planned, web=planned, android=planned, ios=planned."""
     ...
 
-def draw_circle(position: Vec2, radius: float, color: Color) -> None:
+def draw_circle(position: Vec2, radius: float, color: Color, options: dict[str, object] | None = None) -> None:
     """Draw a filled circle using world-space coordinates. Supported on desktop=planned, web=planned, android=planned, ios=planned."""
     ...
 
@@ -53,3 +53,6 @@ def submit_render(commands: list[tuple[object, ...]]) -> None:
     """Queue multiple render commands in one Python-to-runtime call. Supported on desktop=planned, web=planned, android=planned, ios=planned."""
     ...
 
+def submit_circle_batch(positions: list[Vec2], radii: list[float], colors: list[Color], options: dict[str, object] | None = None) -> None:
+    """Queue many draw_circle operations in one specialized batch call. Supported on desktop=planned, web=planned, android=planned, ios=planned."""
+    ...
