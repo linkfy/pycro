@@ -28,7 +28,7 @@
       "example-scenario-worker in parallel with playable feature scenarios for manual user validation"
     ]
   },
-  "current_branch": "codex/examples-compare-benchmark",
+  "current_branch": "codex/platform-input-texture-coverage",
   "summary_contract": {
     "allowed_fields": [
       "changed_files",
@@ -325,9 +325,12 @@
         "runtime-stdlib-enablement"
       ],
       "evidence": [
-        "Isolated benchmark phase activated as a non-blocking parallel stream while phase-5 remains the primary objective"
+        "Isolated benchmark stream activated in parallel to roadmap phases",
+        "examples/compare_pycro_balls_benchmark.py added with per-second FPS sampling and Left/Right controls",
+        "examples/compare_pygame_balls_benchmark.py added with equivalent simulation and HUD contract",
+        "examples/compare/README.md added with run protocol and results template"
       ],
-      "next_action": "Implement both benchmark scripts, document execution protocol, and capture initial no-drop FPS evidence for each runtime.",
+      "next_action": "Run manual benchmark passes on target hardware and record stable-ball evidence for both runtimes.",
       "adr_refs": [
         "0001"
       ]
@@ -339,17 +342,16 @@
       "title": "Compare pycro vs pygame bouncing-ball throughput without FPS drop",
       "status": "in_progress",
       "isolation": "non_blocking_parallel_stream",
-      "objective": "Add equivalent benchmark scenarios for pycro and pygame with matching controls and per-second FPS reporting",
+      "objective": "Implement equivalent pycro and pygame benchmark scripts with identical controls and per-second FPS sampling",
       "success_evidence": [
-        "Both scripts run and simulate bouncing balls with random colors",
-        "Left/Right increases or decreases ball count by one in both runtimes",
-        "HUD reports current FPS updated once per second",
-        "HUD tracks the highest stable ball count without FPS drop versus target FPS"
+        "Both scripts support Left/Right ball-count changes in steps of 50 and random-color bouncing balls",
+        "HUD shows balls, fps sampled per second, target_fps, and best stable balls",
+        "Benchmark protocol and results table template are documented under examples/compare"
       ],
       "follow_through_order": [
-        "implement examples/compare_pycro_balls_benchmark.py",
-        "implement examples/compare_pygame_balls_benchmark.py",
-        "document run protocol and evidence template under examples/compare"
+        "run pycro benchmark passes and record stable ball counts",
+        "run pygame benchmark passes and record stable ball counts",
+        "persist comparative evidence in tracker/state before phase closeout"
       ]
     }
   ]
