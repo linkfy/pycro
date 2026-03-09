@@ -56,3 +56,4 @@ def submit_render(commands: list[tuple[object, ...]]) -> None:
 def submit_circle_batch(positions: list[Vec2], radii: list[float], colors: list[Color]) -> None:
     """Queue many draw_circle operations in one specialized batch call. Supported on desktop=planned, web=planned, android=planned, ios=planned."""
     ...
+

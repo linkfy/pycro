@@ -14,9 +14,9 @@ use rustpython_vm::{AsObject, Interpreter, PyObjectRef, PyResult, Settings, Virt
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
-use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use std::sync::OnceLock;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 /// Runtime configuration for Python script loading.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -278,7 +278,9 @@ impl QueuedDrawBatch {
         self.circles.push(circle);
         match self.entries.last_mut() {
             Some(QueuedBatchEntry::CircleRun { len, .. }) => *len += 1,
-            _ => self.entries.push(QueuedBatchEntry::CircleRun { start, len: 1 }),
+            _ => self
+                .entries
+                .push(QueuedBatchEntry::CircleRun { start, len: 1 }),
         }
     }
 
@@ -289,9 +291,10 @@ impl QueuedDrawBatch {
         }
         match self.entries.last_mut() {
             Some(QueuedBatchEntry::CircleRun { len, .. }) => *len += added_len,
-            _ => self
-                .entries
-                .push(QueuedBatchEntry::CircleRun { start, len: added_len }),
+            _ => self.entries.push(QueuedBatchEntry::CircleRun {
+                start,
+                len: added_len,
+            }),
         }
     }
 
@@ -391,14 +394,8 @@ struct SubmitRenderCircleCache {
 
 impl std::fmt::Debug for RustPythonVm {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let backend_dispatches = self
-            .backend
-            .lock()
-            .dispatch_count();
-        let queued_draw_ops = self
-            .draw_batch
-            .lock()
-            .len_ops();
+        let backend_dispatches = self.backend.lock().dispatch_count();
+        let queued_draw_ops = self.draw_batch.lock().len_ops();
         formatter
             .debug_struct("RustPythonVm")
             .field("initialized", &self.scope.is_some())
@@ -417,17 +414,22 @@ impl Default for RustPythonVm {
 impl RustPythonVm {
     fn submit_render_noop_enabled() -> bool {
         static ENABLED: OnceLock<bool> = OnceLock::new();
-        *ENABLED.get_or_init(|| std::env::var("PYCRO_SUBMIT_RENDER_NOOP").is_ok_and(|value| value == "1"))
+        *ENABLED.get_or_init(|| {
+            std::env::var("PYCRO_SUBMIT_RENDER_NOOP").is_ok_and(|value| value == "1")
+        })
     }
 
     fn submit_render_direct_enabled() -> bool {
         static ENABLED: OnceLock<bool> = OnceLock::new();
-        *ENABLED.get_or_init(|| std::env::var("PYCRO_SUBMIT_RENDER_DIRECT").is_ok_and(|value| value == "1"))
+        *ENABLED.get_or_init(|| {
+            std::env::var("PYCRO_SUBMIT_RENDER_DIRECT").is_ok_and(|value| value == "1")
+        })
     }
 
     fn draw_text_noop_enabled() -> bool {
         static ENABLED: OnceLock<bool> = OnceLock::new();
-        *ENABLED.get_or_init(|| std::env::var("PYCRO_DRAW_TEXT_NOOP").is_ok_and(|value| value == "1"))
+        *ENABLED
+            .get_or_init(|| std::env::var("PYCRO_DRAW_TEXT_NOOP").is_ok_and(|value| value == "1"))
     }
 
     fn interpreter_settings() -> Settings {
@@ -440,6 +442,7 @@ impl RustPythonVm {
     }
 
     /// Creates a VM backed by a persistent RustPython interpreter.
+    #[allow(clippy::arc_with_non_send_sync)]
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -465,9 +468,7 @@ impl RustPythonVm {
 
     #[cfg(test)]
     fn queued_draw_batch_snapshot(&self) -> Vec<QueuedDrawOp> {
-        self.draw_batch
-            .lock()
-            .to_ops_vec()
+        self.draw_batch.lock().to_ops_vec()
     }
 
     #[cfg(test)]
@@ -560,7 +561,7 @@ impl RustPythonVm {
     ) -> Option<Vec2> {
         let list = object.payload_if_subclass::<PyList>(vm)?;
         let items = list.borrow_vec();
-        let x = items.get(0)?.payload_if_subclass::<PyFloat>(vm)?.to_f64() as f32;
+        let x = items.first()?.payload_if_subclass::<PyFloat>(vm)?.to_f64() as f32;
         let y = items.get(1)?.payload_if_subclass::<PyFloat>(vm)?.to_f64() as f32;
         if items.len() == 2 {
             Some(Vec2 { x, y })
@@ -593,12 +594,9 @@ impl RustPythonVm {
         if let Some(float) = item.payload_if_subclass::<PyFloat>(vm) {
             return Ok(float.to_f64() as f32);
         }
-        let value: f64 = item
-            .clone()
-            .try_into_value(vm)
-            .map_err(|_| {
-                vm.new_value_error(format!("{context}: expected float at index {index}"))
-            })?;
+        let value: f64 = item.clone().try_into_value(vm).map_err(|_| {
+            vm.new_value_error(format!("{context}: expected float at index {index}"))
+        })?;
         Ok(value as f32)
     }
 
@@ -827,20 +825,17 @@ impl RustPythonVm {
                     if needs_rebuild {
                         let mut parsed_radii = Vec::with_capacity(position_items.len());
                         let mut parsed_colors = Vec::with_capacity(position_items.len());
-                        for index in 0..position_items.len() {
-                            let radius: f64 = radius_items[index]
-                                .clone()
-                                .try_into_value(vm)
-                                .map_err(|_| {
+                        for (index, (radius_obj, color_obj)) in
+                            radius_items.iter().zip(color_items.iter()).enumerate()
+                        {
+                            let radius: f64 =
+                                radius_obj.clone().try_into_value(vm).map_err(|_| {
                                     vm.new_value_error(format!(
                                         "submit_circle_batch radii[{index}]: expected float"
                                     ))
                                 })?;
-                            let color = Self::parse_color_py(
-                                vm,
-                                &color_items[index],
-                                "submit_circle_batch color",
-                            )?;
+                            let color =
+                                Self::parse_color_py(vm, color_obj, "submit_circle_batch color")?;
                             parsed_radii.push(radius as f32);
                             parsed_colors.push(color);
                         }
@@ -860,15 +855,15 @@ impl RustPythonVm {
                     draw_batch.reserve_ops(position_items.len());
                     let run_start = draw_batch.circles.len();
 
-                    for index in 0..position_items.len() {
+                    for (index, position_item) in position_items.iter().enumerate() {
                         let position = if let Some(value) =
-                            Self::parse_vec2_cached_position_fast_py(vm, &position_items[index])
+                            Self::parse_vec2_cached_position_fast_py(vm, position_item)
                         {
                             value
                         } else {
                             match Self::parse_vec2_cached_position_py(
                                 vm,
-                                &position_items[index],
+                                position_item,
                                 "submit_circle_batch position",
                             ) {
                                 Ok(value) => value,
@@ -943,12 +938,16 @@ impl RustPythonVm {
         let mut item_index = 0usize;
         let mut circle_index = 0usize;
         while item_index < items.len() {
-            if circles.get(circle_index).is_some_and(|circle| circle.index == item_index) {
+            if circles
+                .get(circle_index)
+                .is_some_and(|circle| circle.index == item_index)
+            {
                 let run_start = circle_index;
                 let mut run_len = 0usize;
-                while circles.get(circle_index).is_some_and(|circle| {
-                    circle.index == item_index + run_len
-                }) {
+                while circles
+                    .get(circle_index)
+                    .is_some_and(|circle| circle.index == item_index + run_len)
+                {
                     circle_index += 1;
                     run_len += 1;
                 }
@@ -965,7 +964,8 @@ impl RustPythonVm {
             }
         }
         let mut cache_guard = submit_render_circle_cache.lock();
-        *cache_guard = Some(Arc::new(SubmitRenderCircleCache {
+        #[allow(clippy::arc_with_non_send_sync)]
+        let cache = Arc::new(SubmitRenderCircleCache {
             commands_list_id: commands.get_id(),
             command_count: items.len(),
             first_circle_command_id: circles
@@ -978,7 +978,8 @@ impl RustPythonVm {
                 .unwrap_or_default(),
             circles,
             layout,
-        }));
+        });
+        *cache_guard = Some(cache);
     }
 
     fn queue_submit_render_from_circle_cache_py(
@@ -1082,7 +1083,7 @@ impl RustPythonVm {
         if let Some(cache) = cache
             && cache.commands_list_id == commands.get_id()
             && cache.command_count == items.len()
-            && cache.circles.first().is_some()
+            && !cache.circles.is_empty()
             && cache.circles.last().is_some()
             && items
                 .get(cache.circles.first().map(|c| c.index).unwrap_or_default())
@@ -1097,20 +1098,22 @@ impl RustPythonVm {
                     CachedSubmitRenderLayoutEntry::CircleRun { start, len } => {
                         let mut circles = Vec::with_capacity(len);
                         for circle in &cache.circles[start..(start + len)] {
-                            let position = Self::parse_vec2_cached_position_fast_py(vm, &circle.position_obj)
-                                .or_else(|| {
-                                    Self::parse_vec2_cached_position_py(
-                                        vm,
-                                        &circle.position_obj,
-                                        "submit_render draw_circle position",
-                                    )
-                                    .ok()
-                                })
-                                .ok_or_else(|| {
-                                    vm.new_value_error(
-                                        "submit_render draw_circle position parse failed".to_owned(),
-                                    )
-                                })?;
+                            let position =
+                                Self::parse_vec2_cached_position_fast_py(vm, &circle.position_obj)
+                                    .or_else(|| {
+                                        Self::parse_vec2_cached_position_py(
+                                            vm,
+                                            &circle.position_obj,
+                                            "submit_render draw_circle position",
+                                        )
+                                        .ok()
+                                    })
+                                    .ok_or_else(|| {
+                                        vm.new_value_error(
+                                            "submit_render draw_circle position parse failed"
+                                                .to_owned(),
+                                        )
+                                    })?;
                             circles.push(CircleDraw {
                                 position,
                                 radius: circle.radius,
@@ -1148,7 +1151,9 @@ impl RustPythonVm {
                                 position,
                                 size,
                             } => backend.draw_texture(&TextureHandle(texture), position, size),
-                            QueuedDrawOp::SetCameraTarget(target) => backend.set_camera_target(target),
+                            QueuedDrawOp::SetCameraTarget(target) => {
+                                backend.set_camera_target(target)
+                            }
                             QueuedDrawOp::DrawText {
                                 text,
                                 position,
@@ -1186,7 +1191,12 @@ impl RustPythonVm {
                 } => backend.draw_text(text.as_str(), position, font_size, color),
             }
         }
-        Self::rebuild_submit_render_circle_cache_py(vm, submit_render_circle_cache, commands, items);
+        Self::rebuild_submit_render_circle_cache_py(
+            vm,
+            submit_render_circle_cache,
+            commands,
+            items,
+        );
         Ok(())
     }
 
@@ -1228,6 +1238,7 @@ impl RustPythonVm {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn install_direct_api_functions(
         vm: &VirtualMachine,
         module_dict: &PyDictRef,
@@ -1881,7 +1892,10 @@ impl RustPythonVm {
                     }
                     Err(error) => {
                         if jit_report {
-                            eprintln!("[pycro-jit] update:err {}", Self::exception_details(vm, &error));
+                            eprintln!(
+                                "[pycro-jit] update:err {}",
+                                Self::exception_details(vm, &error)
+                            );
                         }
                     }
                 }
@@ -1915,11 +1929,7 @@ if {py_bool}:
     print("[pycro-jit] all:err=" + ",".join(_jit_err))
 "#
             );
-            let _ = vm.run_code_string(
-                scope.clone(),
-                &jit_script,
-                "<pycro-jit-all>".to_owned(),
-            );
+            let _ = vm.run_code_string(scope.clone(), &jit_script, "<pycro-jit-all>".to_owned());
             return Ok(());
         }
         Ok(())

@@ -537,7 +537,9 @@ impl EngineBackend for MacroquadBackendContract {
                 color: circle.color,
             });
         }
-        if self.use_circle_sprite && let Some(sprite) = self.ensure_circle_sprite() {
+        if self.use_circle_sprite
+            && let Some(sprite) = self.ensure_circle_sprite()
+        {
             for circle in circles {
                 if self.should_render_circle_as_sprite(circle.render_mode) {
                     let diameter_f = (circle.radius * 2.0).max(2.0);

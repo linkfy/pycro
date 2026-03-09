@@ -292,7 +292,7 @@
         "Latest slice-2 direct pycro summaries at 25000 recorded wall_fps 25.43 / 25.09 / 25.06 / 24.57, improving over the prior pre-slice-2 baseline band of roughly 22.5-23.4 wall_fps",
         "Phase-3 closeout backlog and future proposals documented in docs/perf-phase-3-closeout.md, including explicit reminder to extend circle vector->sprite optimizations to remaining geometric primitives"
       ],
-      "next_action": "keep the 25000/2.5s 2-run quick protocol for patch triage, rerun 3000/6000 guardrails before acceptance, and drive pending items listed in docs/perf-phase-3-closeout.md (target >=41, CI smoke, manual playtest gate, backend-policy ADR).",
+      "next_action": "keep the 25000/2.5s 2-run quick protocol for patch triage, rerun 3000/6000 guardrails before acceptance, and record full stack/session metadata on every retained comparison.",
       "adr_refs": [
         "0001",
         "0009"
@@ -384,7 +384,7 @@
         "Latest slice-2 pycro direct summaries at 25000 measured wall_fps 25.43 / 25.09 / 25.06 / 24.57 versus a prior baseline band around 22.5-23.4 wall_fps",
         "Closeout proposals captured in docs/perf-phase-3-closeout.md include extending vector->sprite optimizations to non-circle geometric primitives via shared options contract"
       ],
-      "next_action": "keep the 25000/2.5s 2-run quick protocol for optimization triage, enforce 3000/6000 regression guardrails on kept patches, and execute backlog/proposals documented in docs/perf-phase-3-closeout.md.",
+      "next_action": "keep the 25000/2.5s 2-run quick protocol for optimization triage, enforce 3000/6000 regression guardrails on kept patches, and require full runtime stack metadata in every baseline/comparison record.",
       "adr_refs": [
         "0001"
       ]
