@@ -29,7 +29,7 @@
       "example-scenario-worker in parallel with playable feature scenarios for manual user validation"
     ]
   },
-  "current_branch": "codex/docs-governance-tracker-sync",
+  "current_branch": "codex/examples-compare-benchmark",
   "summary_contract": {
     "allowed_fields": [
       "changed_files",
@@ -314,6 +314,45 @@
       "next_action": "Prepare ADR proposal and add runtime-configurable backend selection with scenario-based comparison evidence per platform.",
       "adr_refs": [
         "0008"
+      ]
+    },
+    {
+      "id": "compare-benchmark-pycro-vs-pygame",
+      "title": "Compare pycro and pygame with equivalent bouncing-ball load benchmark scenarios",
+      "phase": "phase-compare-benchmark",
+      "owner": "example-scenario-worker",
+      "status": "in_progress",
+      "depends_on": [
+        "runtime-stdlib-enablement"
+      ],
+      "evidence": [
+        "Isolated benchmark stream activated in parallel to roadmap phases",
+        "examples/compare_pycro_balls_benchmark.py added with per-second FPS sampling and Left/Right controls",
+        "examples/compare_pygame_balls_benchmark.py added with equivalent simulation and HUD contract",
+        "examples/compare/README.md added with run protocol and results template"
+      ],
+      "next_action": "Run manual benchmark passes on target hardware and record stable-ball evidence for both runtimes.",
+      "adr_refs": [
+        "0001"
+      ]
+    }
+  ],
+  "parallel_streams": [
+    {
+      "id": "phase-compare-benchmark",
+      "title": "Compare pycro vs pygame bouncing-ball throughput without FPS drop",
+      "status": "in_progress",
+      "isolation": "non_blocking_parallel_stream",
+      "objective": "Implement equivalent pycro and pygame benchmark scripts with identical controls and per-second FPS sampling",
+      "success_evidence": [
+        "Both scripts support Left/Right ball-count changes and random-color bouncing balls",
+        "HUD shows balls, fps sampled per second, target_fps, and best stable balls",
+        "Benchmark protocol and results table template are documented under examples/compare"
+      ],
+      "follow_through_order": [
+        "run pycro benchmark passes and record stable ball counts",
+        "run pygame benchmark passes and record stable ball counts",
+        "persist comparative evidence in tracker/state before phase closeout"
       ]
     }
   ]

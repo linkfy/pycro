@@ -24,6 +24,8 @@ Available scenarios:
 - `stdlib_math_os.py`: direct stdlib imports (`math`, `os`) animate an orbit and display `os` runtime details.
 - `stdlib_wave_lab.py`: direct stdlib imports (`math`, `os`) drive a controllable sine-wave field.
 - `fps_eased_balls.py`: fixed-step series of balls with lateral easing; Left/Right changes effective FPS (1..120).
+- `compare_pycro_balls_benchmark.py`: bouncing-balls benchmark with per-second FPS HUD and Left/Right ball count control.
+- `compare_pygame_balls_benchmark.py`: equivalent standalone pygame benchmark for runtime throughput comparison.
 - `checkerboard_pan.py`: camera pan over Kenney checkerboard textures.
 - `gradient_cycle.py`: Space cycles through Kenney gradient textures.
 - `noise_scanner.py`: Kenney perlin and UV textures with a movable scanner marker.
@@ -63,14 +65,23 @@ Kenney pack assets used by pack-focused scenarios:
 8. `stdlib_math_os.py`: Verify script imports `math` and `os` without helper modules, a dot orbits the center, and on-screen text shows `os.name`, `os.sep`, plus cwd/home info; hold Space to reset the orbit timer.
 9. `stdlib_wave_lab.py`: Verify direct `math`/`os` imports work, wave points animate, Left/Right changes frequency, Up/Down changes amplitude, and Space resets phase.
 10. `fps_eased_balls.py`: Verify multiple balls move left/right and visibly ease near both side bounds; hold Left/Right to change on-screen `effective_fps` value within 1..120 and confirm `current_frame_fps` is rendered.
-11. `checkerboard_pan.py`: Hold Left/Right and verify camera pan marker shifts; press Space to recenter.
-12. `gradient_cycle.py`: Tap Space and verify the rendered panel cycles through 4 Kenney gradients.
-13. `noise_scanner.py`: Verify the three texture panels render (perlin large, perlin small, uv texture); Up/Down moves scanner marker; Space recenters.
-14. `minigame_runner_dodge.py`: Dodge incoming blocks; after collision press Space to restart.
-15. `minigame_coin_chase.py`: Collect coins with arrow keys and verify score/time HUD updates.
-16. `minigame_target_burst.py`: Move cursor with arrows, press Space to hit targets and confirm score/timer changes.
-17. Press Escape to close interactive runs.
+11. `compare_pycro_balls_benchmark.py`: Hold Left/Right to decrease/increase balls by 50 with controlled repeat; confirm HUD updates `balls`, per-second `fps`, `best stable balls`, and `target_fps`.
+12. `checkerboard_pan.py`: Hold Left/Right and verify camera pan marker shifts; press Space to recenter.
+13. `gradient_cycle.py`: Tap Space and verify the rendered panel cycles through 4 Kenney gradients.
+14. `noise_scanner.py`: Verify the three texture panels render (perlin large, perlin small, uv texture); Up/Down moves scanner marker; Space recenters.
+15. `minigame_runner_dodge.py`: Dodge incoming blocks; after collision press Space to restart.
+16. `minigame_coin_chase.py`: Collect coins with arrow keys and verify score/time HUD updates.
+17. `minigame_target_burst.py`: Move cursor with arrows, press Space to hit targets and confirm score/timer changes.
+18. Press Escape to close interactive runs.
 
 ## Key Mapping Notes
 
 Current backend key names: `Left`, `Right`, `Up`, `Down`, `Space`, `Escape`.
+
+## Compare Benchmark Notes
+
+The isolated compare benchmark process lives in `examples/compare/README.md` and tracks equivalent pycro vs pygame throughput measurements.
+
+- pycro command: `cargo run -- examples/compare_pycro_balls_benchmark.py`
+- pygame command: `python3 examples/compare_pygame_balls_benchmark.py`
+- both in parallel: `./examples/run_compare_benchmarks.sh`

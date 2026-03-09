@@ -16,6 +16,7 @@ QUICK INDEX
 11. [ ] ci-visual-payload-smoke: Add CI smoke coverage for visual/payload assertions on representative scenarios (upcoming phase-6 roadmap).
 12. [ ] manual-playtest-evidence-gate: Capture explicit user playtest outcomes for interactive scenarios and persist acceptance evidence (upcoming phase-7 roadmap).
 13. [ ] platform-backend-selection-policy: Define and validate backend-selection policy (OpenGL/Metal/etc) per platform/architecture with reproducible evidence (future proposal).
+14. [-] compare-benchmark-pycro-vs-pygame: Isolated benchmark stream for equivalent pycro vs pygame bouncing-ball throughput tests.
 
 CURRENT OBJECTIVE
 id: objective-4-runtime-stdlib-enablement
@@ -29,6 +30,15 @@ qa_reviewer_outcome: pass
 next_focus: 1) expand input/textures/platform coverage, 2) CI smoke with visual/payload assertions, 3) collect manual user playtest evidence for interactive scenarios.
 concurrency_note: example-scenario-worker continues generating playable scenarios in parallel.
 follow_through_order: 1) expand input/textures/platform coverage; 2) CI smoke with visual/payload assertions; 3) manual user playtest evidence collection.
+
+ISOLATED PARALLEL PHASE
+id: phase-compare-benchmark
+title: Compare pycro vs pygame bouncing-ball throughput without FPS drop
+status: in_progress
+isolation: non_blocking_parallel_stream
+objective: Implement equivalent pycro and pygame benchmark scripts with the same controls and per-second FPS sampling.
+success_evidence: Both scripts support Left/Right ball count changes, random-color bouncing balls, and HUD metrics (`balls`, `fps`, `target_fps`, `best stable balls`).
+next_focus: 1) implement both scripts; 2) document benchmark protocol under examples/compare; 3) collect initial stable-ball evidence for each runtime.
 
 TASK ORDER
 1. [x] Close the bootstrap milestone with review evidence.
@@ -44,6 +54,7 @@ TASK ORDER
 11. [ ] Plan and deliver ci-visual-payload-smoke (CI screenshot/payload assertion gate).
 12. [ ] Plan and deliver manual-playtest-evidence-gate (interactive feature acceptance evidence from user playtests).
 13. [ ] Plan and deliver platform-backend-selection-policy (backend defaults/overrides and validation matrix per platform).
+14. [-] Deliver isolated compare-benchmark-pycro-vs-pygame in parallel without blocking roadmap phases.
 
 TASK bootstrap-foundation
 title: Validate and close the infrastructure bootstrap
@@ -197,6 +208,19 @@ status: planned
 depends_on: manual-playtest-evidence-gate
 evidence: Proposal recorded after user-observed visual artifact differences across Apple backend choices (OpenGL vs Metal) at high motion speed.
 next_action: Prepare ADR proposal and add runtime-configurable backend selection with scenario-based comparison evidence per platform.
+ENDTASK
+
+TASK compare-benchmark-pycro-vs-pygame
+title: Compare pycro and pygame with equivalent bouncing-ball load benchmark scenarios
+phase: phase-compare-benchmark
+owner: example-scenario-worker
+status: in_progress
+depends_on: runtime-stdlib-enablement
+evidence: Isolated benchmark stream activated in parallel to the roadmap phases.
+evidence: `examples/compare_pycro_balls_benchmark.py` added with per-second FPS sampling and Left/Right ball-count controls.
+evidence: `examples/compare_pygame_balls_benchmark.py` added with equivalent simulation and HUD contract.
+evidence: `examples/compare/README.md` added with run protocol and results template for pycro vs pygame measurements.
+next_action: Run manual benchmark passes on target hardware and record stable-ball evidence for both runtimes.
 ENDTASK
 
 STATUS VOCABULARY
