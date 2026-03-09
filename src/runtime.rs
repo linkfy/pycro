@@ -9,7 +9,6 @@ use crate::backend::{
 };
 use parking_lot::{Mutex, MutexGuard};
 use rustpython_vm::builtins::{PyBaseExceptionRef, PyDictRef, PyFloat, PyList, PyStr, PyTuple};
-use rustpython_vm::function::OptionalArg;
 use rustpython_vm::scope::Scope;
 use rustpython_vm::{AsObject, Interpreter, PyObjectRef, PyResult, Settings, VirtualMachine};
 use std::collections::HashSet;
@@ -372,7 +371,6 @@ struct CachedSubmitRenderCircle {
     position_obj: PyObjectRef,
     radius: f32,
     color: Color,
-    options_obj: Option<PyObjectRef>,
 }
 
 #[derive(Clone, Debug)]
@@ -617,35 +615,6 @@ impl RustPythonVm {
         })
     }
 
-    fn parse_vector_render_mode_options_py(
-        vm: &VirtualMachine,
-        options: Option<&PyObjectRef>,
-        context: &str,
-    ) -> PyResult<VectorRenderMode> {
-        let Some(options) = options else {
-            return Ok(VectorRenderMode::Default);
-        };
-        if vm.is_none(options) {
-            return Ok(VectorRenderMode::Default);
-        }
-        let dict: PyDictRef = options.clone().downcast().map_err(|_| {
-            vm.new_value_error(format!("{context}: options must be dict[str, object] | None"))
-        })?;
-
-        if let Some(value) = dict.get_item_opt("as_sprite", vm)? {
-            let as_sprite: bool = value.clone().try_into_value(vm).map_err(|_| {
-                vm.new_value_error(format!("{context}: options['as_sprite'] must be bool"))
-            })?;
-            return Ok(if as_sprite {
-                VectorRenderMode::ForceSprite
-            } else {
-                VectorRenderMode::ForceVector
-            });
-        }
-
-        Ok(VectorRenderMode::Default)
-    }
-
     fn with_sequence_items_py<T>(
         vm: &VirtualMachine,
         object: &PyObjectRef,
@@ -724,9 +693,9 @@ impl RustPythonVm {
                     Ok(QueuedDrawOp::ClearBackground(color))
                 }
                 "draw_circle" => {
-                    if !(fields.len() == 4 || fields.len() == 5) {
+                    if fields.len() != 4 {
                         return Err(vm.new_value_error(format!(
-                            "submit_render commands[{index}]: draw_circle expects 3 or 4 arguments"
+                            "submit_render commands[{index}]: draw_circle expects 3 arguments"
                         )));
                     }
                     let position =
@@ -738,16 +707,11 @@ impl RustPythonVm {
                     })?;
                     let color =
                         Self::parse_color_py(vm, &fields[3], "submit_render draw_circle color")?;
-                    let render_mode = Self::parse_vector_render_mode_options_py(
-                        vm,
-                        fields.get(4),
-                        "submit_render draw_circle",
-                    )?;
                     Ok(QueuedDrawOp::DrawCircle {
                         position,
                         radius: radius as f32,
                         color,
-                        render_mode,
+                        render_mode: VectorRenderMode::Default,
                     })
                 }
                 "draw_texture" => {
@@ -940,7 +904,7 @@ impl RustPythonVm {
         } else {
             return None;
         };
-        if !(fields.len() == 4 || fields.len() == 5) {
+        if fields.len() != 4 {
             return None;
         }
         let command_name = fields[0].payload_if_subclass::<PyStr>(vm)?.as_str();
@@ -955,7 +919,6 @@ impl RustPythonVm {
             position_obj: fields[1].clone(),
             radius: radius as f32,
             color,
-            options_obj: fields.get(4).cloned(),
         })
     }
 
@@ -1077,22 +1040,11 @@ impl RustPythonVm {
                                 }
                             }
                         };
-                        let render_mode = match Self::parse_vector_render_mode_options_py(
-                            vm,
-                            circle.options_obj.as_ref(),
-                            "submit_render draw_circle",
-                        ) {
-                            Ok(value) => value,
-                            Err(error) => {
-                                draw_batch.rollback(rollback_mark);
-                                return Err(error);
-                            }
-                        };
                         draw_batch.circles.push(QueuedCircle {
                             position,
                             radius: circle.radius,
                             color: circle.color,
-                            render_mode,
+                            render_mode: VectorRenderMode::Default,
                         });
                     }
                     draw_batch.finish_circle_run(run_start);
@@ -1159,16 +1111,11 @@ impl RustPythonVm {
                                         "submit_render draw_circle position parse failed".to_owned(),
                                     )
                                 })?;
-                            let render_mode = Self::parse_vector_render_mode_options_py(
-                                vm,
-                                circle.options_obj.as_ref(),
-                                "submit_render draw_circle",
-                            )?;
                             circles.push(CircleDraw {
                                 position,
                                 radius: circle.radius,
                                 color: circle.color,
-                                render_mode,
+                                render_mode: VectorRenderMode::Default,
                             });
                         }
                         if circles.len() == 1 {
@@ -1315,16 +1262,10 @@ impl RustPythonVm {
                         move |position: PyObjectRef,
                               radius: f64,
                               color: PyObjectRef,
-                              options: OptionalArg<PyObjectRef>,
                               vm: &VirtualMachine| {
                             let position =
                                 Self::parse_vec2_py(vm, &position, "draw_circle position")?;
                             let color = Self::parse_color_py(vm, &color, "draw_circle color")?;
-                            let render_mode = Self::parse_vector_render_mode_options_py(
-                                vm,
-                                options.into_option().as_ref(),
-                                "draw_circle",
-                            )?;
                             Self::queue_draw_op_py(
                                 vm,
                                 &draw_batch,
@@ -1332,7 +1273,7 @@ impl RustPythonVm {
                                     position,
                                     radius: radius as f32,
                                     color,
-                                    render_mode,
+                                    render_mode: VectorRenderMode::Default,
                                 },
                             )
                         },
@@ -1509,13 +1450,7 @@ impl RustPythonVm {
                         move |positions: PyObjectRef,
                               radii: PyObjectRef,
                               colors: PyObjectRef,
-                              options: OptionalArg<PyObjectRef>,
                               vm: &VirtualMachine| {
-                            let render_mode = Self::parse_vector_render_mode_options_py(
-                                vm,
-                                options.into_option().as_ref(),
-                                "submit_circle_batch",
-                            )?;
                             Self::queue_submit_circle_batch_py(
                                 vm,
                                 &draw_batch,
@@ -1523,7 +1458,7 @@ impl RustPythonVm {
                                 &positions,
                                 &radii,
                                 &colors,
-                                render_mode,
+                                VectorRenderMode::Default,
                             )
                         },
                     )

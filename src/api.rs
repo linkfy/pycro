@@ -298,7 +298,7 @@ const CLEAR_BACKGROUND_ARGS: [PythonArg; 1] = [PythonArg {
     summary: "Background color for the current frame.",
 }];
 
-const DRAW_CIRCLE_ARGS: [PythonArg; 4] = [
+const DRAW_CIRCLE_ARGS: [PythonArg; 3] = [
     PythonArg {
         name: "position",
         type_hint: "Vec2",
@@ -313,11 +313,6 @@ const DRAW_CIRCLE_ARGS: [PythonArg; 4] = [
         name: "color",
         type_hint: "Color",
         summary: "Fill color for the circle.",
-    },
-    PythonArg {
-        name: "options",
-        type_hint: "dict[str, object] | None = None",
-        summary: "Optional rendering hints (for example: {'as_sprite': True}).",
     },
 ];
 
@@ -386,7 +381,7 @@ const SUBMIT_RENDER_ARGS: [PythonArg; 1] = [PythonArg {
     summary: "Ordered render command payload for batched submission.",
 }];
 
-const SUBMIT_CIRCLE_BATCH_ARGS: [PythonArg; 4] = [
+const SUBMIT_CIRCLE_BATCH_ARGS: [PythonArg; 3] = [
     PythonArg {
         name: "positions",
         type_hint: "list[Vec2]",
@@ -401,11 +396,6 @@ const SUBMIT_CIRCLE_BATCH_ARGS: [PythonArg; 4] = [
         name: "colors",
         type_hint: "list[Color]",
         summary: "Ordered circle colors.",
-    },
-    PythonArg {
-        name: "options",
-        type_hint: "dict[str, object] | None = None",
-        summary: "Optional rendering hints applied to all circles in the batch.",
     },
 ];
 

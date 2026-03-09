@@ -6,7 +6,7 @@ LOGICAL_WIDTH = 1280.0
 LOGICAL_HEIGHT = 720.0
 TARGET_FPS = 60
 FPS_STABLE_RATIO = 0.95
-INITIAL_BALLS = 500
+INITIAL_BALLS = 25000
 MIN_BALLS = 1
 MAX_BALLS = 56000
 BALL_STEP = 500
@@ -16,15 +16,15 @@ MAX_SIM_DT = 1.0 / 20.0
 HUD_REFRESH_SECONDS = 0.20
 
 AUTO_ENABLED = os.getenv("BENCHMARK_AUTO", "0") == "1"
-AUTO_INITIAL_BALLS = int(os.getenv("BENCHMARK_AUTO_INITIAL_BALLS", "3000"))
+AUTO_INITIAL_BALLS = int(os.getenv("BENCHMARK_AUTO_INITIAL_BALLS", "25000"))
 AUTO_TARGETS = tuple(
     int(token.strip())
-    for token in os.getenv("BENCHMARK_AUTO_TARGETS", "3000,4000").split(",")
+    for token in os.getenv("BENCHMARK_AUTO_TARGETS", "25000").split(",")
     if token.strip()
 )
 AUTO_STEP_INTERVAL_SECONDS = float(os.getenv("BENCHMARK_AUTO_STEP_INTERVAL", "0.08"))
 AUTO_HOLD_SECONDS = float(os.getenv("BENCHMARK_AUTO_HOLD_SECONDS", "2.5"))
-AUTO_SESSION_SECONDS = float(os.getenv("BENCHMARK_AUTO_SESSION_SECONDS", "3"))
+AUTO_SESSION_SECONDS = float(os.getenv("BENCHMARK_AUTO_SESSION_SECONDS", "2.5"))
 
 RUNTIME_NAME = "pycro"
 STABLE_FPS_THRESHOLD = float(TARGET_FPS) * FPS_STABLE_RATIO
@@ -41,9 +41,6 @@ _left_held = False
 _left_repeat_in = 0.0
 _right_held = False
 _right_repeat_in = 0.0
-_space_held = False
-_vector_as_sprite = False
-_vector_options: dict[str, object] = {"as_sprite": False}
 
 _wall_sample_time = 0.0
 _sim_sample_time = 0.0
@@ -68,8 +65,8 @@ _session_initial_balls = INITIAL_BALLS
 _clear_render_command: list[object] = ["clear_background", (0.05, 0.06, 0.08, 1.0)]
 _circle_render_commands: list[list[object]] = []
 _hud_render_commands: list[list[object]] = [
-    ["draw_circle", (240.0, 98.0), 205.0, (0.0, 0.0, 0.0, 0.82), _vector_options],
-    ["draw_circle", (340.0, 160.0), 150.0, (0.0, 0.0, 0.0, 0.82), _vector_options],
+    ["draw_circle", (240.0, 98.0), 205.0, (0.0, 0.0, 0.0, 0.82)],
+    ["draw_circle", (340.0, 160.0), 150.0, (0.0, 0.0, 0.0, 0.82)],
     ["draw_text", "", (20.0, 32.0), 28.0, (0.98, 0.98, 0.98, 1.0)],
     ["draw_text", "", (20.0, 62.0), 24.0, (0.82, 0.90, 1.00, 1.0)],
     ["draw_text", "", (20.0, 90.0), 24.0, (0.95, 0.84, 0.50, 1.0)],
@@ -238,7 +235,6 @@ def _refresh_hud_lines() -> None:
     _hud_lines.append(f"status: {status}")
     _hud_lines.append(f"best stable balls: {_best_stable_balls}")
     _hud_lines.append(f"stable seconds: {_stable_sample_seconds}")
-    _hud_lines.append(f"vector->sprite (SPACE): {_vector_as_sprite}")
     _hud_lines.append(f"targets nearest: {_nearest_summary_cache}")
     _sync_hud_render_commands()
 
@@ -269,13 +265,7 @@ def _sync_circle_render_commands_for_ball_count() -> None:
     while len(_circle_render_commands) < target:
         i = len(_circle_render_commands)
         _circle_render_commands.append(
-            [
-                "draw_circle",
-                [_ball_x[i], _ball_y[i]],
-                _ball_radius[i],
-                _ball_color[i],
-                _vector_options,
-            ]
+            ["draw_circle", [_ball_x[i], _ball_y[i]], _ball_radius[i], _ball_color[i]]
         )
     while len(_circle_render_commands) > target:
         _circle_render_commands.pop()
@@ -323,7 +313,6 @@ def update(dt: float) -> None:
     global _wall_sample_time, _sim_sample_time, _sample_frames
     global _display_fps, _best_stable_balls, _sample_index
     global _elapsed_wall_seconds, _stable_sample_seconds, _hud_refresh_in
-    global _space_held, _vector_as_sprite
     _ = dt
 
     if pycro.is_key_down("Escape"):
@@ -340,16 +329,6 @@ def update(dt: float) -> None:
     if _consume_right_repeat(pycro.is_key_down("Right"), sim_dt):
         _set_ball_count(_ball_count() + BALL_STEP)
         _refresh_hud_lines()
-    space_down = pycro.is_key_down("Space")
-    if space_down and not _space_held:
-        _space_held = True
-        _vector_as_sprite = not _vector_as_sprite
-        _vector_options["as_sprite"] = _vector_as_sprite
-        _refresh_hud_lines()
-        _log_event("render_mode_toggle", as_sprite=_vector_as_sprite)
-    elif not space_down:
-        _space_held = False
-
     _auto_drive(sim_dt)
     _record_nearest_targets()
 

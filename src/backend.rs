@@ -537,12 +537,9 @@ impl EngineBackend for MacroquadBackendContract {
                 color: circle.color,
             });
         }
-        if circles
-            .iter()
-            .all(|circle| self.should_render_circle_as_sprite(circle.render_mode))
-        {
-            if let Some(sprite) = self.ensure_circle_sprite() {
-                for circle in circles {
+        if self.use_circle_sprite && let Some(sprite) = self.ensure_circle_sprite() {
+            for circle in circles {
+                if self.should_render_circle_as_sprite(circle.render_mode) {
                     let diameter_f = (circle.radius * 2.0).max(2.0);
                     let half = diameter_f * 0.5;
                     draw_texture_ex(
@@ -555,17 +552,24 @@ impl EngineBackend for MacroquadBackendContract {
                             ..DrawTextureParams::default()
                         },
                     );
+                } else {
+                    draw_circle(
+                        circle.position.x,
+                        circle.position.y,
+                        circle.radius,
+                        circle.color.into(),
+                    );
                 }
-                return;
             }
+            return;
         }
 
         for circle in circles {
-            self.draw_circle(
-                circle.position,
+            draw_circle(
+                circle.position.x,
+                circle.position.y,
                 circle.radius,
-                circle.color,
-                circle.render_mode,
+                circle.color.into(),
             );
         }
     }

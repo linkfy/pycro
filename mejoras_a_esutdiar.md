@@ -279,3 +279,26 @@ Cuando una mejora suba FPS (aunque sea minima), agregar una entrada nueva con:
   - Si el sprite base es demasiado chico reaparece pixelacion en radios altos; si es demasiado grande sube uso de memoria.
   - Ajuste recomendado via `PYCRO_CIRCLE_SPRITE_SIZE` segun target visual/perf de cada equipo.
   - Mantener verificacion visual en tamanos extremos para evitar halos o blur excesivo.
+
+## Mejora 11 (positiva minima)
+
+- Tecnica aplicada:
+  - En `src/backend.rs`, `draw_circle_batch` elimino el pre-scan `all(...)`.
+  - Se paso a un unico recorrido que decide por circulo si usar ruta sprite o vector.
+- Por que mejora:
+  - Evita una pasada completa extra sobre el batch antes de renderizar.
+  - Reduce overhead fijo en la ruta caliente manteniendo la misma semantica de seleccion sprite/vector.
+- Evidencia exacta medida (protocolo canon `25000 / 2.5s / 2 runs`, `PYCRO_FLUSH_STDIO_ON_UPDATE=1`, backend `opengl`, `sprite=1`):
+  - Antes:
+    - Run A: `wall_fps=35.61`
+    - Run B: `wall_fps=35.77`
+    - Centro aproximado: `~35.69`
+  - Despues:
+    - Run A: `wall_fps=35.71`
+    - Run B: `wall_fps=36.08`
+    - Centro aproximado: `~35.90`
+- Delta:
+  - Delta promedio: `+~0.21 FPS`.
+- Riesgo/nota:
+  - Mejora pequena y cercana al ruido de corrida corta; conviene revalidar con mas repeticiones para confirmar estabilidad estadistica.
+  - Verificar que la decision por circulo no introduzca divergencias visuales sutiles frente al comportamiento previo del batch homogeneo.

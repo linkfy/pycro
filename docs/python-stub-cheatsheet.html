@@ -169,6 +169,43 @@
       </section>
     </div>
 
+    <h2>Circle Rendering Behavior</h2>
+    <div class="panel">
+      <p>Current runtime behavior for circle drawing:</p>
+      <ul>
+        <li><code>draw_circle(position, radius, color)</code> does not accept an <code>options</code> argument.</li>
+        <li>Circle-as-sprite rasterization optimization is disabled by default.</li>
+        <li>It is only enabled when <code>PYCRO_CIRCLE_SPRITE=1</code>.</li>
+      </ul>
+      <table>
+        <thead>
+          <tr>
+            <th>Environment Variable</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>PYCRO_CIRCLE_SPRITE</code></td>
+            <td>Enable sprite-based circle rasterization when set to <code>1</code>.</td>
+          </tr>
+          <tr>
+            <td><code>PYCRO_CIRCLE_SPRITE_SIZE</code></td>
+            <td>Optional sprite atlas/texture size tuning for circle rasterization.</td>
+          </tr>
+          <tr>
+            <td><code>PYCRO_CIRCLE_SPRITE_FILTER</code></td>
+            <td>Optional texture filter tuning for circle sprite sampling.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Shell example:</p>
+      <pre><code>PYCRO_CIRCLE_SPRITE=1 \
+PYCRO_CIRCLE_SPRITE_SIZE=256 \
+PYCRO_CIRCLE_SPRITE_FILTER=linear \
+cargo run --bin pycro_cli -- --script examples/circle_demo.py</code></pre>
+    </div>
+
     <h2>Regenerate + Verify (Required)</h2>
     <div class="panel">
       <p><span class="warn">Always regenerate first</span> whenever <code>src/api.rs</code> metadata or Python API signatures change.</p>

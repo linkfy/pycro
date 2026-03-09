@@ -21,7 +21,7 @@ def clear_background(color: Color) -> None:
     """Clear the current frame to a normalized RGBA color. Supported on desktop=planned, web=planned, android=planned, ios=planned."""
     ...
 
-def draw_circle(position: Vec2, radius: float, color: Color, options: dict[str, object] | None = None) -> None:
+def draw_circle(position: Vec2, radius: float, color: Color) -> None:
     """Draw a filled circle using world-space coordinates. Supported on desktop=planned, web=planned, android=planned, ios=planned."""
     ...
 
@@ -53,6 +53,6 @@ def submit_render(commands: list[tuple[object, ...]]) -> None:
     """Queue multiple render commands in one Python-to-runtime call. Supported on desktop=planned, web=planned, android=planned, ios=planned."""
     ...
 
-def submit_circle_batch(positions: list[Vec2], radii: list[float], colors: list[Color], options: dict[str, object] | None = None) -> None:
+def submit_circle_batch(positions: list[Vec2], radii: list[float], colors: list[Color]) -> None:
     """Queue many draw_circle operations in one specialized batch call. Supported on desktop=planned, web=planned, android=planned, ios=planned."""
     ...

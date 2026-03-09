@@ -22,8 +22,6 @@ missing_docs = "deny"
 unsafe_code = "forbid"
 
 [profile.release]
-opt-level = "z"
 lto = "fat"
 codegen-units = 1
 panic = "abort"
-strip = true
