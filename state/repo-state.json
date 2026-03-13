@@ -11,7 +11,13 @@
     "id": "platform-input-texture-coverage",
     "title": "Expand input handling, texture workflows, and platform capability coverage",
     "status": "in_progress",
-    "phase_doc": "docs/phases/05-platform-input-texture/implementation.md"
+    "phase_doc": "docs/phases/05-platform-input-texture/implementation.md",
+    "startup_gate": {
+      "requirements_validated": true,
+      "design_validated": true,
+      "kickoff_date": "2026-03-14"
+    },
+    "manual_validation_scenario": "examples/phase05_input_texture_lab.py"
   },
   "orchestration": {
     "orchestrator_required": true,

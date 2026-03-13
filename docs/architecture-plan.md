@@ -17,7 +17,7 @@
 Load order:
 
 1. Resolve and load `main.py`.
-2. Add the entry-script directory to RustPython import search path so sidecar modules can be imported (for example `main.py` importing `player.py`).
+2. Add the entry-script directory to RustPython import search path so sidecar modules can be imported (for example `main.py` importing `phase03_player.py`).
 3. Register the `pycro` module from the `api` registry.
 4. Install runtime stdlib compatibility modules required by phase objectives (`math`, `os`) and preload sidecar modules from the entry-script directory, preserving sidecar precedence on name collisions.
 5. Execute module top-level code.
@@ -72,7 +72,7 @@ Each public function must include:
 
 The first implementation objective after bootstrap is not a generic engine slice. It is a concrete vertical path:
 
-1. `pycro_cli` runs `examples/basic_main.py`
+1. `pycro_cli` runs `examples/phase01_basic_main.py`
 2. `runtime` loads that script through RustPython
 3. `backend` owns the live Macroquad desktop loop
 4. `api` maps the thin public Python surface into the backend contract

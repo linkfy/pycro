@@ -8,11 +8,40 @@ Every implementation task runs with an active orchestrator and delegated ownersh
 - The orchestrator is integration-focused and context-thin.
 - Domain workers own implementation slices and report concise summaries.
 
+## Phase Start Gate (Mandatory)
+
+At the beginning of every phase, the orchestrator must execute this startup sequence:
+
+1. Validate that phase requirements are present and concrete in `docs/phases/<NN-slug>/requirements.md`.
+2. Validate that design intent is aligned to those requirements in `docs/phases/<NN-slug>/design.md`.
+3. Only then open implementation execution in `docs/phases/<NN-slug>/implementation.md`.
+
+No implementation work should start before requirements and design are explicitly validated by the orchestrator.
+If requirements are missing, weak, or ambiguous, the orchestrator must switch to planning mode and run a requirements-first planning cycle before any implementation delegation.
+
+## Natural Flow (Mandatory)
+
+For every phase, execution order is fixed:
+
+- requirements
+- design
+- implementation
+- interactive refinement (when scope changes)
+
+When refinement updates requirements or design, implementation must be re-synchronized before continuing.
+
+Planning-mode fallback is mandatory for every phase:
+
+- missing requirements -> planning mode
+- planning outputs -> requirements, design, implementation steps
+- execution resumes only after those artifacts are synchronized in phase docs + tracker + state
+
 ## Mandatory Delegation
 
 For implementation work, orchestration must include:
 
 - at least one domain worker (`runtime-worker`, `platform-worker`, or `api-worker`)
+- all domain workers required by the phase scope (full team when scope is cross-domain)
 - `docs-tracker` for tracker/state sync
 - `qa-reviewer` before implementation commit
 - `commit-steward` after validations are green

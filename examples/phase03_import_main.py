@@ -1,14 +1,14 @@
 import pycro
 
-import player
+import phase03_player
 
-hero: player.Player | None = None
+hero: phase03_player.Player | None = None
 
 
 def setup() -> None:
     global hero
-    print("[import_main] main.py imports player.py and delegates movement/render.")
-    hero = player.create_player("Hero")
+    print("[import_main] main.py imports phase03_player.py and delegates movement/render.")
+    hero = phase03_player.create_player("Hero")
 
 
 def update(dt: float) -> None:
@@ -17,8 +17,8 @@ def update(dt: float) -> None:
     if hero is None:
         return
 
-    player.update_player(hero, dt)
-    player.draw_player(hero)
+    phase03_player.update_player(hero, dt)
+    phase03_player.draw_player(hero)
 
     pycro.draw_text(
         f"frame_time={pycro.frame_time():.3f}",

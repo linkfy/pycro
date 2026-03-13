@@ -6,8 +6,8 @@ objective: Keep an isolated, reproducible pycro vs pygame benchmark stream witho
 
 ## Assets
 
-- `examples/compare_pycro_balls_benchmark.py`
-- `examples/compare_pygame_balls_benchmark.py`
+- `examples/phase05_compare_pycro_balls_benchmark.py`
+- `examples/phase05_compare_pygame_balls_benchmark.py`
 - `examples/compare/README.md`
 
 ## Rule

@@ -39,6 +39,12 @@ REQUIRED_PHASE_FILES = {
     "interactive-refinement.md",
 }
 
+REQUIRED_PHASE_HEADINGS = {
+    "requirements.md": "## Acceptance Criteria",
+    "design.md": "## Implementation Approach",
+    "implementation.md": "## Execution Steps",
+}
+
 
 def parse_table_row(line: str) -> list[str]:
     return [cell.strip() for cell in line.strip().strip("|").split("|")]
@@ -118,6 +124,13 @@ def validate_phase_structure() -> list[str]:
         missing = [fname for fname in REQUIRED_PHASE_FILES if not (phase_path / fname).exists()]
         if missing:
             errors.append(f"Phase {name} is missing required files: {', '.join(sorted(missing))}")
+            continue
+
+        # Enforce planning-ready phase docs so orchestrator can gate execution.
+        for filename, heading in REQUIRED_PHASE_HEADINGS.items():
+            content = (phase_path / filename).read_text(encoding="utf-8")
+            if heading not in content:
+                errors.append(f"Phase {name} {filename} is missing required heading: {heading}")
 
     return errors
 

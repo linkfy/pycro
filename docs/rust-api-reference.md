@@ -126,7 +126,7 @@ Concrete implementation:
 
 Runtime boot sequence:
 
-1. Resolve script path from CLI arg, default `examples/basic_main.py`.
+1. Resolve script path from CLI arg, default `examples/phase01_basic_main.py`.
 2. Build `RuntimeConfig`.
 3. Print module/install summary (`module_spec` + `registration_plan`).
 4. `ScriptRuntime::load_main()`.
@@ -138,13 +138,13 @@ Runtime boot sequence:
 Run a playable script:
 
 ```bash
-cargo run -- examples/basic_main.py
+cargo run -- examples/phase01_basic_main.py
 ```
 
 Run a deterministic short loop:
 
 ```bash
-PYCRO_FRAMES=2 PYCRO_FRAME_DT=0.016 cargo run -- examples/basic_main.py
+PYCRO_FRAMES=2 PYCRO_FRAME_DT=0.016 cargo run -- examples/phase01_basic_main.py
 ```
 
 Regenerate Python stubs from Rust metadata:

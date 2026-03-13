@@ -18,11 +18,11 @@ run_interactive_pair() {
   local pycro_profile="${PYCRO_CARGO_PROFILE:---release}"
 
   echo "[compare] starting pycro benchmark..."
-  cargo run ${pycro_profile} -- examples/compare_pycro_balls_benchmark.py &
+  cargo run ${pycro_profile} -- examples/phase05_compare_pycro_balls_benchmark.py &
   PYCRO_PID=$!
 
   echo "[compare] starting pygame benchmark..."
-  python3 examples/compare_pygame_balls_benchmark.py &
+  python3 examples/phase05_compare_pygame_balls_benchmark.py &
   PYGAME_PID=$!
 
   echo "[compare] pycro pid=${PYCRO_PID}, pygame pid=${PYGAME_PID}"
@@ -69,7 +69,7 @@ run_auto_matrix() {
           BENCHMARK_AUTO_HOLD_SECONDS="${hold_seconds}" \
           BENCHMARK_AUTO_SESSION_SECONDS="${session_seconds}" \
           PYCRO_FRAMES="${pycro_frames}" \
-          cargo run ${pycro_profile} -- examples/compare_pycro_balls_benchmark.py >"${log_file}" 2>&1
+          cargo run ${pycro_profile} -- examples/phase05_compare_pycro_balls_benchmark.py >"${log_file}" 2>&1
         else
           SDL_VIDEODRIVER=dummy \
           BENCHMARK_AUTO=1 \
@@ -78,7 +78,7 @@ run_auto_matrix() {
           BENCHMARK_AUTO_STEP_INTERVAL="${step_interval}" \
           BENCHMARK_AUTO_HOLD_SECONDS="${hold_seconds}" \
           BENCHMARK_AUTO_SESSION_SECONDS="${session_seconds}" \
-          python3 examples/compare_pygame_balls_benchmark.py >"${log_file}" 2>&1
+          python3 examples/phase05_compare_pygame_balls_benchmark.py >"${log_file}" 2>&1
         fi
 
         local summary_line

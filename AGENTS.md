@@ -32,6 +32,7 @@ Operating rules:
 - Workers do not hand raw logs to the orchestrator. They update concise summaries only: changed files, validation evidence, risks, follow-ups, and ADR/task references.
 - Keep implementation work delegated to subagent teams whenever feasible; the main thread prioritizes orchestration, integration, and final verification.
 - Keep an active orchestrator for every implementation task; avoid "god agent" execution.
+- For every phase, enforce the startup gate `requirements -> design -> implementation`. If requirements are missing, switch to planning mode and produce phase requirements/design/implementation steps before execution.
 - Use a dedicated `worktree-manager` when parallel slices can collide. Worktree paths follow `.worktrees/<phase>-<task>-<agent>`.
 - Use a dedicated `commit-steward` subagent to create checkpoint commits after required validations pass.
 - Use a dedicated `docs-tracker` subagent to keep `docs/task-tracker.txt`, `state/repo-state.json`, and active phase docs synchronized.

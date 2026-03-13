@@ -5,12 +5,28 @@
 The orchestrator consumes summaries, not raw logs.
 Every implementation task must be delegated; no end-to-end "god agent" execution.
 
+## Phase Startup Checklist (Mandatory)
+
+Before any phase implementation starts, the orchestrator must confirm:
+
+1. `requirements.md` exists and contains concrete acceptance criteria.
+2. `design.md` exists and is consistent with the requirements.
+3. `implementation.md` task board is initialized with owners, branch/worktree plan, and validation gates.
+
+Required sequence for every phase:
+
+- requirements -> design -> implementation
+
+If requirements/design change during delivery, the orchestrator pauses implementation and re-syncs docs before resuming.
+If requirements are not defined for a phase, the orchestrator must force planning mode and produce phase-ready requirements, design, and implementation steps before opening execution.
+
 ## Standard Delivery Flow
 
 Required agents for implementation work:
 
 - `architecture-orchestrator`
 - one or more domain workers (`runtime-worker`, `platform-worker`, `api-worker`)
+- full domain team when the phase scope spans runtime + platform + API together
 - `docs-tracker`
 - `qa-reviewer`
 - `commit-steward`

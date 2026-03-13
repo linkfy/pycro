@@ -1,5 +1,13 @@
 # Requirements
 
-- Define the phase objective as explicit acceptance criteria.
-- Keep requirements aligned with `docs/architecture-plan.md` and `docs/validation-policy.md`.
-- Keep only phase-local constraints here; global policy stays in canonical root docs.
+phase_objective: Bootstrap governance, architecture split, and validation gates.
+
+## Acceptance Criteria
+- Canonical governance docs are in place and synchronized.
+- Validation policy and branch workflow are enforced.
+- Tracker and machine state are aligned.
+
+## Constraints
+
+- Requirements must stay synchronized with docs/task-tracker.txt and state/repo-state.json.
+- If criteria change, update interactive-refinement.md before implementation continues.

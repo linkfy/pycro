@@ -13,9 +13,9 @@ Push `pycro` toward or above the `pygame-ce` reference at `25000` balls, using s
 ## Baseline evidence (direct 3s runs)
 Collected on branch `codex/perf-25000-investigation`.
 
-- `pycro` (`cargo run --release -- examples/compare_pycro_balls_benchmark.py`):
+- `pycro` (`cargo run --release -- examples/phase05_compare_pycro_balls_benchmark.py`):
   - `wall_fps=23.29` (`elapsed=3.02`, `samples=2`, `balls=25000`)
-- `pygame-ce` (`.venv314/bin/python examples/compare_pygame_balls_benchmark.py`):
+- `pygame-ce` (`.venv314/bin/python examples/phase05_compare_pygame_balls_benchmark.py`):
   - `wall_fps=33.37` (`elapsed=3.00`, `samples=2`, `balls=25000`)
 - `macroquad_direct` (`cargo run --release --bin macroquad_direct_balls_benchmark`):
   - `wall_fps=81.16` (`elapsed=3.02`, `samples=3`, `balls=25000`)
@@ -31,7 +31,7 @@ Launch in parallel with disjoint ownership:
 - Output: one small measurable optimization per commit.
 
 2. `benchmark-harness-slice` (owner: benchmark worker)
-- Scope: `examples/compare_pycro_balls_benchmark.py`, `examples/run_compare_benchmarks.sh`, `examples/compare/README.md`
+- Scope: `examples/phase05_compare_pycro_balls_benchmark.py`, `examples/run_compare_benchmarks.sh`, `examples/compare/README.md`
 - Focus: ensure strictly comparable before/after runs and fast reruns.
 - Output: deterministic runner improvements only (no simulation rule changes).
 
@@ -54,8 +54,8 @@ Launch in parallel with disjoint ownership:
 
 ## Ready-to-run command set
 - `pycro`:
-  - `BENCHMARK_AUTO=1 BENCHMARK_AUTO_INITIAL_BALLS=25000 BENCHMARK_AUTO_TARGETS=25000 BENCHMARK_AUTO_SESSION_SECONDS=3 PYCRO_FRAMES=800 cargo run --release -- examples/compare_pycro_balls_benchmark.py`
+  - `BENCHMARK_AUTO=1 BENCHMARK_AUTO_INITIAL_BALLS=25000 BENCHMARK_AUTO_TARGETS=25000 BENCHMARK_AUTO_SESSION_SECONDS=3 PYCRO_FRAMES=800 cargo run --release -- examples/phase05_compare_pycro_balls_benchmark.py`
 - `pygame-ce`:
-  - `BENCHMARK_AUTO=1 BENCHMARK_AUTO_INITIAL_BALLS=25000 BENCHMARK_AUTO_TARGETS=25000 BENCHMARK_AUTO_SESSION_SECONDS=3 ./.venv314/bin/python examples/compare_pygame_balls_benchmark.py`
+  - `BENCHMARK_AUTO=1 BENCHMARK_AUTO_INITIAL_BALLS=25000 BENCHMARK_AUTO_TARGETS=25000 BENCHMARK_AUTO_SESSION_SECONDS=3 ./.venv314/bin/python examples/phase05_compare_pygame_balls_benchmark.py`
 - `macroquad_direct`:
   - `BENCHMARK_AUTO=1 BENCHMARK_AUTO_INITIAL_BALLS=25000 BENCHMARK_AUTO_TARGETS=25000 BENCHMARK_AUTO_SESSION_SECONDS=3 cargo run --release --bin macroquad_direct_balls_benchmark`

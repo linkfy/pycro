@@ -32,3 +32,15 @@ Each phase folder must contain:
 When phase status changes to `closed`, add:
 
 - `closeout.md`
+
+## Phase Execution Order (Mandatory)
+
+The orchestrator must enforce this order in every phase:
+
+1. `requirements.md` validation
+2. `design.md` validation against requirements
+3. `implementation.md` execution with delegated team ownership
+4. `interactive-refinement.md` updates when scope changes
+
+Implementation cannot begin until requirements and design validation are complete.
+If a phase lacks concrete requirements, the orchestrator must switch to planning mode and produce `requirements.md`, `design.md`, and `implementation.md` execution steps before implementation can start.

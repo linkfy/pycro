@@ -2695,22 +2695,22 @@ def update(dt):
                 (
                     "main.py",
                     r#"
-import player
+import phase03_player
 
 hero = None
 
 def setup():
     global hero
-    hero = player.create_player("Rhea")
+    hero = phase03_player.create_player("Rhea")
 
 def update(dt):
     if hero is None:
         raise RuntimeError("hero should be initialized in setup")
-    player.tick(hero, dt)
+    phase03_player.tick(hero, dt)
 "#,
                 ),
                 (
-                    "player.py",
+                    "phase03_player.py",
                     r#"
 class Player:
     def __init__(self, name):
