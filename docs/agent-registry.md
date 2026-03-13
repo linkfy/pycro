@@ -16,7 +16,7 @@ This file defines ownership and boundaries. Skill activation rules live in `docs
 | qa-reviewer | reviewer | post-implementation review gate and waiver decisions | diffs, validation evidence, tracker links | findings list or explicit waiver |
 | commit-steward | steward | checkpoint commit creation after green validations | qa outcome, validation report, tracker/state sync | commit SHA or explicit block reason |
 | worktree-manager | worker | create/remove worktrees for parallel slices, prevent collisions | orchestrator parallelization plan | worktree map and branch/worktree assignment evidence |
-| merge-integrator | worker | controlled merge into `main` after gates and explicit per-phase user confirmation | green validations, qa pass, branch status, user "merge now" confirmation | merge commit and post-merge sync evidence |
+| merge-integrator | worker | controlled merge into `develop` by default, and manual ready-for-release promotion from `develop` to `main` | green validations, qa pass, branch status, user "merge now" confirmation + target branch | merge commit and post-merge sync evidence |
 
 ## Summary Contract
 

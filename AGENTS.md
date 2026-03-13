@@ -21,7 +21,7 @@ Read these first:
 Operating rules:
 
 - Treat the docs above as the source of truth. If code and docs diverge, stop and reconcile.
-- Never implement directly on `main`. Use `codex/<phase>-<task>` branches for active work, then merge into `main` only after full verification (tests + required validations + user runtime check when applicable).
+- Never implement directly on `main`. Use `codex/<phase>-<task>` branches for active work, merge implementation branches into `develop` after full verification, and promote to `main` only through a manual ready-for-release PR from `develop`.
 - For every newly activated phase, create and switch to a dedicated `codex/<phase>-<task>` branch before implementation starts; do not continue phase work on a branch created for a previous phase.
 - Keep numbered sequential phase artifacts under `docs/phases/NN-<slug>/` with required files: `README.md`, `requirements.md`, `design.md`, `implementation.md`, `interactive-refinement.md`.
 - Keep non-sequential workstreams under `docs/streams/` so phase numbering remains clean and consecutive.
@@ -42,7 +42,7 @@ Operating rules:
 - Treat user feedback from running playable scenarios as a required validation gate for interactive features that agents cannot fully verify on their own.
 - Before each phase commit, refresh/rebuild documentation and record evidence in tracker/state.
 - Before any push/merge/phase-closeout commit, pass local CI minimum preflight: `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`.
-- Merge/push after phase implementation is only allowed after formal closeout (`closeout.md`) + final QA gate pass (or explicit waiver) with tracker/state synchronized.
+- Merge/push after phase implementation is only allowed after formal closeout (`closeout.md`) + final QA gate pass (or explicit waiver) with tracker/state synchronized. Default integration branch is `develop`; `main` is release-only.
 - The canonical Python-facing API lives in Rust metadata inside the `api` module of `pycro_cli`. `python/pycro/__init__.pyi` must be generated from that metadata and checked for drift.
 
 Scope reminders:

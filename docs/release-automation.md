@@ -1,6 +1,9 @@
 # Release Automation Setup
 
-This project uses Release Please to open release PRs from `main` and a separate workflow to publish `pycro` release artifacts.
+This project uses a two-branch release model:
+
+- `develop`: default integration branch; every push publishes downloadable CI artifacts for validation.
+- `main`: release branch; Release Please opens release PRs and final tagged releases are cut from this branch.
 
 ## Required Repository Settings
 
@@ -8,11 +11,20 @@ This project uses Release Please to open release PRs from `main` and a separate 
    - set `Read and write permissions`.
 2. `Settings -> Actions`:
    - allow GitHub Actions to create pull requests.
-3. If organization policy restricts `GITHUB_TOKEN` for PR creation:
+3. `Settings -> Branches -> Default branch`:
+   - set default branch to `develop`.
+4. If organization policy restricts `GITHUB_TOKEN` for PR creation:
    - create repository secret `RELEASE_PLEASE_TOKEN` (PAT or app token),
    - grant `contents:write` and `pull_requests:write`.
 
 `release-please.yml` uses `RELEASE_PLEASE_TOKEN` when present and falls back to `GITHUB_TOKEN`.
+
+## Branch Flow
+
+1. Merge validated implementation work into `develop`.
+2. Download and test per-push artifacts generated on `develop`.
+3. When stable, open a manual ready-for-release PR from `develop` to `main`.
+4. After merge to `main`, Release Please updates release PR/changelog and release workflows publish final assets.
 
 ## Why Manual "Run workflow" May Not Create Release Assets
 

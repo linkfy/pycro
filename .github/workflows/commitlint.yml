@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - "codex/**"
+      - develop
       - main
 
 env:
