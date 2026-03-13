@@ -7,6 +7,9 @@ on:
       - "codex/**"
       - main
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   lint-commits:
     runs-on: ubuntu-latest
