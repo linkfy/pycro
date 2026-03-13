@@ -5,6 +5,31 @@ This document is a fast reference for the current generated stub API.
 
 Lifecycle contract: the engine loads a configured script path (commonly `examples/*.py`), runs optional `setup()`, then required `update(dt)` each frame.
 
+## API At A Glance
+
+### Type Aliases
+
+| Name | Definition | Description |
+| --- | --- | --- |
+| `Color` | `tuple[float, float, float, float]` | Normalized RGBA tuple. |
+| `Vec2` | `tuple[float, float]` | Two-dimensional vector tuple. |
+| `TextureHandle` | `str` | Opaque texture handle returned by the engine. |
+
+### Functions
+
+| Function | Signature | Family | Summary |
+| --- | --- | --- | --- |
+| `clear_background` | `(color: Color) -> None` | render | Clear current frame with a normalized RGBA color. |
+| `draw_circle` | `(position: Vec2, radius: float, color: Color) -> None` | render | Draw a filled world-space circle. |
+| `draw_text` | `(text: str, position: Vec2, font_size: float, color: Color) -> None` | render | Draw screen-space text using baseline anchor. |
+| `submit_render` | `(commands: list[tuple[object, ...]]) -> None` | render batch | Queue many render commands in one bridge call. |
+| `submit_circle_batch` | `(positions: list[Vec2], radii: list[float], colors: list[Color]) -> None` | circle batch | Queue many circles in one specialized batch call. |
+| `is_key_down` | `(key: str) -> bool` | input | Return whether a key is currently held. |
+| `frame_time` | `() -> float` | timing | Return last frame delta time in seconds. |
+| `load_texture` | `(path: str) -> TextureHandle` | textures/assets | Load texture and return opaque handle. |
+| `draw_texture` | `(texture: TextureHandle, position: Vec2, size: Vec2) -> None` | textures/assets | Draw texture at world-space position and size. |
+| `set_camera_target` | `(target: Vec2) -> None` | camera | Move active camera target to world-space coordinates. |
+
 ## Quickstart
 
 Run an existing scenario:
@@ -89,7 +114,7 @@ def update(dt: float) -> None:
 
 ## Exported API (`__all__`)
 
-`["Color", "Vec2", "TextureHandle", "clear_background", "draw_circle", "is_key_down", "frame_time", "load_texture", "draw_texture", "set_camera_target", "draw_text", "submit_render"]`
+`["Color", "Vec2", "TextureHandle", "clear_background", "draw_circle", "is_key_down", "frame_time", "load_texture", "draw_texture", "set_camera_target", "draw_text", "submit_render", "submit_circle_batch"]`
 
 ## Functions
 
@@ -99,6 +124,7 @@ def update(dt: float) -> None:
 - `draw_circle(position: Vec2, radius: float, color: Color) -> None`: Draw a filled circle using world-space coordinates.
 - `draw_text(text: str, position: Vec2, font_size: float, color: Color) -> None`: Draw text in screen space using a baseline anchor.
 - `submit_render(commands: list[tuple[object, ...]]) -> None`: Queue multiple render commands in one Python-to-runtime call.
+- `submit_circle_batch(positions: list[Vec2], radii: list[float], colors: list[Color]) -> None`: Queue many circles in one specialized batch call.
 
 ### Input + Timing
 
