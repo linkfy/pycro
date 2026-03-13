@@ -656,3 +656,35 @@ impl EngineBackend for MacroquadBackendContract {
         draw_text(text, position.x, position.y, font_size, color.into());
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::key_code_from_name;
+
+    #[test]
+    fn key_code_from_name_supports_expected_aliases() {
+        for key in ["Left", "left", "Right", "right", "Up", "up", "Down", "down"] {
+            assert!(
+                key_code_from_name(key).is_some(),
+                "expected known key mapping for {key}"
+            );
+        }
+
+        for key in ["Space", "space", "Escape", "escape"] {
+            assert!(
+                key_code_from_name(key).is_some(),
+                "expected known control mapping for {key}"
+            );
+        }
+    }
+
+    #[test]
+    fn key_code_from_name_rejects_unknown_keys() {
+        for key in ["A", "Enter", "Tab", "Unknown", ""] {
+            assert!(
+                key_code_from_name(key).is_none(),
+                "unexpected mapping for unsupported key {key:?}"
+            );
+        }
+    }
+}

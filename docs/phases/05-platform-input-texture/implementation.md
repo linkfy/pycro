@@ -13,9 +13,9 @@ startup_gate: requirements_validated + design_validated
 
 | Slice | Owner | Scope | Branch | Worktree | Status |
 | --- | --- | --- | --- | --- | --- |
-| runtime-input-bridge | runtime-worker | runtime input path and lifecycle-safe dispatch checks | codex/05-runtime-input-bridge | .worktrees/05-runtime-input-bridge-runtime | planned |
-| platform-texture-paths | platform-worker | texture load/swap/fallback behavior and platform evidence | codex/05-platform-texture-paths | .worktrees/05-platform-texture-paths-platform | in_progress |
-| api-surface-guards | api-worker | API signature/typing guards for input+texture workflows | codex/05-api-surface-guards | .worktrees/05-api-surface-guards-api | planned |
+| runtime-input-bridge | runtime-worker | runtime input path and lifecycle-safe dispatch checks | codex/05-runtime-input-bridge | .worktrees/05-runtime-input-bridge-runtime | complete (orchestrator fallback execution) |
+| platform-texture-paths | platform-worker | texture load/swap/fallback behavior and platform evidence | codex/05-platform-texture-paths | .worktrees/05-platform-texture-paths-platform | complete (manual scenario + docs evidence) |
+| api-surface-guards | api-worker | API signature/typing guards for input+texture workflows | codex/05-api-surface-guards | .worktrees/05-api-surface-guards-api | complete (orchestrator fallback execution) |
 | docs-sync-gate | docs-tracker | tracker/state/phase-doc synchronization after each slice | codex/05-docs-sync-gate | .worktrees/05-docs-sync-gate-docs | in_progress |
 | review-commit-gate | qa-reviewer + commit-steward | pre-commit findings and checkpoint creation | codex/05-review-commit-gate | .worktrees/05-review-commit-gate-qa | pending |
 

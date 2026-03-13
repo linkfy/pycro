@@ -9,6 +9,7 @@ Use this document to record requirement and scope adjustments discovered during 
 - 2026-03-14: Manual validation scenario designated: `examples/phase05_input_texture_lab.py`.
 - 2026-03-14: Subagent worktrees were permission-blocked in this environment (`Operation not permitted`), so orchestrator executed the runtime/platform/api hardening slice locally to avoid phase stall.
 - 2026-03-14: Slice-hardening results landed with new runtime + API guard tests and improved fallback visibility in the phase-05 manual scenario.
+- 2026-03-14: Phase-05 block-2 evidence captured in platform matrix with explicit desktop checks for input mapping aliases, runtime discard-on-error safety, and loaded/fallback texture HUD behavior.
 
 ## Update Rule
 

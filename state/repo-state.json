@@ -17,7 +17,12 @@
       "design_validated": true,
       "kickoff_date": "2026-03-14"
     },
-    "manual_validation_scenario": "examples/phase05_input_texture_lab.py"
+    "manual_validation_scenario": "examples/phase05_input_texture_lab.py",
+    "block_progress": {
+      "block_1": "complete",
+      "block_2": "complete",
+      "block_2_summary": "runtime/api guards and desktop capability evidence captured after orchestrator fallback execution"
+    }
   },
   "orchestration": {
     "orchestrator_required": true,
