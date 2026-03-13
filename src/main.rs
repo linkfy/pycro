@@ -9,10 +9,14 @@ use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::time::{Duration, Instant};
 
-const DEFAULT_SCRIPT_PATH: &str = "examples/phase01_basic_main.py";
 const MAIN_FILE_NAME: &str = "main.py";
 const STUB_FILE_NAME: &str = "pycro.pyi";
 const PYTHON_STUB_TEMPLATE: &str = include_str!("../python/pycro/__init__.pyi");
+
+#[cfg(target_os = "windows")]
+const LOCAL_RUNNER_FILE_NAME: &str = "pycro.exe";
+#[cfg(not(target_os = "windows"))]
+const LOCAL_RUNNER_FILE_NAME: &str = "pycro";
 
 fn main() {
     let cli_args: Vec<String> = std::env::args().skip(1).collect();
@@ -50,7 +54,7 @@ enum CliCommand {
 
 fn parse_cli_command(args: Vec<String>) -> Result<CliCommand, String> {
     if args.is_empty() {
-        return Ok(CliCommand::RunScript(DEFAULT_SCRIPT_PATH.to_owned()));
+        return Ok(CliCommand::RunScript(MAIN_FILE_NAME.to_owned()));
     }
 
     if args[0] != "init" {
@@ -92,9 +96,23 @@ fn create_project_scaffold(base_dir: &Path, project_name: &str) -> Result<PathBu
         .map_err(|error| format!("failed to write {MAIN_FILE_NAME}: {error}"))?;
     fs::write(project_dir.join(STUB_FILE_NAME), PYTHON_STUB_TEMPLATE)
         .map_err(|error| format!("failed to write {STUB_FILE_NAME}: {error}"))?;
+    copy_current_executable_to_project(project_dir.as_path())?;
 
     println!("initialized pycro project at {}", project_dir.display());
     Ok(project_dir)
+}
+
+fn copy_current_executable_to_project(project_dir: &Path) -> Result<(), String> {
+    let source = std::env::current_exe()
+        .map_err(|error| format!("failed to resolve current pycro executable: {error}"))?;
+    let destination = project_dir.join(LOCAL_RUNNER_FILE_NAME);
+    fs::copy(source.as_path(), destination.as_path()).map_err(|error| {
+        format!(
+            "failed to copy local pycro executable to {}: {error}",
+            destination.display()
+        )
+    })?;
+    Ok(())
 }
 
 fn validate_project_name(project_name: &str) -> Result<(), String> {
@@ -117,10 +135,6 @@ fn render_main_py_template(project_name: &str) -> String {
 
 BG_COLOR = (0.07, 0.07, 0.09, 1.0)
 text = "Welcome to {project_name}"
-
-def setup() -> None:
-    global text
-    text = "Welcome to {project_name}"
 
 def update(dt: float) -> None:
     pycro.clear_background(BG_COLOR)
@@ -262,8 +276,8 @@ impl PerfWindow {
 #[cfg(test)]
 mod tests {
     use super::{
-        CliCommand, DEFAULT_SCRIPT_PATH, MAIN_FILE_NAME, STUB_FILE_NAME, create_project_scaffold,
-        parse_cli_command, render_main_py_template,
+        CliCommand, LOCAL_RUNNER_FILE_NAME, MAIN_FILE_NAME, STUB_FILE_NAME,
+        create_project_scaffold, parse_cli_command, render_main_py_template,
     };
     use std::fs;
     use std::path::PathBuf;
@@ -284,7 +298,7 @@ mod tests {
     fn parse_cli_defaults_to_script_mode() {
         assert_eq!(
             parse_cli_command(Vec::new()).expect("parse should succeed"),
-            CliCommand::RunScript(DEFAULT_SCRIPT_PATH.to_owned())
+            CliCommand::RunScript(MAIN_FILE_NAME.to_owned())
         );
     }
 
@@ -320,12 +334,12 @@ mod tests {
 
         assert!(project_dir.join(MAIN_FILE_NAME).exists());
         assert!(project_dir.join(STUB_FILE_NAME).exists());
+        assert!(project_dir.join(LOCAL_RUNNER_FILE_NAME).exists());
 
         let main_content = fs::read_to_string(project_dir.join(MAIN_FILE_NAME))
             .expect("main.py should be readable");
         assert!(main_content.contains("import pycro"));
         assert!(main_content.contains("BG_COLOR = (0.07, 0.07, 0.09, 1.0)"));
-        assert!(main_content.contains("def setup() -> None:"));
         assert!(main_content.contains("def update(dt: float) -> None:"));
         assert!(main_content.contains("pycro.clear_background(BG_COLOR)"));
         assert!(main_content.contains("pycro.draw_text(text"));

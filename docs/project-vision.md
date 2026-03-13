@@ -6,7 +6,7 @@
 
 - Macroquad owns the frame loop and all platform-facing render/input/time/assets/camera behavior.
 - RustPython owns Python script execution.
-- Game code imports `pycro`, the engine loads `main.py`, runs optional `setup()`, and runs `update(dt)` every frame.
+- Game code imports `pycro`, the engine loads `main.py`, and runs `update(dt)` every frame.
 
 ## Milestone Focus
 
@@ -28,4 +28,3 @@ Work is ready to leave this milestone only when:
 - the stub generator/check path is deterministic,
 - example scripts type-check against the generated stubs,
 - branch/review/ADR policies are encoded in docs and CI.
-

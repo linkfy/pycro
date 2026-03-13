@@ -18,7 +18,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 07    | docs/phases/07-manual-playtest-evidence      | planned     | Manual playtest evidence gate                                 | queued after phase 06  |
 | 08    | docs/phases/08-git-cd-release-automation     | complete    | Git CD + Release Please + Python API readability             | complete + merged      |
 | 09    | docs/phases/09-project-init-quickstart       | complete    | CLI project bootstrap via `pycro init <project_name>`        | closed                  |
-| 10    | docs/phases/10-update-only-lifecycle         | planned     | Remove framework-owned `setup()` lifecycle dispatch          | queued after phase 09  |
+| 10    | docs/phases/10-update-only-lifecycle         | complete    | Update-only lifecycle + default `main.py` + init self-copy  | closed (2026-03-14)    |
 +-------+----------------------------------------------+-------------+---------------------------------------------------------------+------------------------+
 
 ## Task Table
@@ -39,7 +39,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 07    | manual-playtest-evidence-gate      | Capture explicit user playtest acceptance evidence      | example-scenario-worker   | architecture-orchestrator, docs-tracker, qa-reviewer                    | planned       | codex/07-manual-playtest-evidence-gate  | .worktrees/07-manual-playtest-example                | docs/phases/07-manual-playtest-evidence/implementation.md | pending   | roadmap  |
 | 08    | git-cd-release-automation          | Automate phase CD launch + Release Please + API readability | architecture-orchestrator | phase-planner, worktree-manager, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/08-git-cd-release-automation      | .worktrees/08-git-cd-release-orchestrator            | docs/phases/08-git-cd-release-automation/implementation.md | pass | merged |
 | 09    | project-init-quickstart            | Add `pycro init <project_name>` bootstrap scaffolding       | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward   | complete | codex/09-project-init-closeout          | .worktrees/09-project-init-orchestrator              | docs/phases/09-project-init-quickstart/implementation.md | pass | closed |
-| 10    | lifecycle-update-only              | Remove automatic setup dispatch; keep update(dt) as lifecycle contract | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/10-lifecycle-update-only          | .worktrees/10-lifecycle-update-orchestrator          | docs/phases/10-update-only-lifecycle/implementation.md | pending | roadmap |
+| 10    | lifecycle-update-only              | Remove setup auto-dispatch; default to `main.py`; copy `pycro` binary on init | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/10-lifecycle-update-only       | /Users/linkfy/Code/pycro                               | docs/phases/10-update-only-lifecycle/implementation.md | pass | merged |
 +-------+------------------------------------+---------------------------------------------------------+---------------------------+--------------------------------------------------------------------------+---------------+-----------------------------------------+------------------------------------------------------+------------------------------------------------------+------------------+----------+
 
 ## Streams (Non-Sequential)
@@ -80,8 +80,12 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 - template_contract: starter `main.py` includes `BG_COLOR`, global `text`, `setup`, and `update(dt)` with only `clear_background` + `draw_text`
 - phase_closeout: complete (`docs/phases/09-project-init-quickstart/closeout.md`)
 
-## Phase 10 Planning Note
+## Phase 10 Execution Note
 
 - objective: remove framework-owned `setup()` dispatch from runtime lifecycle
 - target_contract: required `update(dt)` only; user-defined init helpers remain user-owned
-- startup_gate: pending activation by orchestrator before implementation
+- startup_gate: requirements + design validated, implementation opened (2026-03-14)
+- refinement_scope: default execution must resolve project `main.py`; `pycro init` must copy the current executable into the scaffolded project
+- refinement_status: implemented (`parse_cli_command` default -> `main.py`; scaffold copies local `pycro` executable)
+- validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
+- phase_closeout: complete (`docs/phases/10-update-only-lifecycle/closeout.md`)

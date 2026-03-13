@@ -12,6 +12,7 @@
 - `0008`: macOS ARM backend default to OpenGL (temporary)
 - `0009`: Batched render submission API (`submit_render`)
 - `0010`: Phase-folder governance, orchestrated delegation, and worktree-first parallelism
+- `0011`: Update-only lifecycle contract (`update(dt)` only, no framework `setup()` dispatch)
 
 ## Process
 

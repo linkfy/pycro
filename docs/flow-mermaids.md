@@ -32,7 +32,7 @@ flowchart LR
     C --> D[python/pycro/__init__.pyi]
 ```
 
-## Runtime Lifecycle (Phase 5 Active: Draw Batch + Submit Render)
+## Runtime Lifecycle (Phase 10 Active: Update-Only Lifecycle)
 
 ```mermaid
 flowchart TD
@@ -42,11 +42,8 @@ flowchart TD
     C --> D[runtime installs stdlib compatibility modules math/os when no local sidecar collision]
     D --> E[runtime preloads sidecar modules from script directory]
     E --> F[runtime loads and executes main.py through RustPython]
-    F --> G{setup exists}
-    G -- yes --> H[call setup once]
-    G -- no --> I[skip setup]
-    H --> J[DesktopFrameLoop dispatches dt inside Macroquad loop]
-    I --> J
+    F --> G[runtime validates update dt callback]
+    G --> J[DesktopFrameLoop dispatches dt inside Macroquad loop]
     J --> K[call update dt]
     K --> L[python code calls pycro api or submit_render commands]
     L --> M[direct API bridge queues draw ops in runtime draw batch]

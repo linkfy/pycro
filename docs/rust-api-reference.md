@@ -14,7 +14,7 @@ Source files:
 
 High-level ownership:
 
-- `runtime`: owns script lifecycle (`load_main`, `setup`, `update(dt)`) and VM adapter boundary.
+- `runtime`: owns script lifecycle (`load_main`, `update(dt)`) and VM adapter boundary.
 - `api`: owns canonical Python API metadata and deterministic `.pyi` generation.
 - `backend`: owns frame-loop boundary and platform-facing calls (render/input/timing/assets/camera).
 
@@ -40,8 +40,7 @@ Current lifecycle behavior (`ScriptRuntime`):
 2. Install `pycro` module into RustPython.
 3. Load configured script source.
 4. Require `update(dt)`; fail with `RuntimeError::MissingUpdateFunction` if missing.
-5. Call optional `setup()` once.
-6. On each frame, call `update(dt)`.
+5. On each frame, call `update(dt)`.
 
 Phase-4 import compatibility behavior (`RustPythonVm::load_script`):
 
@@ -61,7 +60,6 @@ Canonical metadata constants:
 
 - `MODULE_NAME = "pycro"`
 - `ENTRYPOINT_SCRIPT = "main.py"`
-- `SETUP_FUNCTION = "setup"`
 - `UPDATE_FUNCTION = "update"`
 
 Key API metadata types:
@@ -126,7 +124,7 @@ Concrete implementation:
 
 Runtime boot sequence:
 
-1. Resolve script path from CLI arg, default `examples/phase01_basic_main.py`.
+1. Resolve script path from CLI arg, default `main.py` in the working directory.
 2. Build `RuntimeConfig`.
 3. Print module/install summary (`module_spec` + `registration_plan`).
 4. `ScriptRuntime::load_main()`.
@@ -209,8 +207,8 @@ Latest run in this workspace:
 
 ```text
 $ cargo doc --no-deps
-Checking pycro_cli v0.1.0 (/Users/linkfy/Code/pycro)
-Documenting pycro_cli v0.1.0 (/Users/linkfy/Code/pycro)
-Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.71s
-Generated /Users/linkfy/Code/pycro/target/doc/pycro_cli/index.html and 1 other file
+Checking pycro_cli v0.1.2 (/Users/linkfy/Code/pycro)
+Documenting pycro_cli v0.1.2 (/Users/linkfy/Code/pycro)
+Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.39s
+Generated /Users/linkfy/Code/pycro/target/doc/pycro_cli/index.html and 3 other files
 ```

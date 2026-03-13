@@ -4,14 +4,13 @@
 
 - `pycro_cli` is the only crate for now.
 - `backend` module owns the Macroquad-side contract: frame loop ownership and render/input/time/assets/camera interface.
-- `runtime` module owns the RustPython-side contract: VM lifecycle, `main.py` loading, `setup()` dispatch, `update(dt)` dispatch, and exception formatting.
+- `runtime` module owns the RustPython-side contract: VM lifecycle, `main.py` loading, `update(dt)` dispatch, and exception formatting.
 - `api` module owns the Python public surface: function metadata, module registration plan, and deterministic stub rendering.
 - `main` in `pycro_cli` is single-command entrypoint and delegates execution to `runtime`.
 
 ## Lifecycle Contract
 
 - Entry script: `main.py`
-- Optional setup hook: `setup() -> None`
 - Required frame hook: `update(dt: float) -> None`
 
 Load order:
@@ -21,8 +20,7 @@ Load order:
 3. Register the `pycro` module from the `api` registry.
 4. Install runtime stdlib compatibility modules required by phase objectives (`math`, `os`) and preload sidecar modules from the entry-script directory, preserving sidecar precedence on name collisions.
 5. Execute module top-level code.
-6. Call `setup()` if present.
-7. Call `update(dt)` once per frame.
+6. Call `update(dt)` once per frame.
 
 ## Public API Source Of Truth
 
@@ -77,4 +75,4 @@ The first implementation objective after bootstrap is not a generic engine slice
 3. `backend` owns the live Macroquad desktop loop
 4. `api` maps the thin public Python surface into the backend contract
 
-This objective is only complete when `setup()` runs once, `update(dt)` runs every frame, and the example uses only the stubbed public `pycro` surface.
+This objective is only complete when `update(dt)` runs every frame and the example uses only the stubbed public `pycro` surface.
