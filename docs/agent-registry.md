@@ -1,25 +1,30 @@
 # Agent Registry
 
-| Agent | Role | Intended Profile | Owns | Inputs | Outputs |
-| --- | --- | --- | --- | --- | --- |
-| architecture-orchestrator | default | gpt-5.4, reasoning high | phase selection, delegation, integration, tracker discipline, readiness decisions | concise worker summaries, tracker state, ADR refs | integrated changes, go/no-go decisions, updated tracker/state |
-| runtime-worker | worker | gpt-5.4, reasoning high | RustPython embedding, lifecycle dispatch, script isolation, error/reporting surfaces | architecture plan, lifecycle ADRs, registry metadata | runtime code, lifecycle tests, summary evidence |
-| platform-worker | worker | gpt-5.4, reasoning medium | Macroquad loop, rendering/input/assets, capability boundaries | platform matrix, architecture plan | platform code, capability evidence, summary risks |
-| api-worker | worker | gpt-5.4, reasoning medium | `pycro` module API, stub generation metadata, examples, typing surface | architecture plan, stub ADRs | API metadata, generated stubs, examples, typing evidence |
-| example-scenario-worker | worker | gpt-5.4, reasoning medium | playable feature scenarios under `examples/` for manual validation, defaulting texture scenarios to the Kenney shared pack | feature brief, API/platform constraints, existing examples, `examples/assets/ASSET_PACKS.md` | new/updated example scripts per feature, run instructions, expected behavior checklist, explicit pack asset paths used |
-| qa-reviewer | default | gpt-5.4, reasoning high | post-implementation review gate | diff, tracker evidence, validation results | blocking findings or explicit waiver |
-| commit-steward | default | gpt-5.4, reasoning medium | checkpoint commit discipline after green validations | qa outcome, validation evidence, tracker/state sync status | commit created (or blocked with explicit reason), commit sha, concise commit summary |
-| docs-tracker | explorer | gpt-5.4, reasoning low | continuous task-tracker/state sync, concise state snapshots, phase logs, ADR refs, roadmap index hygiene, evidence links | worker summaries, ADR ids, review outcome, objective/phase transitions | updated `docs/task-tracker.txt` and `state/repo-state.json` with matching objective/task status and roadmap items |
-| perf-study-recorder | explorer | gpt-5.4, reasoning low | maintain the FPS study notebook with only positive, measured improvements | benchmark summaries, optimization diffs, validation commands | updated `mejoras_a_esutdiar.md` entries in tutorial format (technique, rationale, risk, evidence, replication steps) |
-| flow-visualizer | explorer | gpt-5.4, reasoning medium | Mermaid flow diagrams for lifecycle, API dispatch, and delivery pipeline clarity | architecture plan, tracker/state, worker summaries | versioned Mermaid diagrams and concise narrative for decision/review |
+This file defines ownership and boundaries. Skill activation rules live in `docs/agents/agent-skills.md`.
 
-## Worker Summary Contract
+| Agent | Role | Owns | Inputs | Outputs |
+| --- | --- | --- | --- | --- |
+| architecture-orchestrator | orchestrator | phase selection, delegation, integration decisions, gate readiness | worker summaries, tracker state, ADR refs | integrated decisions, go/no-go, delegated execution plan |
+| phase-planner | planner | phase requirement/design decomposition before implementation starts | phase objective, constraints, prior phase docs | phase-local requirement/design updates |
+| runtime-worker | worker | RustPython embedding, lifecycle dispatch, runtime errors/reporting | architecture plan, runtime ADRs, task brief | runtime code changes, runtime tests, summary evidence |
+| platform-worker | worker | Macroquad loop, render/input/assets and platform capability boundaries | platform matrix, phase requirements | backend/platform changes and capability evidence |
+| api-worker | worker | `pycro` API metadata, registration contract, stub compatibility | architecture plan, API ADRs | API surface changes, stub evidence, typing evidence |
+| example-scenario-worker | worker | playable scenarios under `examples/*.py` for user-visible features | feature brief, existing examples, asset constraints | scenario scripts, run instructions, expected behavior checklist |
+| docs-tracker | worker | synchronized tracker/state updates and phase doc hygiene | worker summaries, review outcomes, phase updates | `docs/task-tracker.txt` + `state/repo-state.json` sync updates |
+| interactive-refinement-recorder | worker | requirement/task refinements inside phase docs and sync triggers | user feedback, orchestrator decisions | `interactive-refinement.md` updates + sync checklist |
+| flow-visualizer | worker | lifecycle/dispatch Mermaid diagrams | architecture plan, runtime/API changes | refreshed flow diagrams with concise notes |
+| qa-reviewer | reviewer | post-implementation review gate and waiver decisions | diffs, validation evidence, tracker links | findings list or explicit waiver |
+| commit-steward | steward | checkpoint commit creation after green validations | qa outcome, validation report, tracker/state sync | commit SHA or explicit block reason |
+| worktree-manager | worker | create/remove worktrees for parallel slices, prevent collisions | orchestrator parallelization plan | worktree map and branch/worktree assignment evidence |
+| merge-integrator | worker | controlled merge into `main` after gates and user approval | green validations, qa pass, branch status | merge commit and post-merge sync evidence |
 
-Every worker summary must fit this schema:
+## Summary Contract
 
-- `changed_files`: list of paths
-- `validation_evidence`: list of commands or test names with pass/fail
-- `risks`: list of unresolved concerns
-- `follow_ups`: list of next actions
-- `adr_refs`: list of ADR ids
-- `tracker_refs`: list of tracker task ids
+All worker outputs to the orchestrator must use:
+
+- `changed_files`
+- `validation_evidence`
+- `risks`
+- `follow_ups`
+- `adr_refs`
+- `tracker_refs`

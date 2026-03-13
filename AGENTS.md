@@ -6,29 +6,37 @@ Read these first:
 
 1. `docs/project-vision.md`
 2. `docs/architecture-plan.md`
-3. `docs/task-tracker.txt`
-4. `docs/agent-playbook.md`
-5. `docs/agent-registry.md`
-6. `docs/adr/README.md`
-7. `docs/platform-capability-matrix.md`
-8. `docs/validation-policy.md`
-9. `docs/branch-commit-workflow.md`
-10. `state/repo-state.json`
+3. `docs/phases/README.md`
+4. `docs/task-tracker.txt`
+5. `docs/agent-playbook.md`
+6. `docs/agent-registry.md`
+7. `docs/agents/agent-skills.md`
+8. `docs/agents/orchestration-contract.md`
+9. `docs/adr/README.md`
+10. `docs/platform-capability-matrix.md`
+11. `docs/validation-policy.md`
+12. `docs/branch-commit-workflow.md`
+13. `state/repo-state.json`
 
 Operating rules:
 
 - Treat the docs above as the source of truth. If code and docs diverge, stop and reconcile.
-- Never implement directly on `main`. Use `codex/<domain>-<task>` branches for active work, then merge into `main` only after full verification (tests + required validations + user runtime check when applicable).
-- For every newly activated phase, create and switch to a dedicated `codex/<domain>-<phase>` branch before implementation starts; do not continue phase work on a branch created for a previous phase.
-- One verified step per commit. Every implementation commit must include tracker updates, validation evidence, and a `qa-reviewer` outcome or an explicit waiver.
+- Never implement directly on `main`. Use `codex/<phase>-<task>` branches for active work, then merge into `main` only after full verification (tests + required validations + user runtime check when applicable).
+- For every newly activated phase, create and switch to a dedicated `codex/<phase>-<task>` branch before implementation starts; do not continue phase work on a branch created for a previous phase.
+- Keep numbered sequential phase artifacts under `docs/phases/NN-<slug>/` with required files: `README.md`, `requirements.md`, `design.md`, `implementation.md`, `interactive-refinement.md`.
+- Keep non-sequential workstreams under `docs/streams/` so phase numbering remains clean and consecutive.
+- `docs/task-tracker.txt` remains in `docs/` root and must stay synchronized with `state/repo-state.json`.
+- One verified step per commit. Every implementation commit must include tracker updates, machine-state updates, validation evidence, and a `qa-reviewer` outcome or an explicit waiver.
 - When all required validations pass, create a checkpoint commit immediately so there is always a stable rollback point.
-- Any change to lifecycle, public API, build strategy, stub generation contract, or platform guarantees requires an ADR entry under `docs/adr/`.
+- Any change to lifecycle, public API, build strategy, stub generation contract, platform guarantees, or governance workflow contracts requires an ADR entry under `docs/adr/`.
 - Workers do not hand raw logs to the orchestrator. They update concise summaries only: changed files, validation evidence, risks, follow-ups, and ADR/task references.
+- Keep implementation work delegated to subagent teams whenever feasible; the main thread prioritizes orchestration, integration, and final verification.
+- Keep an active orchestrator for every implementation task; avoid "god agent" execution.
+- Use a dedicated `worktree-manager` when parallel slices can collide. Worktree paths follow `.worktrees/<phase>-<task>-<agent>`.
 - Use a dedicated `commit-steward` subagent to create checkpoint commits after required validations pass.
-- Use a dedicated `docs-tracker` subagent to keep `docs/task-tracker.txt` and `state/repo-state.json` continuously synchronized, including upcoming unchecked roadmap phases.
+- Use a dedicated `docs-tracker` subagent to keep `docs/task-tracker.txt`, `state/repo-state.json`, and active phase docs synchronized.
 - Use a dedicated `example-scenario-worker` subagent to create/update playable scenarios under `examples/` for every new user-visible feature.
 - Keep `examples/` flat: scenario scripts must live directly under `examples/*.py` (no per-scenario subfolders). Shared assets live under `examples/assets/`.
-- Keep implementation work delegated to subagent teams whenever feasible; the main thread should prioritize orchestration, integration, and final verification to preserve context.
 - Treat user feedback from running playable scenarios as a required validation gate for interactive features that agents cannot fully verify on their own.
 - Before each phase commit, refresh/rebuild documentation and record evidence in tracker/state.
 - The canonical Python-facing API lives in Rust metadata inside the `api` module of `pycro_cli`. `python/pycro/__init__.pyi` must be generated from that metadata and checked for drift.

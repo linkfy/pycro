@@ -1,6 +1,6 @@
 # Validation Policy
 
-Implementation work is not commit-ready until all applicable checks pass and evidence is recorded in the tracker.
+Implementation work is not commit-ready until all applicable checks pass and evidence is recorded in tracker/state.
 
 ## Mandatory Gates
 
@@ -19,6 +19,7 @@ Implementation work is not commit-ready until all applicable checks pass and evi
 - Public API changes require stub drift checks and typing smoke.
 - Platform guarantee changes require a platform matrix update and an ADR.
 - User-visible interactive features require a playable `examples/` scenario per feature and explicit user feedback recorded in tracker evidence.
+- Parallel implementation slices must track branch/worktree assignment in tracker/state.
 
 ## Benchmark Integrity Rule (Python Gameplay)
 
@@ -32,11 +33,12 @@ Implementation work is not commit-ready until all applicable checks pass and evi
 
 ## Phase Pre-Commit Documentation Checklist (Mandatory)
 
+- Update active phase docs in `docs/phases/<NN-slug>/` (`requirements`, `design`, `implementation`, `interactive-refinement`) before commit.
+- Keep `docs/task-tracker.txt` and `state/repo-state.json` synchronized with the active phase state.
 - Refresh `docs/rust-api-reference.md` when runtime/api/backend contracts change.
-- Recompile Rust docs with `cargo doc --no-deps` after the refresh.
+- Recompile Rust docs with `cargo doc --no-deps` after refresh.
 - When Python API metadata/signatures change, regenerate stubs with `cargo run --bin generate_stubs -- --write python/pycro/__init__.pyi`.
-- Refresh `docs/python-stub-cheatsheet.html` from the regenerated `python/pycro/__init__.pyi` surface in the same commit.
-- Verify no drift after refresh with `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`.
+- Refresh `docs/python-stub-cheatsheet.md` from regenerated `python/pycro/__init__.pyi` in the same commit.
+- Verify no stub drift with `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`.
 - Re-run typing smoke with `python3 -m mypy --config-file pyproject.toml` after stub/docs refresh.
-- Record the refresh + recompile evidence in tracker/state before commit.
-- Before each phase commit, documentation artifacts must be refreshed/recompiled (Rust docs and Python stub-facing docs) and evidence recorded.
+- Record refresh + recompile evidence in tracker/state before commit.

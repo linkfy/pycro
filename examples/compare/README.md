@@ -110,7 +110,7 @@ BENCHMARK_MATRIX=1 BENCHMARK_RUNS=3 BENCHMARK_TARGET_MATRIX=3000 BENCHMARK_AUTO_
 `run_compare_benchmarks.sh` uses release mode for pycro by default. Set `PYCRO_CARGO_PROFILE=""` only for debug diagnostics.
 
 Phase 3 note: all exploratory before/after comparisons run with `3s` sessions to accelerate iteration, then promising patches are re-checked with longer sessions before closeout.
-Operational plan and latest baseline snapshot are tracked in `docs/perf-phase-3-plan.md`.
+Operational plan and latest baseline snapshot are tracked in `docs/streams/performance/phase-03-plan.md`.
 
 if pygame is missing:
 
