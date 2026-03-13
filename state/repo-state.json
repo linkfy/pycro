@@ -23,7 +23,8 @@
       "phase_05_closeout_doc": "docs/phases/05-platform-input-texture/closeout.md",
       "phase_08_planning": "complete",
       "phase_08_release_automation": "in_progress",
-      "phase_08_ci_typing_fix": "in_progress"
+      "phase_08_ci_typing_fix": "in_progress",
+      "phase_08_release_hardening": "in_progress"
     }
   },
   "orchestration": {
@@ -51,7 +52,7 @@
     },
     "manager_agent": "worktree-manager"
   },
-  "current_branch": "codex/08-git-cd-release-automation",
+  "current_branch": "codex/08-release-please-hardening",
   "phase_sequence": [
     {
       "number": "00",

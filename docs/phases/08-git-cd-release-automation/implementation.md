@@ -6,7 +6,8 @@
 3. Add release asset matrix for `pycro` (Linux/macOS/Windows on x64 + ARM).
 4. Improve Python API artifact readability and document maintenance rules.
 5. Fix CI typing noise from optional benchmark dependencies while keeping strict typing.
-6. Validate model-routing policy enforcement in orchestrator documents.
+6. Harden release automation for legacy history and permissions (`bootstrap-sha`, token fallback, commitlint gate).
+7. Validate model-routing policy enforcement in orchestrator documents.
 
 ## Task Board
 

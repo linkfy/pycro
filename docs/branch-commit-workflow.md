@@ -27,12 +27,23 @@ Every implementation commit must include:
 - validation evidence
 - `qa-reviewer` outcome or explicit waiver
 
+Commit subjects must follow Conventional Commits so release automation can parse history:
+
+- valid examples: `feat(runtime): add direct bridge cache`, `fix(ci): handle optional pygame import`, `chore(docs): sync phase tracker`
+- avoid non-conventional prefixes such as `phase05 closeout: ...` or free-form headers with spaces before the first `:`
+
 After required validations pass, `commit-steward` creates a checkpoint commit immediately.
 Before any push or merge, local CI-equivalent preflight must pass at minimum:
 
 - `cargo fmt --all --check`
 - `cargo clippy --all-targets -- -D warnings`
 - `cargo test`
+
+For automated releases, repository settings must allow PR creation by automation:
+
+- `Settings -> Actions -> General -> Workflow permissions`: `Read and write permissions`
+- `Settings -> Actions`: allow workflows to create pull requests
+- if org policy blocks `GITHUB_TOKEN`, provide `RELEASE_PLEASE_TOKEN` secret (PAT or app token with repo contents+PR write)
 
 ## ADR Triggers
 
