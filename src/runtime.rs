@@ -2222,6 +2222,37 @@ mod tests {
         runtime.vm().backend().dispatch_log().to_vec()
     }
 
+    fn repo_example_path(example_file: &str) -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("examples")
+            .join(example_file)
+    }
+
+    fn queued_payload_for_example(
+        example_file: &str,
+        dt: f32,
+    ) -> (Vec<QueuedDrawOp>, Vec<BackendDispatch>) {
+        let script_path = repo_example_path(example_file);
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime
+            .load_main()
+            .expect("example fixture should load in runtime smoke");
+        runtime
+            .update(dt)
+            .expect("example fixture update should succeed in runtime smoke");
+
+        (
+            runtime.vm().queued_draw_batch_snapshot(),
+            backend_dispatches(&runtime),
+        )
+    }
+
     #[test]
     fn load_main_does_not_dispatch_setup_and_update_runs_per_frame() {
         let vm = FakeVm {
@@ -2238,6 +2269,123 @@ mod tests {
         assert_eq!(
             runtime.vm().calls,
             vec!["update(0.016)".to_owned(), "update(0.032)".to_owned(),]
+        );
+    }
+
+    #[test]
+    fn visual_payload_smoke_timing_fixture_is_stable_and_actionable() {
+        let (first_payload, first_dispatches) =
+            queued_payload_for_example("phase05_timing_frame_pulse.py", 0.016);
+        let (second_payload, second_dispatches) =
+            queued_payload_for_example("phase05_timing_frame_pulse.py", 0.016);
+
+        assert_eq!(
+            first_dispatches,
+            Vec::<BackendDispatch>::new(),
+            "timing fixture should not emit direct backend dispatches in update-only mode"
+        );
+        assert_eq!(
+            second_dispatches, first_dispatches,
+            "direct dispatches should be deterministic across repeated timing fixture runs"
+        );
+        assert_eq!(
+            first_payload,
+            vec![
+                QueuedDrawOp::ClearBackground(Color {
+                    r: 0.03,
+                    g: 0.05,
+                    b: 0.1,
+                    a: 1.0
+                }),
+                QueuedDrawOp::DrawCircle {
+                    position: Vec2 { x: 420.0, y: 260.0 },
+                    radius: 21.12,
+                    color: Color {
+                        r: 0.2096,
+                        g: 0.45,
+                        b: 0.9936,
+                        a: 1.0
+                    },
+                    render_mode: VectorRenderMode::Default,
+                },
+                QueuedDrawOp::DrawCircle {
+                    position: Vec2 { x: 80.0, y: 80.0 },
+                    radius: 11.52,
+                    color: Color {
+                        r: 0.98,
+                        g: 0.78,
+                        b: 0.22,
+                        a: 1.0
+                    },
+                    render_mode: VectorRenderMode::Default,
+                }
+            ],
+            "timing fixture payload changed; expected deterministic clear + pulse circles sequence"
+        );
+        assert_eq!(
+            second_payload, first_payload,
+            "queued payload should be deterministic across repeated timing fixture runs"
+        );
+    }
+
+    #[test]
+    fn visual_payload_smoke_runtime_draw_flush_batch_fixture_shape() {
+        let (first_payload, first_dispatches) =
+            queued_payload_for_example("phase05_runtime_draw_flush_batch.py", 0.016);
+        let (second_payload, second_dispatches) =
+            queued_payload_for_example("phase05_runtime_draw_flush_batch.py", 0.016);
+
+        assert_eq!(
+            first_dispatches,
+            Vec::<BackendDispatch>::new(),
+            "runtime_draw_flush_batch fixture should not emit direct backend dispatches in update"
+        );
+        assert_eq!(
+            second_dispatches, first_dispatches,
+            "direct dispatches should remain deterministic across fixture runs"
+        );
+        assert_eq!(
+            first_payload.first(),
+            Some(&QueuedDrawOp::ClearBackground(Color {
+                r: 0.04,
+                g: 0.05,
+                b: 0.08,
+                a: 1.0
+            })),
+            "runtime_draw_flush_batch must start with clear_background"
+        );
+        let circle_count = first_payload
+            .iter()
+            .filter(|op| matches!(op, QueuedDrawOp::DrawCircle { .. }))
+            .count();
+        let text_values = first_payload
+            .iter()
+            .filter_map(|op| {
+                if let QueuedDrawOp::DrawText { text, .. } = op {
+                    Some(text.as_str())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            circle_count, 76,
+            "runtime_draw_flush_batch fixture expected 76 circle draws on frame 1"
+        );
+        assert_eq!(
+            text_values.len(),
+            2,
+            "runtime_draw_flush_batch fixture expected two HUD draw_text calls"
+        );
+        assert!(
+            text_values[1].contains("draw_calls=76"),
+            "runtime_draw_flush_batch HUD summary changed; got `{}`",
+            text_values[1]
+        );
+        assert_eq!(
+            second_payload, first_payload,
+            "runtime_draw_flush_batch payload should be deterministic across repeated runs"
         );
     }
 
