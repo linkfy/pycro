@@ -18,7 +18,7 @@ This directory stores the canonical sequential delivery phases.
 - `05-platform-input-texture` (closed)
 - `06-ci-visual-payload` (planned)
 - `07-manual-playtest-evidence` (planned)
-- `08-git-cd-release-automation` (planned, next to implement)
+- `08-git-cd-release-automation` (in progress)
 
 ## Required Files Per Phase
 

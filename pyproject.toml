@@ -5,3 +5,6 @@ strict = true
 files = ["examples"]
 warn_unused_configs = true
 
+[[tool.mypy.overrides]]
+module = ["pygame", "pygame.*"]
+ignore_missing_imports = true

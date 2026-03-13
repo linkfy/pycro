@@ -4,24 +4,26 @@
   "active_phase": {
     "number": "08",
     "id": "08-git-cd-release-automation",
-    "status": "planned",
+    "status": "in_progress",
     "path": "docs/phases/08-git-cd-release-automation"
   },
   "current_objective": {
     "id": "git-cd-release-automation",
     "title": "Automate per-phase Git CD kickoff, Release Please releases, and Python API readability contract",
-    "status": "planned",
+    "status": "in_progress",
     "phase_doc": "docs/phases/08-git-cd-release-automation/implementation.md",
     "startup_gate": {
-      "requirements_validated": false,
-      "design_validated": false,
+      "requirements_validated": true,
+      "design_validated": true,
       "kickoff_date": "2026-03-15"
     },
     "manual_validation_scenario": "examples/phase08_api_surface_readability.py",
     "block_progress": {
       "phase_05": "complete",
       "phase_05_closeout_doc": "docs/phases/05-platform-input-texture/closeout.md",
-      "phase_08_planning": "prepared"
+      "phase_08_planning": "complete",
+      "phase_08_release_automation": "in_progress",
+      "phase_08_ci_typing_fix": "in_progress"
     }
   },
   "orchestration": {
@@ -102,7 +104,7 @@
     {
       "number": "08",
       "id": "08-git-cd-release-automation",
-      "status": "planned",
+      "status": "in_progress",
       "path": "docs/phases/08-git-cd-release-automation"
     }
   ],
@@ -221,7 +223,7 @@
       "id": "git-cd-release-automation",
       "phase": "08",
       "owner": "architecture-orchestrator",
-      "status": "planned",
+      "status": "in_progress",
       "branch": "codex/08-git-cd-release-automation",
       "worktree": ".worktrees/08-git-cd-release-orchestrator",
       "phase_doc": "docs/phases/08-git-cd-release-automation/implementation.md",
