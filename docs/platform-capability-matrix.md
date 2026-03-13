@@ -17,6 +17,16 @@ Platform parity is enforced by declared capability support and validation eviden
 - Web: mandatory build plus scripted smoke
 - Android/iOS: mandatory build or package validation and canonical example evidence until automated runtime smoke exists
 
+## Phase-05 Evidence Snapshot (Desktop)
+
+- Input mapping guard:
+  - backend key mapping tests cover `Left/Right/Up/Down/Space/Escape` aliases and unknown-key rejection.
+- Runtime failure safety guard:
+  - runtime tests verify queued draw batch is discarded after update failure, including frames with timing and texture direct-return calls.
+- Texture fallback manual scenario:
+  - `examples/phase05_input_texture_lab.py` shows explicit HUD state for loaded vs fallback texture path.
+  - Manual check expects green marker when loaded texture is active and red marker when fallback slot is active.
+
 ## Future Improvement Notes (Backend Selection)
 
 - Introduce explicit backend selection policy per platform/runtime (for example OpenGL vs Metal on macOS) with a stable override mechanism (`env` + config contract).

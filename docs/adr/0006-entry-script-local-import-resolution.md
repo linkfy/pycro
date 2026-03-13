@@ -8,10 +8,10 @@ Accepted
 
 When loading the configured entry script, runtime inserts that script's directory into RustPython `sys.path` before executing the script.
 
-This guarantees local sidecar imports from the same directory (for example `main.py` importing `player.py`) work deterministically, independent of process working directory.
+This guarantees local sidecar imports from the same directory (for example `main.py` importing `phase03_player.py`) work deterministically, independent of process working directory.
 
 ## Consequences
 
 - `load_script` now configures import resolution as part of lifecycle boot.
-- Runtime tests must cover a real `main.py` + `player.py` import case.
+- Runtime tests must cover a real `main.py` + `phase03_player.py` import case.
 - Example scenarios can safely split logic into multiple Python files while keeping `examples/` flat.

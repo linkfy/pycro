@@ -11,9 +11,10 @@
 - `0007`: Runtime stdlib compatibility for gameplay imports (`math`, `os`)
 - `0008`: macOS ARM backend default to OpenGL (temporary)
 - `0009`: Batched render submission API (`submit_render`)
+- `0010`: Phase-folder governance, orchestrated delegation, and worktree-first parallelism
 
 ## Process
 
-- ADR ids are zero-padded and monotonic.
+- ADR IDs are zero-padded and monotonic.
 - Update this index whenever a new ADR is added.
 - ADR-required changes cannot merge without the corresponding document update.

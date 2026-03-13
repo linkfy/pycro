@@ -2298,6 +2298,50 @@ mod tests {
     }
 
     #[test]
+    fn update_error_discards_queued_draws_after_timing_and_texture_calls() {
+        let script = r#"
+import pycro
+
+def update(dt):
+    pycro.draw_circle((24.0, 24.0), 10.0, (0.8, 0.2, 0.2, 1.0))
+    _ = pycro.frame_time()
+    tex = pycro.load_texture("examples/assets/does-not-exist.png")
+    pycro.draw_texture(tex, (12.0, 14.0), (20.0, 18.0))
+    raise RuntimeError("stop-after-texture")
+"#;
+        let script_path = write_temp_script("discard-after-input-texture-error", script);
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime.load_main().expect("load_main should succeed");
+        let error = runtime
+            .update(0.016)
+            .expect_err("update should fail after texture/timing operations");
+
+        assert!(
+            matches!(error, RuntimeError::FunctionCall { ref function, .. } if function == "update"),
+            "expected update failure, got {error:?}"
+        );
+        assert!(
+            runtime.vm().queued_draw_batch_snapshot().is_empty(),
+            "queued draw ops must be discarded after update failure even when input/texture direct calls occur"
+        );
+        assert_eq!(
+            backend_dispatches(&runtime),
+            vec![BackendDispatch::LoadTexture(
+                "examples/assets/does-not-exist.png".to_owned()
+            )],
+            "direct-return load_texture dispatch should still happen before runtime error propagation"
+        );
+
+        fs::remove_file(script_path).expect("temporary script should be removable");
+    }
+
+    #[test]
     fn draw_ops_are_queued_in_batch_order_until_frame_flush() {
         let script = r#"
 import pycro
@@ -2695,22 +2739,22 @@ def update(dt):
                 (
                     "main.py",
                     r#"
-import player
+import phase03_player
 
 hero = None
 
 def setup():
     global hero
-    hero = player.create_player("Rhea")
+    hero = phase03_player.create_player("Rhea")
 
 def update(dt):
     if hero is None:
         raise RuntimeError("hero should be initialized in setup")
-    player.tick(hero, dt)
+    phase03_player.tick(hero, dt)
 "#,
                 ),
                 (
-                    "player.py",
+                    "phase03_player.py",
                     r#"
 class Player:
     def __init__(self, name):

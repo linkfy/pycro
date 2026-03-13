@@ -4,8 +4,8 @@ This folder documents the isolated benchmark stream `phase-compare-benchmark`.
 
 Benchmark scripts:
 
-- `examples/compare_pycro_balls_benchmark.py`
-- `examples/compare_pygame_balls_benchmark.py`
+- `examples/phase05_compare_pycro_balls_benchmark.py`
+- `examples/phase05_compare_pygame_balls_benchmark.py`
 
 Both scripts implement the same interaction contract:
 
@@ -62,25 +62,25 @@ Homogeneous log format (both runtimes):
 pycro benchmark:
 
 ```bash
-cargo run --release -- examples/compare_pycro_balls_benchmark.py
+cargo run --release -- examples/phase05_compare_pycro_balls_benchmark.py
 ```
 
 quick pycro smoke:
 
 ```bash
-PYCRO_FRAMES=3 cargo run --release -- examples/compare_pycro_balls_benchmark.py
+PYCRO_FRAMES=3 cargo run --release -- examples/phase05_compare_pycro_balls_benchmark.py
 ```
 
 pycro auto session (non-interactive, logs per second + summary):
 
 ```bash
-BENCHMARK_AUTO=1 BENCHMARK_AUTO_INITIAL_BALLS=3000 BENCHMARK_AUTO_TARGETS=3000 BENCHMARK_AUTO_SESSION_SECONDS=3 PYCRO_FRAMES=900 cargo run --release -- examples/compare_pycro_balls_benchmark.py
+BENCHMARK_AUTO=1 BENCHMARK_AUTO_INITIAL_BALLS=3000 BENCHMARK_AUTO_TARGETS=3000 BENCHMARK_AUTO_SESSION_SECONDS=3 PYCRO_FRAMES=900 cargo run --release -- examples/phase05_compare_pycro_balls_benchmark.py
 ```
 
 pygame benchmark:
 
 ```bash
-python3 examples/compare_pygame_balls_benchmark.py
+python3 examples/phase05_compare_pygame_balls_benchmark.py
 ```
 
 pygame version check (recommended before every session):
@@ -92,7 +92,7 @@ python3 -c "import sys, pygame; print(sys.version); print(pygame.version.ver); p
 pygame auto session (headless-capable):
 
 ```bash
-SDL_VIDEODRIVER=dummy BENCHMARK_AUTO=1 BENCHMARK_AUTO_INITIAL_BALLS=3000 BENCHMARK_AUTO_TARGETS=3000 BENCHMARK_AUTO_SESSION_SECONDS=3 python3 examples/compare_pygame_balls_benchmark.py
+SDL_VIDEODRIVER=dummy BENCHMARK_AUTO=1 BENCHMARK_AUTO_INITIAL_BALLS=3000 BENCHMARK_AUTO_TARGETS=3000 BENCHMARK_AUTO_SESSION_SECONDS=3 python3 examples/phase05_compare_pygame_balls_benchmark.py
 ```
 
 run both at the same time:
@@ -110,7 +110,7 @@ BENCHMARK_MATRIX=1 BENCHMARK_RUNS=3 BENCHMARK_TARGET_MATRIX=3000 BENCHMARK_AUTO_
 `run_compare_benchmarks.sh` uses release mode for pycro by default. Set `PYCRO_CARGO_PROFILE=""` only for debug diagnostics.
 
 Phase 3 note: all exploratory before/after comparisons run with `3s` sessions to accelerate iteration, then promising patches are re-checked with longer sessions before closeout.
-Operational plan and latest baseline snapshot are tracked in `docs/perf-phase-3-plan.md`.
+Operational plan and latest baseline snapshot are tracked in `docs/streams/performance/phase-03-plan.md`.
 
 if pygame is missing:
 

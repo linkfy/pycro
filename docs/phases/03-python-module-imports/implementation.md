@@ -1,0 +1,23 @@
+# Task Implementation
+
+## Execution Steps
+1. Validate sidecar import scenarios.
+2. Re-run lifecycle regressions.
+3. Sync evidence and close phase.
+
+## Task Board
+
+| Task ID | Owner | Parallel Team | Status | Branch | Worktree | Validation Gate |
+| --- | --- | --- | --- | --- | --- | --- |
+| runtime-python-module-imports | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | closed | codex/<phase>-<task> | .worktrees/<phase>-<task>-<agent> | per docs/validation-policy.md |
+
+## Reporting Contract
+
+All contributors report summary-only payloads to the orchestrator:
+
+- changed files
+- validation evidence
+- risks
+- follow-ups
+- ADR refs
+- tracker refs

@@ -2,31 +2,40 @@
 
 ## Branch Policy
 
-- No direct implementation work on `main`.
-- Use `codex/<domain>-<task>` branches for implementation.
-- `main` is the verified integration branch: merge changes there only after expected validations pass and behavior is confirmed.
-- Keep branch names narrow and task-scoped.
-- Before finishing a work block, the agent must ask the user whether to merge into `main`.
+- Never implement directly on `main`.
+- Use `codex/<phase>-<task>` for implementation branches.
+- `main` remains the verified integration branch.
+- Merge to `main` only after validations, QA gate, and explicit user approval.
+- User approval is required per phase closeout. The orchestrator must ask before each merge and wait for a direct confirmation.
+
+## Worktree Policy
+
+Use worktrees for parallel slices and collision prevention.
+
+- Path format: `.worktrees/<phase>-<task>-<agent>`
+- One active task ownership per worktree.
+- Keep branch/worktree mapping updated in tracker/state.
 
 ## Commit Policy
 
-- One verified step per commit.
-- No implementation commit without:
-  - tracker update,
-  - machine state update,
-  - validation evidence,
-  - `qa-reviewer` outcome or documented waiver.
+One verified step per commit.
 
-## Tracker Merge Notation
+Every implementation commit must include:
 
-- For in-progress items shown as `[-]` in `docs/task-tracker.txt`, append `-> (Not merged)` when the latest work for that item is still on a task branch and not yet merged into `main`.
+- synchronized tracker update
+- synchronized machine-state update
+- validation evidence
+- `qa-reviewer` outcome or explicit waiver
+
+After required validations pass, `commit-steward` creates a checkpoint commit immediately.
 
 ## ADR Triggers
 
-Create or update an ADR for any change to:
+Create/update an ADR for changes to:
 
 - lifecycle behavior
 - public Python API
-- build or packaging strategy
+- build/packaging strategy
 - stub generation contract
 - platform guarantees
+- governance workflow contracts (agents, phases, or validation process)

@@ -1,41 +1,231 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "project": "pycro",
-  "phase": {
-    "id": "phase-5-platform-input-texture",
-    "name": "Platform Input And Texture Coverage",
-    "status": "in_progress"
+  "active_phase": {
+    "number": "06",
+    "id": "06-ci-visual-payload",
+    "status": "planned",
+    "path": "docs/phases/06-ci-visual-payload"
   },
   "current_objective": {
-    "id": "objective-5-platform-input-texture-coverage",
-    "title": "Expand input handling, texture workflows, and platform capability coverage",
-    "status": "in_progress",
-    "success_evidence": [
-      "Input handling is expanded with deterministic validation evidence",
-      "Texture workflows cover load/swap/fallback/error-path behavior across representative scenarios",
-      "Platform-capability matrix evidence is updated for the expanded input/texture slice",
-      "Validation gates remain green after phase-5 implementation"
-    ],
-    "blockers": [],
-    "orchestration_evidence": [
-      "phase-4 objective closed with stdlib/runtime evidence and QA pass",
-      "phase-5 objective activated in tracker/state",
-      "phase-3 performance clean kickoff now running on codex/perf-phase3-clean-start with tracker/state synchronized before optimization patch intake"
-    ],
-    "follow_through_order": [
-      "runtime-draw-flush-batch slice implementation and evidence capture",
-      "expand input/textures/platform coverage",
-      "CI smoke with visual/payload assertions",
-      "example-scenario-worker in parallel with playable feature scenarios for manual user validation"
-    ],
-    "phase_pending_checklist": [
-      "R3-A: freeze 2-run direct before/after summaries at 25000 with 2.5-second sessions and stack metadata",
-      "R3-B: execute parallel optimization slices and keep only patches with positive quick-protocol delta",
-      "R3-C: verify no >5% regression at 3000/6000 before checkpoint commit"
-    ],
-    "phase3_plan_doc": "docs/perf-phase-3-plan.md"
+    "id": "ci-visual-payload-smoke",
+    "title": "Add CI smoke coverage for visual and payload assertions on representative scenarios",
+    "status": "planned",
+    "phase_doc": "docs/phases/06-ci-visual-payload/implementation.md",
+    "startup_gate": {
+      "requirements_validated": false,
+      "design_validated": false,
+      "kickoff_date": "2026-03-14"
+    },
+    "manual_validation_scenario": "examples/phase05_input_texture_lab.py",
+    "block_progress": {
+      "phase_05": "complete",
+      "phase_05_closeout_doc": "docs/phases/05-platform-input-texture/closeout.md"
+    }
   },
-  "current_branch": "codex/close-compare-benchmark",
+  "orchestration": {
+    "orchestrator_required": true,
+    "delegation_required": true,
+    "no_god_agent": true,
+    "summary_only_reports": true,
+    "mandatory_agents_for_impl": [
+      "architecture-orchestrator",
+      "docs-tracker",
+      "qa-reviewer",
+      "commit-steward"
+    ]
+  },
+  "worktrees": {
+    "required_for_parallel_work": true,
+    "naming": {
+      "branch": "codex/<phase>-<task>",
+      "worktree": ".worktrees/<phase>-<task>-<agent>"
+    },
+    "manager_agent": "worktree-manager"
+  },
+  "current_branch": "codex/05-platform-input-texture-coverage-closeout",
+  "phase_sequence": [
+    {
+      "number": "00",
+      "id": "00-foundation",
+      "status": "closed",
+      "path": "docs/phases/00-foundation"
+    },
+    {
+      "number": "01",
+      "id": "01-basic-example",
+      "status": "closed",
+      "path": "docs/phases/01-basic-example"
+    },
+    {
+      "number": "02",
+      "id": "02-api-direct-bridge",
+      "status": "closed",
+      "path": "docs/phases/02-api-direct-bridge"
+    },
+    {
+      "number": "03",
+      "id": "03-python-module-imports",
+      "status": "closed",
+      "path": "docs/phases/03-python-module-imports"
+    },
+    {
+      "number": "04",
+      "id": "04-runtime-stdlib",
+      "status": "closed",
+      "path": "docs/phases/04-runtime-stdlib"
+    },
+    {
+      "number": "05",
+      "id": "05-platform-input-texture",
+      "status": "closed",
+      "path": "docs/phases/05-platform-input-texture"
+    },
+    {
+      "number": "06",
+      "id": "06-ci-visual-payload",
+      "status": "planned",
+      "path": "docs/phases/06-ci-visual-payload"
+    },
+    {
+      "number": "07",
+      "id": "07-manual-playtest-evidence",
+      "status": "planned",
+      "path": "docs/phases/07-manual-playtest-evidence"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "bootstrap-foundation",
+      "phase": "00",
+      "owner": "architecture-orchestrator",
+      "status": "complete",
+      "branch": "codex/bootstrap-foundation",
+      "worktree": ".worktrees/bootstrap-foundation-orchestrator",
+      "phase_doc": "docs/phases/00-foundation/implementation.md",
+      "qa": "pass"
+    },
+    {
+      "id": "runtime-basic-example-loader",
+      "phase": "01",
+      "owner": "runtime-worker",
+      "status": "complete",
+      "branch": "codex/01-runtime-basic-example-loader",
+      "worktree": ".worktrees/01-runtime-basic-example-loader-runtime",
+      "phase_doc": "docs/phases/01-basic-example/implementation.md",
+      "qa": "pass"
+    },
+    {
+      "id": "platform-desktop-macroquad-loop",
+      "phase": "01",
+      "owner": "platform-worker",
+      "status": "complete",
+      "branch": "codex/01-platform-desktop-macroquad-loop",
+      "worktree": ".worktrees/01-platform-desktop-macroquad-loop-platform",
+      "phase_doc": "docs/phases/01-basic-example/implementation.md",
+      "qa": "pass"
+    },
+    {
+      "id": "api-dispatch-basic-surface",
+      "phase": "01",
+      "owner": "api-worker",
+      "status": "complete",
+      "branch": "codex/01-api-dispatch-basic-surface",
+      "worktree": ".worktrees/01-api-dispatch-basic-surface-api",
+      "phase_doc": "docs/phases/01-basic-example/implementation.md",
+      "qa": "pass"
+    },
+    {
+      "id": "basic-example-execution-smoke",
+      "phase": "01",
+      "owner": "architecture-orchestrator",
+      "status": "complete",
+      "branch": "codex/01-basic-example-execution-smoke",
+      "worktree": ".worktrees/01-basic-example-execution-smoke-orchestrator",
+      "phase_doc": "docs/phases/01-basic-example/implementation.md",
+      "qa": "pass"
+    },
+    {
+      "id": "api-direct-bridge-rich-returns",
+      "phase": "02",
+      "owner": "architecture-orchestrator",
+      "status": "complete",
+      "branch": "codex/02-api-direct-bridge-rich-returns",
+      "worktree": ".worktrees/02-api-direct-bridge-orchestrator",
+      "phase_doc": "docs/phases/02-api-direct-bridge/implementation.md",
+      "qa": "pass_with_waiver"
+    },
+    {
+      "id": "runtime-python-module-imports",
+      "phase": "03",
+      "owner": "runtime-worker",
+      "status": "complete",
+      "branch": "codex/03-runtime-python-module-imports",
+      "worktree": ".worktrees/03-runtime-python-module-imports-runtime",
+      "phase_doc": "docs/phases/03-python-module-imports/implementation.md",
+      "qa": "pass"
+    },
+    {
+      "id": "runtime-stdlib-enablement",
+      "phase": "04",
+      "owner": "runtime-worker",
+      "status": "complete",
+      "branch": "codex/04-runtime-stdlib-enablement",
+      "worktree": ".worktrees/04-runtime-stdlib-enablement-runtime",
+      "phase_doc": "docs/phases/04-runtime-stdlib/implementation.md",
+      "qa": "pass"
+    },
+    {
+      "id": "platform-input-texture-coverage",
+      "phase": "05",
+      "owner": "platform-worker",
+      "status": "complete",
+      "branch": "codex/05-platform-input-texture-coverage-closeout",
+      "worktree": ".worktrees/05-platform-input-texture-platform",
+      "phase_doc": "docs/phases/05-platform-input-texture/implementation.md",
+      "qa": "pass"
+    },
+    {
+      "id": "ci-visual-payload-smoke",
+      "phase": "06",
+      "owner": "architecture-orchestrator",
+      "status": "planned",
+      "branch": "codex/06-ci-visual-payload-smoke",
+      "worktree": ".worktrees/06-ci-visual-payload-orchestrator",
+      "phase_doc": "docs/phases/06-ci-visual-payload/implementation.md",
+      "qa": "pending"
+    },
+    {
+      "id": "manual-playtest-evidence-gate",
+      "phase": "07",
+      "owner": "example-scenario-worker",
+      "status": "planned",
+      "branch": "codex/07-manual-playtest-evidence-gate",
+      "worktree": ".worktrees/07-manual-playtest-example",
+      "phase_doc": "docs/phases/07-manual-playtest-evidence/implementation.md",
+      "qa": "pending"
+    }
+  ],
+  "streams": [
+    {
+      "id": "stream-compare-benchmark",
+      "status": "complete",
+      "owner": "example-scenario-worker",
+      "doc": "docs/streams/compare-benchmark.md"
+    },
+    {
+      "id": "stream-performance-phase-03",
+      "status": "in_progress",
+      "owner": "architecture-orchestrator",
+      "doc": "docs/streams/performance/phase-03-plan.md"
+    },
+    {
+      "id": "stream-backend-selection-policy",
+      "status": "planned",
+      "owner": "architecture-orchestrator",
+      "doc": "docs/streams/backend-selection-policy.md"
+    }
+  ],
   "summary_contract": {
     "allowed_fields": [
       "changed_files",
@@ -46,376 +236,5 @@
       "tracker_refs"
     ],
     "raw_logs_allowed": false
-  },
-  "tasks": [
-    {
-      "id": "bootstrap-foundation",
-      "title": "Validate and close the infrastructure bootstrap",
-      "phase": "phase-0-foundation",
-      "owner": "architecture-orchestrator",
-      "status": "complete",
-      "evidence": [
-        "Directory cleaned",
-        "Git initialized on codex/bootstrap-workspace",
-        "Governance docs and ADR log created",
-        "Cargo workspace scaffolded and later simplified to single-crate pycro_cli with module boundaries",
-        "Canonical stub file generated at python/pycro/__init__.pyi",
-        "cargo fmt --all --check passed",
-        "python3 scripts/validate_governance.py passed",
-        "cargo metadata --format-version 1 --locked --no-deps passed",
-        "cargo test passed",
-        "cargo clippy --all-targets -- -D warnings passed",
-        "cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi passed",
-        "python3 -m mypy --config-file pyproject.toml passed",
-        "qa-reviewer outcome recorded: pass for phase-0 closeout; no technical gate failures remain",
-        "docs-tracker synced tracker/state for phase handoff to phase-1",
-        "phase-1 handoff approved: runtime-basic-example-loader is the next active task"
-      ],
-      "next_action": "Phase 0 closed. Hand off to runtime-basic-example-loader as the active phase-1 task.",
-      "adr_refs": [
-        "0001",
-        "0002",
-        "0003"
-      ]
-    },
-    {
-      "id": "flow-mermaid-views",
-      "title": "Maintain Mermaid visualizations for lifecycle and dispatch",
-      "phase": "continuous-docs-support",
-      "owner": "flow-visualizer",
-      "status": "complete",
-      "depends_on": [
-        "bootstrap-foundation"
-      ],
-      "evidence": [
-        "docs/flow-mermaids.md maintained by flow-visualizer as a cross-cutting documentation stream",
-        "Diagrams refreshed for lifecycle, dispatch, delivery, and phase closeout transitions",
-        "Phase-5 diagrams now capture draw-batch queueing during update(dt), single flush_draw_batch() dispatch per frame, and discard-on-update-failure behavior",
-        "flow-mermaid refresh was merged to main via commit 930bc64"
-      ],
-      "next_action": "Reopen this continuous stream on the next lifecycle/API/dispatch contract change.",
-      "adr_refs": [
-        "0001",
-        "0002",
-        "0003"
-      ]
-    },
-    {
-      "id": "runtime-basic-example-loader",
-      "title": "Load a real script path and dispatch setup plus update(dt) through runtime module",
-      "phase": "phase-1-basic-example",
-      "owner": "runtime-worker",
-      "status": "complete",
-      "depends_on": [
-        "bootstrap-foundation"
-      ],
-      "evidence": [
-        "RustPythonVm introduced with persistent interpreter and real script loading",
-        "Runtime installs pycro module aliases and lifecycle callable surface inside RustPython",
-        "setup()/update(dt) dispatch execute on real script path with Python stdout flush"
-      ],
-      "next_action": "Improve RustPython exception/report formatting in the next runtime slice.",
-      "adr_refs": [
-        "0001"
-      ]
-    },
-    {
-      "id": "platform-desktop-macroquad-loop",
-      "title": "Provide the first desktop Macroquad loop and backend contract implementation",
-      "phase": "phase-1-basic-example",
-      "owner": "platform-worker",
-      "status": "complete",
-      "depends_on": [
-        "bootstrap-foundation"
-      ],
-      "evidence": [
-        "DesktopFrameLoop + FrameLoopConfig introduced as desktop loop owner boundary",
-        "CLI execution now runs update(dt) inside Macroquad's real window/event loop ownership",
-        "MacroquadBackendContract executes and records backend dispatch operations for smoke evidence"
-      ],
-      "next_action": "Expand input mapping and texture asset resolution coverage across platforms.",
-      "adr_refs": [
-        "0001"
-      ]
-    },
-    {
-      "id": "api-dispatch-basic-surface",
-      "title": "Connect the public pycro API registry to the backend contract without breaking stub generation",
-      "phase": "phase-1-basic-example",
-      "owner": "api-worker",
-      "status": "complete",
-      "depends_on": [
-        "runtime-basic-example-loader",
-        "platform-desktop-macroquad-loop"
-      ],
-      "evidence": [
-        "Runtime pycro module now queues typed API operations in module state",
-        "Runtime drains queue and dispatches render/assets/camera calls into EngineBackend",
-        "Stub generator and metadata contract remain unchanged and validated"
-      ],
-      "next_action": "Upgrade bridge dispatch to direct callable backend bindings with richer return-path semantics.",
-      "adr_refs": [
-        "0002"
-      ]
-    },
-    {
-      "id": "basic-example-execution-smoke",
-      "title": "Prove that examples/basic_main.py executes on the real desktop path",
-      "phase": "phase-1-basic-example",
-      "owner": "architecture-orchestrator",
-      "status": "complete",
-      "depends_on": [
-        "runtime-basic-example-loader",
-        "platform-desktop-macroquad-loop",
-        "api-dispatch-basic-surface"
-      ],
-      "evidence": [
-        "cargo run -- examples/basic_main.py passes",
-        "setup() runs once and update(dt) executes through Macroquad loop owner",
-        "backend api dispatch count is emitted as smoke evidence",
-        "PYCRO_FRAMES=2 cargo run -- examples/basic_main.py validates non-simulated deterministic execution"
-      ],
-      "next_action": "Add CI-friendly screenshot/assertion smoke for render payloads.",
-      "adr_refs": [
-        "0001",
-        "0002"
-      ]
-    },
-    {
-      "id": "api-direct-bridge-rich-returns",
-      "title": "Replace queued API operation dispatch with direct backend bridge and rich return semantics",
-      "phase": "phase-2-api-direct-bridge",
-      "owner": "architecture-orchestrator",
-      "status": "complete",
-      "depends_on": [
-        "api-dispatch-basic-surface",
-        "basic-example-execution-smoke"
-      ],
-      "evidence": [
-        "Objective and phase activated in tracker/state with branch aligned to codex/api-direct-bridge-rich-returns",
-        "docs/flow-mermaids.md updated to show direct API bridge dispatch path with no queued operation list",
-        "Runtime installs direct RustPython callables for pycro API and removes queue-drain dispatch path",
-        "draw_text API added across metadata/runtime/backend and ADR 0005 created",
-        "examples flattened to examples/*.py with shared examples/assets and stopwatch_seconds.py scenario",
-        "example-scenario-worker policy now defaults texture scenarios to the Kenney shared pack and requires explicit asset-path documentation",
-        "Added pack-focused playable scenarios (checkerboard_pan.py, gradient_cycle.py, noise_scanner.py) using examples/assets/kenney_development_essentials",
-        "python3 scripts/validate_governance.py passed",
-        "python3 -m mypy --config-file pyproject.toml passed",
-        "target/debug/generate_stubs --check python/pycro/__init__.pyi passed",
-        "qa-reviewer outcome: pass with explicit waivers for cargo clippy/test/doc (sandbox file-lock denial) and desktop manual playtest path (sandbox miniquad/apple panic)"
-      ],
-      "next_action": "Start phase-3 planning for input/textures coverage expansion and CI visual assertion smoke; collect manual user playtest feedback outside sandbox.",
-      "adr_refs": [
-        "0001",
-        "0002",
-        "0005"
-      ]
-    },
-    {
-      "id": "runtime-python-module-imports",
-      "title": "Guarantee local Python module imports from the entry script directory",
-      "phase": "phase-3-python-module-imports",
-      "owner": "runtime-worker",
-      "status": "complete",
-      "depends_on": [
-        "api-direct-bridge-rich-returns"
-      ],
-      "evidence": [
-        "Phase-3 objective activated for entry-script local import compatibility",
-        "ADR 0006 accepted for runtime import-path resolution contract",
-        "runtime::tests::load_main_supports_importing_sidecar_python_modules_from_script_directory passed",
-        "PYCRO_FRAMES=2 cargo run -- examples/import_main.py passed and imported player.py",
-        "PYCRO_FRAMES=2 cargo run -- examples/minigame_coin_chase.py passed after import-loader fix"
-      ],
-      "next_action": "phase-3 closed; continue with runtime-stdlib-enablement.",
-      "adr_refs": [
-        "0001",
-        "0006"
-      ]
-    },
-    {
-      "id": "runtime-stdlib-enablement",
-      "title": "Enable RustPython stdlib imports (`math`, `os`, etc.) for gameplay scripts",
-      "phase": "phase-4-runtime-stdlib",
-      "owner": "runtime-worker",
-      "status": "complete",
-      "depends_on": [
-        "runtime-python-module-imports"
-      ],
-      "evidence": [
-        "Phase-4 activated after phase-3 import compatibility closeout",
-        "ADR 0007 accepted for runtime stdlib compatibility contract (`math`, `os`) while keeping sidecar precedence",
-        "runtime::tests::load_main_supports_stdlib_math_and_os_imports passed",
-        "runtime::tests::load_main_prefers_sidecar_module_over_stdlib_module_name_collision passed",
-        "runtime::tests::load_main_supports_importing_sidecar_python_modules_from_script_directory stayed green",
-        "PYCRO_FRAMES=3 cargo run -- examples/stdlib_math_os.py passed with direct stdlib imports"
-      ],
-      "next_action": "begin next objective on expanded input/textures/platform coverage and CI visual/payload assertion smoke.",
-      "adr_refs": [
-        "0001",
-        "0007"
-      ]
-    },
-    {
-      "id": "platform-input-texture-coverage",
-      "title": "Expand input handling, texture workflows, and platform capability coverage",
-      "phase": "phase-5-platform-input-texture",
-      "owner": "platform-worker",
-      "status": "in_progress",
-      "depends_on": [
-        "runtime-stdlib-enablement"
-      ],
-      "evidence": [
-        "Phase-5 activated with dedicated branch codex/platform-input-texture-coverage after phase-4 closeout",
-        "Active execution slice moved to branch codex/runtime-draw-flush-batch for runtime draw batching and frame flush integration",
-        "Runtime now queues draw operations during update(dt) and flushes once per frame from main loop via runtime.flush_draw_batch()",
-        "runtime::tests::draw_ops_are_queued_in_batch_order_until_frame_flush and runtime::tests::draw_batch_flush_clears_per_frame added as regression guards",
-        "PYCRO_FRAMES=3 cargo run -- examples/runtime_draw_flush_batch.py passes with per-frame draw-call logs and backend dispatch evidence",
-        "Controlled benchmark comparison versus baseline branch shows no improvement at target loads: 3000 balls = 20.0 FPS and 4000 balls = 20.0 FPS on both branches in current protocol",
-        "PYCRO_PERF=1 telemetry indicates high-load bottleneck is dominated by Python update cost (~103 ms/frame) versus draw flush (~12.6 ms/frame) at ~4009 dispatches/frame near 4000 balls",
-        "Benchmark integrity rule added in docs/validation-policy.md and docs/agent-playbook.md to prevent false-positive gains from moving user gameplay loops into Rust",
-        "qa-reviewer finding resolved: on update failure runtime discards queued draw batch; regression guard runtime::tests::update_failure_discards_queued_draw_batch added",
-        "Public API now includes submit_render(commands) with batch parsing/queueing in runtime and parity guard runtime::tests::submit_render_matches_legacy_draw_path_order_and_payload",
-        "ADR 0009 accepted for submit_render batch API contract and source-of-truth stub updates",
-        "Short benchmark protocol standardized to 3000 initial balls and 3-second auto sessions with wall_fps as canonical metric",
-        "Release benchmark evidence: pycro remains stable above 60 wall_fps at 3000 and 6000 balls in short auto runs",
-        "Phase-3 baseline at 25000 (direct, 5s) improved pycro from ~19-20 to ~22 wall_fps after first runtime+benchmark optimization slice; still below pygame-ce reference",
-        "macroquad-direct 25000 benchmark reached ~112-117 wall_fps (user observed ~80.37), confirming macroquad backend is not the bottleneck",
-        "Direct 3-second baseline refresh at 25000: pycro=23.29 wall_fps, pygame-ce(.venv314)=33.37 wall_fps, macroquad_direct=81.16 wall_fps",
-        "Phase-3 execution plan captured in docs/perf-phase-3-plan.md with parallel subagent ownership and before/after median gates",
-        "Clean kickoff on codex/perf-phase3-clean-start removed stale examples/compare/results* artifacts before new baseline capture",
-        "Clean kickoff deployed three investigators in parallel (runtime hotspot, harness audit, measurement auditor) and consolidated risks around noisy outliers, protocol drift, and metadata incompleteness",
-        "Direct 25000/3s baseline captured as 3x runs per runtime with current summary medians: pycro≈23.83 wall_fps, pygame-ce(.venv314)≈40.00 wall_fps, macroquad_direct≈77.28 wall_fps (pygame includes one noisy outlier run)",
-        "One pygame-ce direct run reported elapsed≈3.84 with summary wall_fps=0.00 and is tagged as noisy data pending repeat/filter per protocol",
-        "Optimization slice S1 applied in runtime submit_render path (borrowed PyStr command-name parse + direct draw_batch enqueue with rollback, removing temporary ops Vec) to reduce per-frame allocation/parsing overhead",
-        "S1 quick 25000/3s direct pycro check (3x) produced summary wall_fps 24.16 / 24.07 / 23.86 (median≈24.07) versus clean-start summary median≈23.83; provisional +0.24 wall_fps pending sample-normalized acceptance gate + 3000/6000 guardrail reruns",
-        "Optimization slice S2 updated Rust runtime internals with QueuedDrawBatch circle compaction (CircleRun), cached submit_render command storage behind Arc, a cached-position Vec2 fast path for draw_circle, cached setup()/update(dt) callables after load_main(), and configurable per-update stdio flushing with default off",
-        "Phase-3 quick benchmark decision protocol now uses direct 25000-ball runs with 2.5-second sessions and 2 runs per candidate before 3000/6000 guardrail verification",
-        "Latest slice-2 direct pycro summaries at 25000 recorded wall_fps 25.43 / 25.09 / 25.06 / 24.57, improving over the prior pre-slice-2 baseline band of roughly 22.5-23.4 wall_fps",
-        "Direct freeze protocol rerun on codex/docs-flow-mermaid-views (25000 balls, 2.5s, 2 runs each) captured wall_fps medians: pycro≈24.53 (22.21/26.84), pygame-ce(.venv314)≈40.24 (40.08/40.40), macroquad_direct≈78.64 (75.56/81.72)",
-        "Runtime stack metadata captured with the freeze: host=Darwin arm64, rustc=1.91.1, cargo=1.91.1, system python=3.9.5, pygame-ce stack python=3.14.2 + pygame-ce=2.5.7 + SDL=2.32.10",
-        "Guardrails rerun (2.5s, 2 runs) stayed strong: 3000 balls wall_fps 120.03/117.97 (median≈119.00) and 6000 balls wall_fps 110.05/112.12 (median≈111.09), no >5% regression signal in this checkpoint sample",
-        "Phase-3 closeout backlog and future proposals documented in docs/perf-phase-3-closeout.md, including explicit reminder to extend circle vector->sprite optimizations to remaining geometric primitives"
-      ],
-      "next_action": "keep the 25000/2.5s 2-run quick protocol for patch triage, rerun 3000/6000 guardrails before acceptance, and record full stack/session metadata on every retained comparison.",
-      "adr_refs": [
-        "0001",
-        "0009"
-      ]
-    },
-    {
-      "id": "ci-visual-payload-smoke",
-      "title": "Add CI smoke coverage for visual and payload assertions on representative scenarios",
-      "phase": "phase-6-ci-visual-payload",
-      "owner": "architecture-orchestrator",
-      "status": "planned",
-      "depends_on": [
-        "platform-input-texture-coverage"
-      ],
-      "evidence": [
-        "Roadmap item recorded as a planned validation gate after platform/input-texture expansion"
-      ],
-      "next_action": "Define deterministic CI assertions and wire scenario smoke runs into automation.",
-      "adr_refs": [
-        "0001"
-      ]
-    },
-    {
-      "id": "manual-playtest-evidence-gate",
-      "title": "Capture explicit user playtest outcomes for interactive scenario acceptance",
-      "phase": "phase-7-manual-playtest-evidence",
-      "owner": "example-scenario-worker",
-      "status": "planned",
-      "depends_on": [
-        "ci-visual-payload-smoke"
-      ],
-      "evidence": [
-        "Roadmap item recorded to enforce manual acceptance evidence for interactive features agents cannot fully validate"
-      ],
-      "next_action": "Run designated playable scenarios with user and store acceptance outcomes in tracker/state closeout evidence.",
-      "adr_refs": [
-        "0001"
-      ]
-    },
-    {
-      "id": "platform-backend-selection-policy",
-      "title": "Define and validate backend-selection policy per platform/architecture",
-      "phase": "future-proposal-backend-policy",
-      "owner": "architecture-orchestrator",
-      "status": "planned",
-      "depends_on": [
-        "manual-playtest-evidence-gate"
-      ],
-      "evidence": [
-        "Proposal recorded after user-observed visual artifact differences across Apple backend choices (OpenGL vs Metal) at high motion speed"
-      ],
-      "next_action": "Prepare ADR proposal and add runtime-configurable backend selection with scenario-based comparison evidence per platform.",
-      "adr_refs": [
-        "0008"
-      ]
-    },
-    {
-      "id": "compare-benchmark-pycro-vs-pygame",
-      "title": "Compare pycro and pygame with equivalent bouncing-ball load benchmark scenarios",
-      "phase": "phase-compare-benchmark",
-      "owner": "example-scenario-worker",
-      "status": "complete",
-      "depends_on": [
-        "runtime-stdlib-enablement"
-      ],
-      "evidence": [
-        "Isolated benchmark stream activated in parallel to roadmap phases",
-        "examples/compare_pycro_balls_benchmark.py added with per-second FPS sampling and Left/Right controls",
-        "examples/compare_pygame_balls_benchmark.py added with equivalent simulation and HUD contract",
-        "examples/compare/README.md added with run protocol and results template",
-        "Both compare scripts now emit homogeneous logs with stable/unstable status, stable_sample_seconds, and nearest target tracking for configured targets",
-        "Auto benchmark defaults now use short protocol and BENCHMARK_AUTO_INITIAL_BALLS is honored for scripted escalation runs",
-        "Release pycro evidence confirms >60 wall_fps stability for 3000 and 6000 in short auto sessions",
-        "Headless pygame short-protocol run at 3000/5s produced ~55.84 wall_fps summary, below the 57 stable threshold",
-        "Direct pygame runs under Python 3.14.2 + pygame-ce 2.5.7 (SDL 2.32.10) at 25000/5s reported ~40.84-42.58 wall_fps, matching the user-observed 41-43 reference range",
-        "Legacy local stack Python 3.9.5 + pygame 2.4.0 (SDL 2.26.4) produced only ~19-20 wall_fps at 25000/5s; stack/version parity is now mandatory benchmark metadata",
-        "macroquad direct benchmark at 25000 produced ~112-117 wall_fps in this environment, establishing backend headroom above pycro and pygame-ce",
-        "Direct 3-second baseline refresh at 25000: pycro=23.29 wall_fps, pygame-ce(.venv314)=33.37 wall_fps, macroquad_direct=81.16 wall_fps",
-        "docs/perf-phase-3-plan.md defines parallel subagent slices, ownership boundaries, and before/after median acceptance criteria for context-reset handoff",
-        "Clean kickoff on codex/perf-phase3-clean-start removed stale examples/compare/results* artifacts before baseline capture",
-        "Runtime hotspot investigator, benchmark harness auditor, and measurement auditor launched in parallel; consolidated risks flag noisy outliers, protocol drift, and incomplete metadata as patch-blocking risks",
-        "Direct 25000/3s baseline is now tracked as 3x per runtime with current summary medians: pycro≈23.83, pygame-ce(.venv314)≈40.00, macroquad_direct≈77.28 wall_fps (pygame includes one noisy outlier run)",
-        "One pygame-ce run with elapsed≈3.84 and summary wall_fps=0.00 is explicitly marked noisy and queued for repeat/filter per protocol",
-        "Optimization slice S1 on runtime submit_render reduced command-name allocation and removed temporary ops vector during batch enqueue (rollback preserved on parse error)",
-        "S1 quick direct pycro rerun at 25000/3s (3x) reported summary wall_fps 24.16 / 24.07 / 23.86 (median≈24.07), a provisional uplift over clean-start summary median≈23.83; full acceptance remains gated by sample-normalized scoring and guardrails",
-        "Benchmark summary bug fix applied on pycro+pygame compare scripts so summary wall_fps/sim_fps uses full-session accumulators, eliminating false 0.00 summaries at 3000/6000 when per-second counters reset near timeout",
-        "Phase-3 quick comparison protocol now uses direct 25000-ball runs with 2.5-second sessions and 2 runs per candidate for faster before/after decisions",
-        "Optimization slice S2 in runtime added QueuedDrawBatch CircleRun, Arc-backed submit_render command caching, cached-position Vec2 fast path for draw_circle, cached lifecycle callables for setup/update, and configurable update-time stdio flushing defaulting off",
-        "Latest slice-2 pycro direct summaries at 25000 measured wall_fps 25.43 / 25.09 / 25.06 / 24.57 versus a prior baseline band around 22.5-23.4 wall_fps",
-        "Direct freeze protocol rerun (25000 balls, 2.5s, 2 runs) now records medians pycro≈24.53, pygame-ce(.venv314)≈40.24, macroquad_direct≈78.64 with stack metadata attached",
-        "Guardrail reruns for pycro (3000 and 6000 balls, 2 runs each) stayed above 110 wall_fps medians and showed no >5% regression signal in this sample",
-        "Phase-compare-benchmark closeout recorded after direct 25000/2.5s/2-run baselines and 3000/6000 guardrail reruns were captured with stack metadata",
-        "Closeout proposals captured in docs/perf-phase-3-closeout.md include extending vector->sprite optimizations to non-circle geometric primitives via shared options contract"
-      ],
-      "next_action": "Closed. Continue primitive-optimization experiments under phase-5 objective tasks and reopen compare stream only if protocol/contracts change.",
-      "adr_refs": [
-        "0001"
-      ]
-    }
-  ],
-  "parallel_streams": [
-    {
-      "id": "phase-compare-benchmark",
-      "title": "Compare pycro vs pygame bouncing-ball throughput without FPS drop",
-      "status": "complete",
-      "isolation": "non_blocking_parallel_stream",
-      "objective": "Implement equivalent pycro and pygame benchmark scripts with identical controls and per-second FPS sampling",
-      "success_evidence": [
-        "Both scripts support Left/Right ball-count changes in steps of 50 and random-color bouncing balls",
-        "HUD shows balls, fps sampled per second, target_fps, and best stable balls",
-        "Benchmark protocol and results table template are documented under examples/compare"
-      ],
-      "follow_through_order": [
-        "freeze direct baseline summaries at 25000 with 2.5-second sessions and 2 runs",
-        "run parallel optimization slices (runtime/backend, benchmark harness, measurement auditor)",
-        "persist before/after evidence in tracker/state and keep only positive-median patches",
-        "close stream after protocol/evidence baseline is captured and synchronized in tracker/state"
-      ]
-    }
-  ]
+  }
 }
