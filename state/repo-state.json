@@ -2,16 +2,16 @@
   "schema_version": 2,
   "project": "pycro",
   "active_phase": {
-    "number": "06",
-    "id": "06-ci-visual-payload",
+    "number": "11",
+    "id": "11-develop-integration-artifacts",
     "status": "in_progress",
-    "path": "docs/phases/06-ci-visual-payload"
+    "path": "docs/phases/11-develop-integration-artifacts"
   },
   "current_objective": {
-    "id": "ci-visual-payload-smoke",
-    "title": "Add deterministic CI smoke coverage for visual and render payload assertions on representative scenarios",
+    "id": "develop-ready-for-release-flow",
+    "title": "Develop-first integration with per-push artifacts and manual ready-for-release promotion to main",
     "status": "in_progress",
-    "phase_doc": "docs/phases/06-ci-visual-payload/implementation.md",
+    "phase_doc": "docs/phases/11-develop-integration-artifacts/implementation.md",
     "startup_gate": {
       "requirements_validated": true,
       "design_validated": true,
@@ -40,6 +40,8 @@
       "phase_06_visual_payload_fixtures": "implemented",
       "phase_06_ci_visual_payload_gate": "implemented",
       "phase_06_validation_preflight": "pass",
+      "phase_06_closeout_doc": "docs/phases/06-ci-visual-payload/closeout.md",
+      "phase_06_qa": "pass",
       "phase_11_kickoff": "in_progress",
       "phase_11_develop_branch_bootstrap": "complete",
       "phase_11_develop_artifacts_workflow": "implemented",
@@ -72,7 +74,7 @@
     },
     "manager_agent": "worktree-manager"
   },
-  "current_branch": "codex/06-ci-visual-payload-smoke",
+  "current_branch": "codex/11-develop-default-release-flow",
   "phase_sequence": [
     {
       "number": "00",
@@ -113,7 +115,7 @@
     {
       "number": "06",
       "id": "06-ci-visual-payload",
-      "status": "in_progress",
+      "status": "complete",
       "path": "docs/phases/06-ci-visual-payload"
     },
     {
@@ -242,11 +244,11 @@
       "id": "ci-visual-payload-smoke",
       "phase": "06",
       "owner": "architecture-orchestrator",
-      "status": "in_progress",
+      "status": "complete",
       "branch": "codex/06-ci-visual-payload-smoke",
       "worktree": "/Users/linkfy/Code/pycro",
       "phase_doc": "docs/phases/06-ci-visual-payload/implementation.md",
-      "qa": "pending"
+      "qa": "pass"
     },
     {
       "id": "manual-playtest-evidence-gate",

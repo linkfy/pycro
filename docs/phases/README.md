@@ -16,7 +16,7 @@ This directory stores the canonical sequential delivery phases.
 - `03-python-module-imports` (closed)
 - `04-runtime-stdlib` (closed)
 - `05-platform-input-texture` (closed)
-- `06-ci-visual-payload` (planned)
+- `06-ci-visual-payload` (complete)
 - `07-manual-playtest-evidence` (planned)
 - `08-git-cd-release-automation` (complete)
 - `09-project-init-quickstart` (complete)
