@@ -14,11 +14,12 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 03    | docs/phases/03-python-module-imports         | closed      | Entry-script sidecar import compatibility                     | complete               |
 | 04    | docs/phases/04-runtime-stdlib                | closed      | Stdlib import compatibility (math, os)                        | complete               |
 | 05    | docs/phases/05-platform-input-texture        | complete    | Input/texture/platform evidence expansion                     | closed + merged        |
-| 06    | docs/phases/06-ci-visual-payload             | planned     | CI visual/payload smoke assertions                            | next queued phase       |
+| 06    | docs/phases/06-ci-visual-payload             | planned     | CI visual/payload smoke assertions                            | queued (deferred by phase 11 priority) |
 | 07    | docs/phases/07-manual-playtest-evidence      | planned     | Manual playtest evidence gate                                 | queued after phase 06  |
 | 08    | docs/phases/08-git-cd-release-automation     | complete    | Git CD + Release Please + Python API readability             | complete + merged      |
 | 09    | docs/phases/09-project-init-quickstart       | complete    | CLI project bootstrap via `pycro init <project_name>`        | closed                  |
 | 10    | docs/phases/10-update-only-lifecycle         | complete    | Update-only lifecycle + default `main.py` + init self-copy  | closed (2026-03-14)    |
+| 11    | docs/phases/11-develop-integration-artifacts | in_progress | Develop-first flow + push artifacts for validation           | active (2026-03-14)    |
 +-------+----------------------------------------------+-------------+---------------------------------------------------------------+------------------------+
 
 ## Task Table
@@ -40,6 +41,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 08    | git-cd-release-automation          | Automate phase CD launch + Release Please + API readability | architecture-orchestrator | phase-planner, worktree-manager, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/08-git-cd-release-automation      | .worktrees/08-git-cd-release-orchestrator            | docs/phases/08-git-cd-release-automation/implementation.md | pass | merged |
 | 09    | project-init-quickstart            | Add `pycro init <project_name>` bootstrap scaffolding       | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward   | complete | codex/09-project-init-closeout          | .worktrees/09-project-init-orchestrator              | docs/phases/09-project-init-quickstart/implementation.md | pass | closed |
 | 10    | lifecycle-update-only              | Remove setup auto-dispatch; default to `main.py`; copy `pycro` binary on init | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/10-lifecycle-update-only       | /Users/linkfy/Code/pycro                               | docs/phases/10-update-only-lifecycle/implementation.md | pass | merged |
+| 11    | develop-ready-for-release-flow     | Default merges to `develop`, manual ready-for-release PR to `main`, artifacts on every `develop` push | architecture-orchestrator | docs-tracker, qa-reviewer, commit-steward | in_progress | codex/11-develop-default-release-flow | /Users/linkfy/Code/pycro | docs/phases/11-develop-integration-artifacts/implementation.md | pending | active |
 +-------+------------------------------------+---------------------------------------------------------+---------------------------+--------------------------------------------------------------------------+---------------+-----------------------------------------+------------------------------------------------------+------------------------------------------------------+------------------+----------+
 
 ## Streams (Non-Sequential)
@@ -89,3 +91,12 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 - refinement_status: implemented (`parse_cli_command` default -> `main.py`; scaffold copies local `pycro` executable)
 - validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
 - phase_closeout: complete (`docs/phases/10-update-only-lifecycle/closeout.md`)
+
+## Phase 11 Execution Note
+
+- objective: develop-first delivery model with manual promotion to `main`
+- branch_policy: feature/phase branches merge into `develop` by default; `main` is release-only
+- artifact_policy: workflow artifacts generated for every push to `develop` for tester download
+- bootstrap: `develop` branch created and pushed to origin
+- startup_gate: requirements + design validated, implementation opened (2026-03-14)
+- validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)

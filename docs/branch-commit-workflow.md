@@ -4,9 +4,11 @@
 
 - Never implement directly on `main`.
 - Use `codex/<phase>-<task>` for implementation branches.
-- `main` remains the verified integration branch.
-- Merge to `main` only after validations, QA gate, and explicit user approval.
-- User approval is required per phase closeout. The orchestrator must ask before each merge and wait for a direct confirmation.
+- `develop` is the default integration branch for day-to-day delivery.
+- Merge implementation branches into `develop` only after validations, QA gate, and explicit user approval.
+- `main` is release-only and must be updated only through a manual ready-for-release pull request from `develop`.
+- Repository default branch should be configured as `develop` in Git hosting settings.
+- User approval is required per phase closeout and per merge target (`develop` or `main`). The orchestrator must ask before each merge and wait for a direct confirmation.
 - Merge/push after implementation is blocked until formal phase closeout is recorded (`docs/phases/<NN-slug>/closeout.md`) and tracker/state reflect `qa=pass` (or explicit waiver).
 
 ## Worktree Policy

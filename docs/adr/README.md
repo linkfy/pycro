@@ -13,6 +13,7 @@
 - `0009`: Batched render submission API (`submit_render`)
 - `0010`: Phase-folder governance, orchestrated delegation, and worktree-first parallelism
 - `0011`: Update-only lifecycle contract (`update(dt)` only, no framework `setup()` dispatch)
+- `0012`: Develop-first integration and manual release promotion to `main`
 
 ## Process
 

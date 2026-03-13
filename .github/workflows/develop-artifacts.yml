@@ -1,0 +1,62 @@
+name: develop-artifacts
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build-artifacts:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary_name: pycro
+            archive_ext: tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary_name: pycro.exe
+            archive_ext: zip
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            binary_name: pycro
+            archive_ext: tar.gz
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build release binary
+        run: cargo build --release --locked --target ${{ matrix.target }} --bin pycro
+
+      - name: Package artifact (unix)
+        if: runner.os != 'Windows'
+        run: |
+          ARCHIVE="pycro-develop-${{ matrix.target }}-${{ github.sha }}.${{ matrix.archive_ext }}"
+          tar -czf "$ARCHIVE" -C "target/${{ matrix.target }}/release" "${{ matrix.binary_name }}"
+          echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
+
+      - name: Package artifact (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $archive = "pycro-develop-${{ matrix.target }}-${{ github.sha }}.${{ matrix.archive_ext }}"
+          Compress-Archive -Path "target/${{ matrix.target }}/release/${{ matrix.binary_name }}" -DestinationPath $archive -Force
+          "ARCHIVE=$archive" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pycro-develop-${{ matrix.target }}-${{ github.sha }}
+          path: ${{ env.ARCHIVE }}
+          retention-days: 14
