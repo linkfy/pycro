@@ -2,16 +2,16 @@
   "schema_version": 2,
   "project": "pycro",
   "active_phase": {
-    "number": "11",
-    "id": "11-develop-integration-artifacts",
+    "number": "06",
+    "id": "06-ci-visual-payload",
     "status": "in_progress",
-    "path": "docs/phases/11-develop-integration-artifacts"
+    "path": "docs/phases/06-ci-visual-payload"
   },
   "current_objective": {
-    "id": "develop-ready-for-release-flow",
-    "title": "Develop-first integration with per-push artifacts and manual ready-for-release promotion to main",
+    "id": "ci-visual-payload-smoke",
+    "title": "Add deterministic CI smoke coverage for visual and render payload assertions on representative scenarios",
     "status": "in_progress",
-    "phase_doc": "docs/phases/11-develop-integration-artifacts/implementation.md",
+    "phase_doc": "docs/phases/06-ci-visual-payload/implementation.md",
     "startup_gate": {
       "requirements_validated": true,
       "design_validated": true,
@@ -36,6 +36,10 @@
       "phase_10_validation_preflight": "pass",
       "phase_10_closeout_doc": "docs/phases/10-update-only-lifecycle/closeout.md",
       "phase_10_qa": "pass",
+      "phase_06_kickoff": "in_progress",
+      "phase_06_visual_payload_fixtures": "implemented",
+      "phase_06_ci_visual_payload_gate": "implemented",
+      "phase_06_validation_preflight": "pass",
       "phase_11_kickoff": "in_progress",
       "phase_11_develop_branch_bootstrap": "complete",
       "phase_11_develop_artifacts_workflow": "implemented",
@@ -68,7 +72,7 @@
     },
     "manager_agent": "worktree-manager"
   },
-  "current_branch": "codex/11-develop-default-release-flow",
+  "current_branch": "codex/06-ci-visual-payload-smoke",
   "phase_sequence": [
     {
       "number": "00",
@@ -109,7 +113,7 @@
     {
       "number": "06",
       "id": "06-ci-visual-payload",
-      "status": "planned",
+      "status": "in_progress",
       "path": "docs/phases/06-ci-visual-payload"
     },
     {
@@ -238,9 +242,9 @@
       "id": "ci-visual-payload-smoke",
       "phase": "06",
       "owner": "architecture-orchestrator",
-      "status": "planned",
+      "status": "in_progress",
       "branch": "codex/06-ci-visual-payload-smoke",
-      "worktree": ".worktrees/06-ci-visual-payload-orchestrator",
+      "worktree": "/Users/linkfy/Code/pycro",
       "phase_doc": "docs/phases/06-ci-visual-payload/implementation.md",
       "qa": "pending"
     },

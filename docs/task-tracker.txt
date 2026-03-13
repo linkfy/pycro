@@ -14,7 +14,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 03    | docs/phases/03-python-module-imports         | closed      | Entry-script sidecar import compatibility                     | complete               |
 | 04    | docs/phases/04-runtime-stdlib                | closed      | Stdlib import compatibility (math, os)                        | complete               |
 | 05    | docs/phases/05-platform-input-texture        | complete    | Input/texture/platform evidence expansion                     | closed + merged        |
-| 06    | docs/phases/06-ci-visual-payload             | planned     | CI visual/payload smoke assertions                            | queued (deferred by phase 11 priority) |
+| 06    | docs/phases/06-ci-visual-payload             | in_progress | CI visual/payload smoke assertions                            | active (2026-03-14) |
 | 07    | docs/phases/07-manual-playtest-evidence      | planned     | Manual playtest evidence gate                                 | queued after phase 06  |
 | 08    | docs/phases/08-git-cd-release-automation     | complete    | Git CD + Release Please + Python API readability             | complete + merged      |
 | 09    | docs/phases/09-project-init-quickstart       | complete    | CLI project bootstrap via `pycro init <project_name>`        | closed                  |
@@ -36,7 +36,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 03    | runtime-python-module-imports      | Ensure sidecar module imports from entry directory      | runtime-worker            | architecture-orchestrator, qa-reviewer                                  | complete      | codex/03-runtime-python-module-imports  | .worktrees/03-runtime-python-module-imports-runtime  | docs/phases/03-python-module-imports/implementation.md | pass          | merged   |
 | 04    | runtime-stdlib-enablement          | Enable math and os stdlib compatibility                 | runtime-worker            | architecture-orchestrator, qa-reviewer                                  | complete      | codex/04-runtime-stdlib-enablement      | .worktrees/04-runtime-stdlib-enablement-runtime      | docs/phases/04-runtime-stdlib/implementation.md     | pass             | merged   |
 | 05    | platform-input-texture-coverage    | Expand input/texture workflows and platform evidence    | platform-worker           | architecture-orchestrator, runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/05-platform-input-texture-coverage-closeout | .worktrees/05-platform-input-texture-platform      | docs/phases/05-platform-input-texture/implementation.md | pass      | merged   |
-| 06    | ci-visual-payload-smoke            | Add CI smoke for visual/payload assertions              | architecture-orchestrator | platform-worker, api-worker, docs-tracker, qa-reviewer                  | planned       | codex/06-ci-visual-payload-smoke        | .worktrees/06-ci-visual-payload-orchestrator         | docs/phases/06-ci-visual-payload/implementation.md  | pending          | roadmap  |
+| 06    | ci-visual-payload-smoke            | Add CI smoke for visual/payload assertions              | architecture-orchestrator | platform-worker, api-worker, docs-tracker, qa-reviewer                  | in_progress   | codex/06-ci-visual-payload-smoke        | /Users/linkfy/Code/pycro                              | docs/phases/06-ci-visual-payload/implementation.md  | pending          | active  |
 | 07    | manual-playtest-evidence-gate      | Capture explicit user playtest acceptance evidence      | example-scenario-worker   | architecture-orchestrator, docs-tracker, qa-reviewer                    | planned       | codex/07-manual-playtest-evidence-gate  | .worktrees/07-manual-playtest-example                | docs/phases/07-manual-playtest-evidence/implementation.md | pending   | roadmap  |
 | 08    | git-cd-release-automation          | Automate phase CD launch + Release Please + API readability | architecture-orchestrator | phase-planner, worktree-manager, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/08-git-cd-release-automation      | .worktrees/08-git-cd-release-orchestrator            | docs/phases/08-git-cd-release-automation/implementation.md | pass | merged |
 | 09    | project-init-quickstart            | Add `pycro init <project_name>` bootstrap scaffolding       | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward   | complete | codex/09-project-init-closeout          | .worktrees/09-project-init-orchestrator              | docs/phases/09-project-init-quickstart/implementation.md | pass | closed |
@@ -63,6 +63,14 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 - block_2_summary: runtime + api guards merged via orchestrator fallback; platform capability matrix updated with phase-05 desktop evidence snapshot
 - block_3_gate: complete (user outcome pass, observed issues none)
 - phase_closeout: complete (qa-reviewer pass, closeout doc recorded)
+
+## Phase 06 Execution Note
+
+- objective: add deterministic CI visual/payload smoke assertions
+- startup_gate: requirements + design validated, implementation opened (2026-03-14)
+- fixtures: `examples/phase05_timing_frame_pulse.py` and `examples/phase05_runtime_draw_flush_batch.py` are asserted through runtime smoke tests for deterministic queued payload behavior
+- ci_gate: explicit `Visual Payload Smoke` step added to `.github/workflows/ci.yml`
+- validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
 
 ## Phase 08 Execution Note
 
