@@ -35,7 +35,7 @@
     ],
     "phase3_plan_doc": "docs/perf-phase-3-plan.md"
   },
-  "current_branch": "codex/perf-phase3-clean-start",
+  "current_branch": "codex/docs-flow-mermaid-views",
   "summary_contract": {
     "allowed_fields": [
       "changed_files",
@@ -89,7 +89,8 @@
       ],
       "evidence": [
         "docs/flow-mermaids.md maintained by flow-visualizer as a cross-cutting documentation stream",
-        "Diagrams refreshed for lifecycle, dispatch, delivery, and phase closeout transitions"
+        "Diagrams refreshed for lifecycle, dispatch, delivery, and phase closeout transitions",
+        "Phase-5 diagrams now capture draw-batch queueing during update(dt), single flush_draw_batch() dispatch per frame, and discard-on-update-failure behavior"
       ],
       "next_action": "Continuous subagent duty; update diagrams on every lifecycle/API contract change.",
       "adr_refs": [
@@ -290,6 +291,9 @@
         "Optimization slice S2 updated Rust runtime internals with QueuedDrawBatch circle compaction (CircleRun), cached submit_render command storage behind Arc, a cached-position Vec2 fast path for draw_circle, cached setup()/update(dt) callables after load_main(), and configurable per-update stdio flushing with default off",
         "Phase-3 quick benchmark decision protocol now uses direct 25000-ball runs with 2.5-second sessions and 2 runs per candidate before 3000/6000 guardrail verification",
         "Latest slice-2 direct pycro summaries at 25000 recorded wall_fps 25.43 / 25.09 / 25.06 / 24.57, improving over the prior pre-slice-2 baseline band of roughly 22.5-23.4 wall_fps",
+        "Direct freeze protocol rerun on codex/docs-flow-mermaid-views (25000 balls, 2.5s, 2 runs each) captured wall_fps medians: pycro≈24.53 (22.21/26.84), pygame-ce(.venv314)≈40.24 (40.08/40.40), macroquad_direct≈78.64 (75.56/81.72)",
+        "Runtime stack metadata captured with the freeze: host=Darwin arm64, rustc=1.91.1, cargo=1.91.1, system python=3.9.5, pygame-ce stack python=3.14.2 + pygame-ce=2.5.7 + SDL=2.32.10",
+        "Guardrails rerun (2.5s, 2 runs) stayed strong: 3000 balls wall_fps 120.03/117.97 (median≈119.00) and 6000 balls wall_fps 110.05/112.12 (median≈111.09), no >5% regression signal in this checkpoint sample",
         "Phase-3 closeout backlog and future proposals documented in docs/perf-phase-3-closeout.md, including explicit reminder to extend circle vector->sprite optimizations to remaining geometric primitives"
       ],
       "next_action": "keep the 25000/2.5s 2-run quick protocol for patch triage, rerun 3000/6000 guardrails before acceptance, and record full stack/session metadata on every retained comparison.",
@@ -382,6 +386,8 @@
         "Phase-3 quick comparison protocol now uses direct 25000-ball runs with 2.5-second sessions and 2 runs per candidate for faster before/after decisions",
         "Optimization slice S2 in runtime added QueuedDrawBatch CircleRun, Arc-backed submit_render command caching, cached-position Vec2 fast path for draw_circle, cached lifecycle callables for setup/update, and configurable update-time stdio flushing defaulting off",
         "Latest slice-2 pycro direct summaries at 25000 measured wall_fps 25.43 / 25.09 / 25.06 / 24.57 versus a prior baseline band around 22.5-23.4 wall_fps",
+        "Direct freeze protocol rerun (25000 balls, 2.5s, 2 runs) now records medians pycro≈24.53, pygame-ce(.venv314)≈40.24, macroquad_direct≈78.64 with stack metadata attached",
+        "Guardrail reruns for pycro (3000 and 6000 balls, 2 runs each) stayed above 110 wall_fps medians and showed no >5% regression signal in this sample",
         "Closeout proposals captured in docs/perf-phase-3-closeout.md include extending vector->sprite optimizations to non-circle geometric primitives via shared options contract"
       ],
       "next_action": "keep the 25000/2.5s 2-run quick protocol for optimization triage, enforce 3000/6000 regression guardrails on kept patches, and require full runtime stack metadata in every baseline/comparison record.",

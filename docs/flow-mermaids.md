@@ -32,7 +32,7 @@ flowchart LR
     C --> D[python/pycro/__init__.pyi]
 ```
 
-## Runtime Lifecycle (Phase 4 Active: Stdlib + Local Import Compatibility)
+## Runtime Lifecycle (Phase 5 Active: Draw Batch + Submit Render)
 
 ```mermaid
 flowchart TD
@@ -48,11 +48,28 @@ flowchart TD
     H --> J[DesktopFrameLoop dispatches dt inside Macroquad loop]
     I --> J
     J --> K[call update dt]
-    K --> L[python code calls pycro api, stdlib, or sidecar modules]
-    L --> M[direct API bridge calls EngineBackend callable]
-    M --> N[backend executes real Macroquad operation]
-    N --> O[rich return value or error mapped back to Python]
-    O --> J
+    K --> L[python code calls pycro api or submit_render commands]
+    L --> M[direct API bridge queues draw ops in runtime draw batch]
+    M --> N{update succeeded}
+    N -- no --> O[discard queued draw batch and return runtime error]
+    N -- yes --> P[main calls runtime flush_draw_batch once per frame]
+    P --> Q[runtime replays queued ops into EngineBackend]
+    Q --> R[backend executes real Macroquad operations]
+    R --> S[rich return value or error mapped back to Python]
+    S --> J
+```
+
+## Submit Render Dispatch (Current Runtime Contract)
+
+```mermaid
+flowchart LR
+    A[python update calls pycro submit_render commands]
+    A --> B[runtime parses commands with rollback mark]
+    B --> C{all commands valid}
+    C -- no --> D[rollback queued ops and raise ValueError]
+    C -- yes --> E[enqueue compacted batch entries]
+    E --> F[optional circle cache fast path on repeated layout]
+    F --> G[frame end flush_draw_batch dispatches to backend]
 ```
 
 ## Delivery Flow (Current Governance And Manual Playtest Gate)
