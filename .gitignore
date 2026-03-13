@@ -7,3 +7,5 @@ dist/
 build/
 *.pyc
 .DS_Store
+
+.worktrees/
