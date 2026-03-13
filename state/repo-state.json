@@ -35,7 +35,7 @@
     ],
     "phase3_plan_doc": "docs/perf-phase-3-plan.md"
   },
-  "current_branch": "codex/benchmark-primitive-slices",
+  "current_branch": "codex/close-compare-benchmark",
   "summary_contract": {
     "allowed_fields": [
       "changed_files",
@@ -359,7 +359,7 @@
       "title": "Compare pycro and pygame with equivalent bouncing-ball load benchmark scenarios",
       "phase": "phase-compare-benchmark",
       "owner": "example-scenario-worker",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "runtime-stdlib-enablement"
       ],
@@ -389,9 +389,10 @@
         "Latest slice-2 pycro direct summaries at 25000 measured wall_fps 25.43 / 25.09 / 25.06 / 24.57 versus a prior baseline band around 22.5-23.4 wall_fps",
         "Direct freeze protocol rerun (25000 balls, 2.5s, 2 runs) now records medians pycro≈24.53, pygame-ce(.venv314)≈40.24, macroquad_direct≈78.64 with stack metadata attached",
         "Guardrail reruns for pycro (3000 and 6000 balls, 2 runs each) stayed above 110 wall_fps medians and showed no >5% regression signal in this sample",
+        "Phase-compare-benchmark closeout recorded after direct 25000/2.5s/2-run baselines and 3000/6000 guardrail reruns were captured with stack metadata",
         "Closeout proposals captured in docs/perf-phase-3-closeout.md include extending vector->sprite optimizations to non-circle geometric primitives via shared options contract"
       ],
-      "next_action": "keep the 25000/2.5s 2-run quick protocol for optimization triage, enforce 3000/6000 regression guardrails on kept patches, and require full runtime stack metadata in every baseline/comparison record.",
+      "next_action": "Closed. Continue primitive-optimization experiments under phase-5 objective tasks and reopen compare stream only if protocol/contracts change.",
       "adr_refs": [
         "0001"
       ]
@@ -401,7 +402,7 @@
     {
       "id": "phase-compare-benchmark",
       "title": "Compare pycro vs pygame bouncing-ball throughput without FPS drop",
-      "status": "in_progress",
+      "status": "complete",
       "isolation": "non_blocking_parallel_stream",
       "objective": "Implement equivalent pycro and pygame benchmark scripts with identical controls and per-second FPS sampling",
       "success_evidence": [
@@ -412,7 +413,8 @@
       "follow_through_order": [
         "freeze direct baseline summaries at 25000 with 2.5-second sessions and 2 runs",
         "run parallel optimization slices (runtime/backend, benchmark harness, measurement auditor)",
-        "persist before/after evidence in tracker/state and keep only positive-median patches"
+        "persist before/after evidence in tracker/state and keep only positive-median patches",
+        "close stream after protocol/evidence baseline is captured and synchronized in tracker/state"
       ]
     }
   ]

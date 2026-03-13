@@ -17,7 +17,7 @@ notation: use `[-] -> (Not merged)` when a task is in progress and its latest br
 11. [ ] ci-visual-payload-smoke: Add CI smoke coverage for visual/payload assertions on representative scenarios (upcoming phase-6 roadmap).
 12. [ ] manual-playtest-evidence-gate: Capture explicit user playtest outcomes for interactive scenarios and persist acceptance evidence (upcoming phase-7 roadmap).
 13. [ ] platform-backend-selection-policy: Define and validate backend-selection policy (OpenGL/Metal/etc) per platform/architecture with reproducible evidence (future proposal).
-14. [-] compare-benchmark-pycro-vs-pygame: Isolated benchmark stream for equivalent pycro vs pygame bouncing-ball throughput tests.
+14. [x] compare-benchmark-pycro-vs-pygame: Isolated benchmark stream for equivalent pycro vs pygame bouncing-ball throughput tests. Closed with protocol/evidence baseline captured.
 
 CURRENT OBJECTIVE
 id: objective-5-platform-input-texture-coverage
@@ -37,11 +37,11 @@ phase_pending_checklist: R3-A) freeze 2-run direct before/after summaries at 250
 ISOLATED PARALLEL PHASE
 id: phase-compare-benchmark
 title: Compare pycro vs pygame bouncing-ball throughput without FPS drop
-status: in_progress
+status: complete
 isolation: non_blocking_parallel_stream
 objective: Implement equivalent pycro and pygame benchmark scripts with the same controls and per-second FPS sampling.
 success_evidence: Both scripts support Left/Right ball count changes in steps of 50, random-color bouncing balls, and HUD metrics (`balls`, `fps`, `target_fps`, `best stable balls`).
-next_focus: 1) run exploratory comparisons with direct 2.5-second 2-run protocol per runtime (no mixed logs), 2) keep pygame-ce 41-43 as reference target and macroquad-direct as ceiling evidence, 3) execute before/after tables per optimization slice and keep only positive slices.
+next_focus: phase-compare-benchmark closed; further primitive-optimization work continues under phase-5 performance backlog and does not block this stream closeout.
 
 TASK ORDER
 1. [x] Close the bootstrap milestone with review evidence.
@@ -57,7 +57,7 @@ TASK ORDER
 11. [ ] Plan and deliver ci-visual-payload-smoke (CI screenshot/payload assertion gate).
 12. [ ] Plan and deliver manual-playtest-evidence-gate (interactive feature acceptance evidence from user playtests).
 13. [ ] Plan and deliver platform-backend-selection-policy (backend defaults/overrides and validation matrix per platform).
-14. [-] Deliver isolated compare-benchmark-pycro-vs-pygame in parallel without blocking roadmap phases.
+14. [x] Deliver isolated compare-benchmark-pycro-vs-pygame in parallel without blocking roadmap phases.
 
 TASK bootstrap-foundation
 title: Validate and close the infrastructure bootstrap
@@ -249,7 +249,7 @@ TASK compare-benchmark-pycro-vs-pygame
 title: Compare pycro and pygame with equivalent bouncing-ball load benchmark scenarios
 phase: phase-compare-benchmark
 owner: example-scenario-worker
-status: in_progress
+status: complete
 depends_on: runtime-stdlib-enablement
 evidence: Isolated benchmark stream activated in parallel to the roadmap phases.
 evidence: `examples/compare_pycro_balls_benchmark.py` added with per-second FPS sampling and Left/Right ball-count controls.
@@ -277,9 +277,10 @@ evidence: Optimization slice S2 in runtime added QueuedDrawBatch `CircleRun`, `A
 evidence: Latest slice-2 pycro direct summaries at 25000 measured wall_fps 25.43 / 25.09 / 25.06 / 24.57 versus a prior baseline band around 22.5-23.4 wall_fps.
 evidence: Direct freeze protocol rerun (25000 balls, 2.5s, 2 runs) now records medians pycro≈24.53, pygame-ce(.venv314)≈40.24, macroquad_direct≈78.64 with stack metadata attached.
 evidence: Guardrail reruns for pycro (3000 and 6000 balls, 2 runs each) stayed above 110 wall_fps medians and showed no >5% regression signal in this sample.
-next_action: keep the 25000/2.5s 2-run quick protocol for optimization triage, enforce 3000/6000 regression guardrails on kept patches, and require full runtime stack metadata in every baseline/comparison record.
+evidence: Phase-compare-benchmark closeout recorded after direct 25000/2.5s/2-run baselines and 3000/6000 guardrail reruns were captured with stack metadata.
+next_action: Closed. Continue primitive-optimization experiments under phase-5 objective tasks and reopen compare stream only if protocol/contracts change.
 closeout_doc: docs/perf-phase-3-closeout.md
-pending_summary: expand vector->sprite optimization beyond circles and add primitive-specific benchmark slices.
+pending_summary: follow-on primitive optimization stays in phase-5 backlog (`platform-input-texture-coverage`) and no longer blocks compare stream closure.
 ENDTASK
 
 STATUS VOCABULARY
