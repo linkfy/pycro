@@ -10,6 +10,24 @@ This repository is intentionally at the infrastructure milestone. It establishes
 
 Start with [AGENTS.md](./AGENTS.md) and the canonical docs in `docs/`.
 
+## Mini Quickstart
+
+Run a baseline scenario:
+
+```bash
+cargo run -- examples/phase01_basic_main.py
+```
+
+Fast smoke run (3 frames):
+
+```bash
+PYCRO_FRAMES=3 cargo run -- examples/phase01_basic_main.py
+```
+
+Python API quick reference:
+
+- [`docs/python-stub-cheatsheet.md`](./docs/python-stub-cheatsheet.md)
+
 ## Run Playable Examples
 
 Use:

@@ -5,6 +5,80 @@ This document is a fast reference for the current generated stub API.
 
 Lifecycle contract: the engine loads a configured script path (commonly `examples/*.py`), runs optional `setup()`, then required `update(dt)` each frame.
 
+## Quickstart
+
+Run an existing scenario:
+
+```bash
+cargo run -- examples/phase01_basic_main.py
+```
+
+Run only a few frames (fast smoke):
+
+```bash
+PYCRO_FRAMES=3 cargo run -- examples/phase01_basic_main.py
+```
+
+Minimal starter script:
+
+```python
+import pycro
+
+x = 160.0
+
+def setup() -> None:
+    pycro.clear_background((0.08, 0.10, 0.14, 1.0))
+
+def update(dt: float) -> None:
+    global x
+    x += 120.0 * dt
+    if x > 1200.0:
+        x = 80.0
+    pycro.clear_background((0.08, 0.10, 0.14, 1.0))
+    pycro.draw_circle((x, 360.0), 24.0, (0.20, 0.80, 1.0, 1.0))
+    pycro.draw_text("pycro quickstart", (24.0, 44.0), 28.0, (0.95, 0.97, 1.0, 1.0))
+```
+
+Key input + timing starter:
+
+```python
+import pycro
+
+pos = [640.0, 360.0]
+
+def update(dt: float) -> None:
+    speed = 260.0 if pycro.is_key_down("Space") else 150.0
+    if pycro.is_key_down("Left"):
+        pos[0] -= speed * dt
+    if pycro.is_key_down("Right"):
+        pos[0] += speed * dt
+    if pycro.is_key_down("Up"):
+        pos[1] -= speed * dt
+    if pycro.is_key_down("Down"):
+        pos[1] += speed * dt
+
+    pycro.clear_background((0.05, 0.06, 0.10, 1.0))
+    pycro.draw_circle((pos[0], pos[1]), 20.0, (0.45, 1.0, 0.55, 1.0))
+    pycro.draw_text(f"dt={pycro.frame_time():.4f}", (20.0, 30.0), 24.0, (0.9, 0.95, 1.0, 1.0))
+```
+
+Texture starter:
+
+```python
+import pycro
+
+texture = None
+
+def setup() -> None:
+    global texture
+    texture = pycro.load_texture("examples/assets/kenney_development_essentials/Gradient/gradient-radial.png")
+
+def update(dt: float) -> None:
+    pycro.clear_background((0.04, 0.04, 0.06, 1.0))
+    if texture is not None:
+        pycro.draw_texture(texture, (420.0, 220.0), (440.0, 260.0))
+```
+
 ## Type Aliases
 
 | Name | Definition | Description |
