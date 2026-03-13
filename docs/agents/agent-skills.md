@@ -22,3 +22,9 @@ This file is the canonical skill activation map by agent.
 
 Project-local skills are documented under `docs/agents/skills/`.
 External session-provided skills (for Codex runtime) must be referenced with explicit path when used.
+
+## Model Routing Guardrail
+
+- Planning mode must be orchestrated with ChatGPT 5.4.
+- Implementation/review defaults to Codex 5.3 medium.
+- Smaller models are only valid for low-risk mechanical tasks and must include rationale in the orchestrator summary.

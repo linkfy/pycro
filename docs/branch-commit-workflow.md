@@ -28,6 +28,11 @@ Every implementation commit must include:
 - `qa-reviewer` outcome or explicit waiver
 
 After required validations pass, `commit-steward` creates a checkpoint commit immediately.
+Before any push or merge, local CI-equivalent preflight must pass at minimum:
+
+- `cargo fmt --all --check`
+- `cargo clippy --all-targets -- -D warnings`
+- `cargo test`
 
 ## ADR Triggers
 

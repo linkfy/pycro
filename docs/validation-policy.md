@@ -12,6 +12,7 @@ Implementation work is not commit-ready until all applicable checks pass and evi
 - `python3 -m mypy --config-file pyproject.toml`
 - `cargo doc --no-deps`
 - reviewer findings resolved or explicitly waived
+- Local CI-equivalent preflight evidence must be recorded before push/merge (`fmt` + `clippy -D warnings` + `test`).
 
 ## Additional Expectations
 

@@ -20,6 +20,12 @@ Required sequence for every phase:
 If requirements/design change during delivery, the orchestrator pauses implementation and re-syncs docs before resuming.
 If requirements are not defined for a phase, the orchestrator must force planning mode and produce phase-ready requirements, design, and implementation steps before opening execution.
 
+## Model Routing Policy (Mandatory)
+
+- Planning mode (requirements/design/implementation planning) must run with the official orchestrator on ChatGPT 5.4.
+- Implementation, review, sync, and integration default to Codex 5.3 medium.
+- Simpler models are allowed only for low-risk, bounded tasks (for example pure renames, formatting-only doc sync, or mechanical path updates) and the orchestrator must record the reason.
+
 ## Standard Delivery Flow
 
 Required agents for implementation work:
@@ -69,6 +75,7 @@ Worker report format is fixed:
 - `qa-reviewer` is mandatory before implementation commit.
 - `commit-steward` is mandatory after required validations are green.
 - If any gate is waived, waiver reason must be recorded in both tracker and state.
+- Required local preflight before push/merge: `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, and `cargo test`.
 
 ## Documentation Synchronization
 

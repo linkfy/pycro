@@ -3,6 +3,7 @@
 
 use macroquad::input::{KeyCode, is_key_down, is_quit_requested};
 use macroquad::math::vec2;
+#[cfg(target_os = "macos")]
 use macroquad::miniquad::conf::AppleGfxApi;
 use macroquad::prelude::{
     Camera2D, Color as MqColor, DrawTextureParams, Rect, Texture2D, WHITE, clear_background,
@@ -243,7 +244,7 @@ pub fn window_conf() -> Conf {
         .and_then(|value| value.parse::<i32>().ok())
         .map(|count| count.clamp(1, 8))
         .unwrap_or(1);
-    let mut conf = Conf {
+    let conf = Conf {
         window_title: "pycro".to_owned(),
         window_width: 1280,
         window_height: 720,
@@ -254,6 +255,7 @@ pub fn window_conf() -> Conf {
 
     #[cfg(target_os = "macos")]
     {
+        let mut conf = conf;
         if std::env::consts::ARCH == "aarch64" {
             let selected = env::var("PYCRO_APPLE_GFX_API")
                 .ok()
@@ -264,9 +266,13 @@ pub fn window_conf() -> Conf {
                 _ => AppleGfxApi::OpenGl,
             };
         }
+        conf
     }
 
-    conf
+    #[cfg(not(target_os = "macos"))]
+    {
+        conf
+    }
 }
 
 /// First backend implementation behind the contract boundary.
