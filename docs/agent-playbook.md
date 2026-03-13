@@ -50,6 +50,7 @@ Mandatory closeout rule:
 - At the end of every phase, before any merge action, the orchestrator must explicitly ask the user if they want to merge now.
 - No merge is allowed from implicit consent or by default; a direct user "yes" is required for each phase closeout.
 - No merge/push is allowed until formal phase closeout is recorded (`closeout.md` + tracker/state sync) and `qa-reviewer` is `pass` (or explicit waiver recorded). Default merge target is `develop`; promotion to `main` is a separate explicit ready-for-release action.
+- Mandatory develop gate: do not merge into `develop` while phase status is in progress/planned. Merge is allowed only after phase finalization, unless the programmer explicitly requests an override.
 
 ## Worktree Policy
 

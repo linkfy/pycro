@@ -42,7 +42,7 @@ Operating rules:
 - Treat user feedback from running playable scenarios as a required validation gate for interactive features that agents cannot fully verify on their own.
 - Before each phase commit, refresh/rebuild documentation and record evidence in tracker/state.
 - Before any push/merge/phase-closeout commit, pass local CI minimum preflight: `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`.
-- Merge/push after phase implementation is only allowed after formal closeout (`closeout.md`) + final QA gate pass (or explicit waiver) with tracker/state synchronized. Default integration branch is `develop`; `main` is release-only.
+- Merge/push to `develop` after phase implementation is only allowed after formal closeout (`closeout.md`) + final QA gate pass (or explicit waiver) with tracker/state synchronized. Default integration branch is `develop`; `main` is release-only. Exception: bypass is allowed only when the programmer explicitly requests it.
 - The canonical Python-facing API lives in Rust metadata inside the `api` module of `pycro_cli`. `python/pycro/__init__.pyi` must be generated from that metadata and checked for drift.
 
 Scope reminders:

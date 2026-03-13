@@ -10,6 +10,7 @@
 - Repository default branch should be configured as `develop` in Git hosting settings.
 - User approval is required per phase closeout and per merge target (`develop` or `main`). The orchestrator must ask before each merge and wait for a direct confirmation.
 - Merge/push after implementation is blocked until formal phase closeout is recorded (`docs/phases/<NN-slug>/closeout.md`) and tracker/state reflect `qa=pass` (or explicit waiver).
+- Default rule: do not merge into `develop` until the active phase is finalized (`closeout.md` + `qa=pass`/waiver + tracker/state sync). The only allowed bypass is an explicit programmer request.
 
 ## Worktree Policy
 

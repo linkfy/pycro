@@ -87,3 +87,8 @@ Before any push, merge request, or phase closeout checkpoint, run local CI-equiv
 - `cargo test`
 
 No gate is considered green until these pass locally and evidence is recorded.
+
+## Develop Merge Gate (Mandatory)
+
+- The orchestrator must block merges into `develop` until the active phase is finalized (`closeout.md` recorded and tracker/state synchronized with `qa=pass` or explicit waiver).
+- The only valid exception is an explicit programmer request to bypass this gate.
