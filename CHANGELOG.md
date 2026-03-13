@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/linkfy/pycro/compare/pycro_cli-v0.2.0...pycro_cli-v0.3.0) (2026-03-13)
+
+
+### Features
+
+* **runtime:** enforce update-only lifecycle and project bootstrap defaults ([9c4e43a](https://github.com/linkfy/pycro/commit/9c4e43a57760f932482d126924906b65a7d253cd))
+
 ## [0.2.0](https://github.com/linkfy/pycro/compare/pycro_cli-v0.1.2...pycro_cli-v0.2.0) (2026-03-13)
 
 
