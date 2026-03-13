@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/linkfy/pycro/compare/pycro_cli-v0.1.1...pycro_cli-v0.1.2) (2026-03-13)
+
+
+### Bug Fixes
+
+* **ci:** use macos-latest runner labels for release artifacts ([0ede211](https://github.com/linkfy/pycro/commit/0ede21191a30c98a667e8530c4f4e5172e1d6b05))
+
 ## [0.1.1](https://github.com/linkfy/pycro/compare/pycro_cli-v0.1.0...pycro_cli-v0.1.1) (2026-03-13)
 
 
