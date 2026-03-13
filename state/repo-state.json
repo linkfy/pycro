@@ -2,22 +2,22 @@
   "schema_version": 2,
   "project": "pycro",
   "active_phase": {
-    "number": "09",
-    "id": "09-project-init-quickstart",
-    "status": "in_progress",
-    "path": "docs/phases/09-project-init-quickstart"
+    "number": "06",
+    "id": "06-ci-visual-payload",
+    "status": "planned",
+    "path": "docs/phases/06-ci-visual-payload"
   },
   "current_objective": {
-    "id": "project-init-quickstart",
-    "title": "Add `pycro init <project_name>` to scaffold a first-run project with starter files",
-    "status": "in_progress",
-    "phase_doc": "docs/phases/09-project-init-quickstart/implementation.md",
+    "id": "ci-visual-payload-smoke",
+    "title": "Add CI smoke coverage for visual and payload assertions on representative scenarios",
+    "status": "planned",
+    "phase_doc": "docs/phases/06-ci-visual-payload/implementation.md",
     "startup_gate": {
       "requirements_validated": true,
       "design_validated": true,
       "kickoff_date": "2026-03-15"
     },
-    "manual_validation_scenario": "none_required_initially",
+    "manual_validation_scenario": "examples/phase05_input_texture_lab.py",
     "block_progress": {
       "phase_05": "complete",
       "phase_05_closeout_doc": "docs/phases/05-platform-input-texture/closeout.md",
@@ -26,7 +26,8 @@
       "phase_08_ci_typing_fix": "complete",
       "phase_08_release_hardening": "complete",
       "phase_09_planning": "complete",
-      "phase_09_init_scaffold": "in_progress"
+      "phase_09_init_scaffold": "complete",
+      "phase_09_closeout_doc": "docs/phases/09-project-init-quickstart/closeout.md"
     }
   },
   "orchestration": {
@@ -54,7 +55,7 @@
     },
     "manager_agent": "worktree-manager"
   },
-  "current_branch": "codex/09-project-init-quickstart",
+  "current_branch": "codex/09-project-init-closeout",
   "phase_sequence": [
     {
       "number": "00",
@@ -113,7 +114,7 @@
     {
       "number": "09",
       "id": "09-project-init-quickstart",
-      "status": "in_progress",
+      "status": "closed",
       "path": "docs/phases/09-project-init-quickstart"
     }
   ],
@@ -242,11 +243,11 @@
       "id": "project-init-quickstart",
       "phase": "09",
       "owner": "architecture-orchestrator",
-      "status": "in_progress",
-      "branch": "codex/09-project-init-quickstart",
+      "status": "complete",
+      "branch": "codex/09-project-init-closeout",
       "worktree": ".worktrees/09-project-init-orchestrator",
       "phase_doc": "docs/phases/09-project-init-quickstart/implementation.md",
-      "qa": "pending"
+      "qa": "pass"
     }
   ],
   "streams": [

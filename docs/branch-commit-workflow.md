@@ -7,6 +7,7 @@
 - `main` remains the verified integration branch.
 - Merge to `main` only after validations, QA gate, and explicit user approval.
 - User approval is required per phase closeout. The orchestrator must ask before each merge and wait for a direct confirmation.
+- Merge/push after implementation is blocked until formal phase closeout is recorded (`docs/phases/<NN-slug>/closeout.md`) and tracker/state reflect `qa=pass` (or explicit waiver).
 
 ## Worktree Policy
 
