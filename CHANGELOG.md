@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0](https://github.com/linkfy/pycro/compare/pycro_cli-v0.1.2...pycro_cli-v0.2.0) (2026-03-13)
+
+
+### Features
+
+* **cli:** add pycro init project scaffold command and activate phase09 ([4e87bcd](https://github.com/linkfy/pycro/commit/4e87bcdb86c728af6fb1052829450e20109e281e))
+
+
+### Bug Fixes
+
+* **docs:** clarify releasable commit types for release-please ([e3a8624](https://github.com/linkfy/pycro/commit/e3a8624550807281765675f7864850151746671c))
+
 ## [0.1.2](https://github.com/linkfy/pycro/compare/pycro_cli-v0.1.1...pycro_cli-v0.1.2) (2026-03-13)
 
 
