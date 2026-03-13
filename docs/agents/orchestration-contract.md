@@ -19,6 +19,12 @@ At the beginning of every phase, the orchestrator must execute this startup sequ
 No implementation work should start before requirements and design are explicitly validated by the orchestrator.
 If requirements are missing, weak, or ambiguous, the orchestrator must switch to planning mode and run a requirements-first planning cycle before any implementation delegation.
 
+## Model Routing Rule (Mandatory)
+
+- Planning mode is executed by the official orchestrator on ChatGPT 5.4.
+- Default model for implementation/review/delegation operations is Codex 5.3 medium.
+- Smaller models may be used only for low-risk mechanical tasks and require an explicit reason in the orchestrator summary.
+
 ## Natural Flow (Mandatory)
 
 For every phase, execution order is fixed:
@@ -71,3 +77,13 @@ Naming pattern:
 
 Workers report only summary payloads with the schema in `docs/agent-registry.md`.
 Raw logs are not sent to the orchestrator.
+
+## Local CI Preflight Rule (Mandatory)
+
+Before any push, merge request, or phase closeout checkpoint, run local CI-equivalent minimum checks:
+
+- `cargo fmt --all --check`
+- `cargo clippy --all-targets -- -D warnings`
+- `cargo test`
+
+No gate is considered green until these pass locally and evidence is recorded.

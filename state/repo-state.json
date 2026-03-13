@@ -2,25 +2,26 @@
   "schema_version": 2,
   "project": "pycro",
   "active_phase": {
-    "number": "06",
-    "id": "06-ci-visual-payload",
+    "number": "08",
+    "id": "08-git-cd-release-automation",
     "status": "planned",
-    "path": "docs/phases/06-ci-visual-payload"
+    "path": "docs/phases/08-git-cd-release-automation"
   },
   "current_objective": {
-    "id": "ci-visual-payload-smoke",
-    "title": "Add CI smoke coverage for visual and payload assertions on representative scenarios",
+    "id": "git-cd-release-automation",
+    "title": "Automate per-phase Git CD kickoff, Release Please releases, and Python API readability contract",
     "status": "planned",
-    "phase_doc": "docs/phases/06-ci-visual-payload/implementation.md",
+    "phase_doc": "docs/phases/08-git-cd-release-automation/implementation.md",
     "startup_gate": {
       "requirements_validated": false,
       "design_validated": false,
-      "kickoff_date": "2026-03-14"
+      "kickoff_date": "2026-03-15"
     },
-    "manual_validation_scenario": "examples/phase05_input_texture_lab.py",
+    "manual_validation_scenario": "examples/phase08_api_surface_readability.py",
     "block_progress": {
       "phase_05": "complete",
-      "phase_05_closeout_doc": "docs/phases/05-platform-input-texture/closeout.md"
+      "phase_05_closeout_doc": "docs/phases/05-platform-input-texture/closeout.md",
+      "phase_08_planning": "prepared"
     }
   },
   "orchestration": {
@@ -33,7 +34,12 @@
       "docs-tracker",
       "qa-reviewer",
       "commit-steward"
-    ]
+    ],
+    "model_routing_policy": {
+      "planning_mode": "chatgpt-5.4",
+      "default_execution": "codex-5.3-medium",
+      "allow_smaller_for_low_risk_mechanical_tasks": true
+    }
   },
   "worktrees": {
     "required_for_parallel_work": true,
@@ -43,7 +49,7 @@
     },
     "manager_agent": "worktree-manager"
   },
-  "current_branch": "codex/05-platform-input-texture-coverage-closeout",
+  "current_branch": "codex/08-git-cd-release-automation",
   "phase_sequence": [
     {
       "number": "00",
@@ -92,6 +98,12 @@
       "id": "07-manual-playtest-evidence",
       "status": "planned",
       "path": "docs/phases/07-manual-playtest-evidence"
+    },
+    {
+      "number": "08",
+      "id": "08-git-cd-release-automation",
+      "status": "planned",
+      "path": "docs/phases/08-git-cd-release-automation"
     }
   ],
   "tasks": [
@@ -203,6 +215,16 @@
       "branch": "codex/07-manual-playtest-evidence-gate",
       "worktree": ".worktrees/07-manual-playtest-example",
       "phase_doc": "docs/phases/07-manual-playtest-evidence/implementation.md",
+      "qa": "pending"
+    },
+    {
+      "id": "git-cd-release-automation",
+      "phase": "08",
+      "owner": "architecture-orchestrator",
+      "status": "planned",
+      "branch": "codex/08-git-cd-release-automation",
+      "worktree": ".worktrees/08-git-cd-release-orchestrator",
+      "phase_doc": "docs/phases/08-git-cd-release-automation/implementation.md",
       "qa": "pending"
     }
   ],

@@ -33,6 +33,7 @@ Operating rules:
 - Keep implementation work delegated to subagent teams whenever feasible; the main thread prioritizes orchestration, integration, and final verification.
 - Keep an active orchestrator for every implementation task; avoid "god agent" execution.
 - For every phase, enforce the startup gate `requirements -> design -> implementation`. If requirements are missing, switch to planning mode and produce phase requirements/design/implementation steps before execution.
+- Model routing is mandatory: planning mode runs on ChatGPT 5.4; implementation/review/sync defaults to Codex 5.3 medium; smaller models are allowed only for low-risk mechanical tasks with explicit rationale.
 - Use a dedicated `worktree-manager` when parallel slices can collide. Worktree paths follow `.worktrees/<phase>-<task>-<agent>`.
 - Use a dedicated `commit-steward` subagent to create checkpoint commits after required validations pass.
 - Use a dedicated `docs-tracker` subagent to keep `docs/task-tracker.txt`, `state/repo-state.json`, and active phase docs synchronized.
@@ -40,6 +41,7 @@ Operating rules:
 - Keep `examples/` flat: scenario scripts must live directly under `examples/*.py` (no per-scenario subfolders). Shared assets live under `examples/assets/`.
 - Treat user feedback from running playable scenarios as a required validation gate for interactive features that agents cannot fully verify on their own.
 - Before each phase commit, refresh/rebuild documentation and record evidence in tracker/state.
+- Before any push/merge/phase-closeout commit, pass local CI minimum preflight: `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`.
 - The canonical Python-facing API lives in Rust metadata inside the `api` module of `pycro_cli`. `python/pycro/__init__.pyi` must be generated from that metadata and checked for drift.
 
 Scope reminders:

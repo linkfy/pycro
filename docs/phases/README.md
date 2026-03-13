@@ -15,9 +15,10 @@ This directory stores the canonical sequential delivery phases.
 - `02-api-direct-bridge` (closed)
 - `03-python-module-imports` (closed)
 - `04-runtime-stdlib` (closed)
-- `05-platform-input-texture` (in progress)
+- `05-platform-input-texture` (closed)
 - `06-ci-visual-payload` (planned)
 - `07-manual-playtest-evidence` (planned)
+- `08-git-cd-release-automation` (planned, next to implement)
 
 ## Required Files Per Phase
 

@@ -28,3 +28,9 @@ All worker outputs to the orchestrator must use:
 - `follow_ups`
 - `adr_refs`
 - `tracker_refs`
+
+## Model Policy
+
+- Official orchestrator planning mode uses ChatGPT 5.4.
+- Default model for execution/review/sync is Codex 5.3 medium.
+- Smaller models are allowed only for low-risk mechanical tasks with explicit rationale.

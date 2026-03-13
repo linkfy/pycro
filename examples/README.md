@@ -35,6 +35,7 @@ Available scenarios:
 - `phase05_minigame_runner_dodge.py`: dodge incoming obstacle blocks over platformer deluxe art.
 - `phase05_minigame_coin_chase.py`: collect coins before timer ends using platformer deluxe sprites.
 - `phase05_minigame_target_burst.py`: burst moving targets with a timer/score HUD.
+- `phase08_api_surface_readability.py`: non-interactive stub readability probe for `python/pycro/__init__.pyi`.
 
 Shared asset packs:
 
@@ -80,7 +81,8 @@ Kenney pack assets used by pack-focused scenarios:
 17. `phase05_minigame_runner_dodge.py`: Dodge incoming blocks; after collision press Space to restart.
 18. `phase05_minigame_coin_chase.py`: Collect coins with arrow keys and verify score/time HUD updates.
 19. `phase05_minigame_target_burst.py`: Move cursor with arrows, press Space to hit targets and confirm score/timer changes.
-20. Press Escape to close interactive runs.
+20. `phase08_api_surface_readability.py`: Run with `python3` and confirm symbol/line summary prints without errors.
+21. Press Escape to close interactive runs.
 
 ## Key Mapping Notes
 
