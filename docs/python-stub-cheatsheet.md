@@ -3,7 +3,7 @@
 Canonical source: `python/pycro/__init__.pyi`.
 This document is a fast reference for the current generated stub API.
 
-Lifecycle contract: the engine loads a configured script path (commonly `examples/*.py`) and calls required `update(dt)` each frame.
+Lifecycle contract: the engine calls required `update(dt)` each frame. The framework does not auto-dispatch `setup()`.
 
 ## API At A Glance
 
@@ -32,7 +32,13 @@ Lifecycle contract: the engine loads a configured script path (commonly `example
 
 ## Quickstart
 
-Run an existing scenario:
+Run current project `main.py` (default):
+
+```bash
+cargo run
+```
+
+Run a specific scenario:
 
 ```bash
 cargo run -- examples/phase01_basic_main.py
@@ -44,7 +50,7 @@ Run only a few frames (fast smoke):
 PYCRO_FRAMES=3 cargo run -- examples/phase01_basic_main.py
 ```
 
-Minimal starter script:
+Minimal update-only starter script:
 
 ```python
 import pycro
@@ -100,13 +106,53 @@ def update(dt: float) -> None:
         pycro.draw_texture(texture, (420.0, 220.0), (440.0, 260.0))
 ```
 
-## Type Aliases
+Update-only initialization pattern (recommended):
 
-| Name | Definition | Description |
-| --- | --- | --- |
-| `Color` | `tuple[float, float, float, float]` | Normalized RGBA tuple. |
-| `Vec2` | `tuple[float, float]` | Two-dimensional vector tuple. |
-| `TextureHandle` | `str` | Opaque texture handle returned by the engine. |
+```python
+import pycro
+
+initialized = False
+texture = None
+
+def initialize_once() -> None:
+    global initialized, texture
+    if initialized:
+        return
+    texture = pycro.load_texture("examples/assets/kenney_development_essentials/Gradient/gradient-radial.png")
+    initialized = True
+
+def update(dt: float) -> None:
+    _ = dt
+    initialize_once()
+    pycro.clear_background((0.04, 0.04, 0.06, 1.0))
+    if texture is not None:
+        pycro.draw_texture(texture, (420.0, 220.0), (440.0, 260.0))
+```
+
+## Verified Example Smokes
+
+These scenarios were validated on 2026-03-14 with:
+`PYCRO_FRAMES=1 cargo run -- <example.py>`
+
+- `examples/phase01_basic_main.py`
+- `examples/phase03_import_main.py`
+- `examples/phase04_stdlib_math_os.py`
+- `examples/phase04_stdlib_wave_lab.py`
+- `examples/phase05_camera_target_pan.py`
+- `examples/phase05_checkerboard_pan.py`
+- `examples/phase05_compare_pycro_balls_benchmark.py`
+- `examples/phase05_fps_eased_balls.py`
+- `examples/phase05_gradient_cycle.py`
+- `examples/phase05_input_movement.py`
+- `examples/phase05_input_texture_lab.py`
+- `examples/phase05_minigame_coin_chase.py`
+- `examples/phase05_minigame_runner_dodge.py`
+- `examples/phase05_minigame_target_burst.py`
+- `examples/phase05_noise_scanner.py`
+- `examples/phase05_runtime_draw_flush_batch.py`
+- `examples/phase05_stopwatch_seconds.py`
+- `examples/phase05_textures_draw_swap.py`
+- `examples/phase05_timing_frame_pulse.py`
 
 ## Exported API (`__all__`)
 
@@ -156,7 +202,7 @@ Shell example:
 PYCRO_CIRCLE_SPRITE=1 \
 PYCRO_CIRCLE_SPRITE_SIZE=256 \
 PYCRO_CIRCLE_SPRITE_FILTER=linear \
-cargo run --bin pycro_cli -- --script examples/circle_demo.py
+cargo run -- examples/phase05_gradient_cycle.py
 ```
 
 ## Regenerate + Verify (Required)

@@ -28,6 +28,7 @@ TARGET_COLORS = (
 )
 
 background_handles: list[pycro.TextureHandle] = []
+initialized = False
 
 cursor_x = 640.0
 cursor_y = 360.0
@@ -66,13 +67,16 @@ def _restart_round() -> None:
     _seed_targets()
 
 
-def setup() -> None:
-    global background_handles, cursor_x, cursor_y, high_score
+def _ensure_initialized() -> None:
+    global initialized, background_handles, cursor_x, cursor_y, high_score
+    if initialized:
+        return
     high_score = 0
     background_handles = [pycro.load_texture(path) for path in PANEL_TEXTURES]
     cursor_x = 640.0
     cursor_y = 360.0
     _restart_round()
+    initialized = True
 
 
 def _move_cursor(dt: float) -> None:
@@ -214,6 +218,7 @@ def _draw_hud() -> None:
 
 def update(dt: float) -> None:
     global remaining_seconds, round_over, space_was_down
+    _ensure_initialized()
 
     _move_cursor(dt)
 
