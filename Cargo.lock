@@ -1003,7 +1003,7 @@ dependencies = [
 
 [[package]]
 name = "pycro_cli"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "macroquad",
  "mimalloc",
