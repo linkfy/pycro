@@ -1,7 +1,7 @@
 # Phase 08-git-cd-release-automation - Git CD And Release Automation
 
-status: planned
-objective: Add per-phase Git continuous-development launch flow, Release Please automation, and Python API readability improvements.
+status: in_progress
+objective: Add per-phase Git continuous-development launch flow, Release Please automation, multi-platform `pycro` release artifacts (x64 + ARM), and Python API readability improvements.
 tracked_tasks: git-cd-release-automation
 
 ## Links
