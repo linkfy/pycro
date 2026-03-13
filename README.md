@@ -28,6 +28,14 @@ Python API quick reference:
 
 - [`docs/python-stub-cheatsheet.md`](./docs/python-stub-cheatsheet.md)
 
+Initialize a new pycro project scaffold:
+
+```bash
+cargo run --bin pycro -- init my_game
+```
+
+This creates `my_game/main.py` and `my_game/pycro.pyi`.
+
 ## Run Playable Examples
 
 Use:

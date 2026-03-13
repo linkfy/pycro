@@ -2,29 +2,31 @@
   "schema_version": 2,
   "project": "pycro",
   "active_phase": {
-    "number": "08",
-    "id": "08-git-cd-release-automation",
+    "number": "09",
+    "id": "09-project-init-quickstart",
     "status": "in_progress",
-    "path": "docs/phases/08-git-cd-release-automation"
+    "path": "docs/phases/09-project-init-quickstart"
   },
   "current_objective": {
-    "id": "git-cd-release-automation",
-    "title": "Automate per-phase Git CD kickoff, Release Please releases, and Python API readability contract",
+    "id": "project-init-quickstart",
+    "title": "Add `pycro init <project_name>` to scaffold a first-run project with starter files",
     "status": "in_progress",
-    "phase_doc": "docs/phases/08-git-cd-release-automation/implementation.md",
+    "phase_doc": "docs/phases/09-project-init-quickstart/implementation.md",
     "startup_gate": {
       "requirements_validated": true,
       "design_validated": true,
       "kickoff_date": "2026-03-15"
     },
-    "manual_validation_scenario": "examples/phase08_api_surface_readability.py",
+    "manual_validation_scenario": "none_required_initially",
     "block_progress": {
       "phase_05": "complete",
       "phase_05_closeout_doc": "docs/phases/05-platform-input-texture/closeout.md",
       "phase_08_planning": "complete",
-      "phase_08_release_automation": "in_progress",
-      "phase_08_ci_typing_fix": "in_progress",
-      "phase_08_release_hardening": "in_progress"
+      "phase_08_release_automation": "complete",
+      "phase_08_ci_typing_fix": "complete",
+      "phase_08_release_hardening": "complete",
+      "phase_09_planning": "complete",
+      "phase_09_init_scaffold": "in_progress"
     }
   },
   "orchestration": {
@@ -52,7 +54,7 @@
     },
     "manager_agent": "worktree-manager"
   },
-  "current_branch": "codex/08-release-please-hardening",
+  "current_branch": "codex/09-project-init-quickstart",
   "phase_sequence": [
     {
       "number": "00",
@@ -105,8 +107,14 @@
     {
       "number": "08",
       "id": "08-git-cd-release-automation",
-      "status": "in_progress",
+      "status": "complete",
       "path": "docs/phases/08-git-cd-release-automation"
+    },
+    {
+      "number": "09",
+      "id": "09-project-init-quickstart",
+      "status": "in_progress",
+      "path": "docs/phases/09-project-init-quickstart"
     }
   ],
   "tasks": [
@@ -224,10 +232,20 @@
       "id": "git-cd-release-automation",
       "phase": "08",
       "owner": "architecture-orchestrator",
-      "status": "in_progress",
+      "status": "complete",
       "branch": "codex/08-git-cd-release-automation",
       "worktree": ".worktrees/08-git-cd-release-orchestrator",
       "phase_doc": "docs/phases/08-git-cd-release-automation/implementation.md",
+      "qa": "pass"
+    },
+    {
+      "id": "project-init-quickstart",
+      "phase": "09",
+      "owner": "architecture-orchestrator",
+      "status": "in_progress",
+      "branch": "codex/09-project-init-quickstart",
+      "worktree": ".worktrees/09-project-init-orchestrator",
+      "phase_doc": "docs/phases/09-project-init-quickstart/implementation.md",
       "qa": "pending"
     }
   ],
