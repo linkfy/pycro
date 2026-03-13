@@ -6,6 +6,7 @@
 - Use `codex/<phase>-<task>` for implementation branches.
 - `main` remains the verified integration branch.
 - Merge to `main` only after validations, QA gate, and explicit user approval.
+- User approval is required per phase closeout. The orchestrator must ask before each merge and wait for a direct confirmation.
 
 ## Worktree Policy
 

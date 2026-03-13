@@ -39,6 +39,11 @@ Conditional agents:
 - `worktree-manager` when parallel slices can collide
 - `merge-integrator` only after user-approved merge to `main`
 
+Mandatory closeout rule:
+
+- At the end of every phase, before any merge action, the orchestrator must explicitly ask the user if they want to merge now.
+- No merge is allowed from implicit consent or by default; a direct user "yes" is required for each phase closeout.
+
 ## Worktree Policy
 
 Use worktrees when parallel implementation is requested or collision risk exists.
