@@ -66,7 +66,7 @@ Kenney pack assets used by pack-focused scenarios:
 3. `phase05_timing_frame_pulse.py`: Verify the center circle continuously pulses and the small top-left marker changes size per frame.
 4. `phase05_textures_draw_swap.py`: Verify two panels render; one should use the Kenney radial gradient texture, the missing path should render fallback white. Hold Space and verify panel roles swap.
 5. `phase05_camera_target_pan.py`: Hold arrow keys and verify the world shifts as camera target moves; hold Space for faster pan.
-6. `phase05_input_texture_lab.py`: Left/Right should move the sprite, Up/Down should change sprite size, and holding Space should rotate texture source between two loaded textures and one fallback slot without runtime errors.
+6. `phase05_input_texture_lab.py`: Left/Right should move the sprite, Up/Down should change sprite size, and holding Space should rotate texture source between two loaded textures and one fallback slot without runtime errors. The HUD marker must switch green (loaded) vs red (fallback).
 7. `phase05_stopwatch_seconds.py`: Verify the on-screen `seconds: N` text increments once per second, plus one new timeline dot each second.
 8. `phase03_import_main.py`: Verify `phase03_player.py` import succeeds, arrow keys move the player, and the name label is rendered from the imported module.
 9. `phase04_stdlib_math_os.py`: Verify script imports `math` and `os` without helper modules, a dot orbits the center, and on-screen text shows `os.name`, `os.sep`, plus cwd/home info; hold Space to reset the orbit timer.

@@ -699,4 +699,63 @@ mod tests {
             .expect("dispatch should succeed");
         assert_eq!(backend.clear_calls, 1);
     }
+
+    #[test]
+    fn parse_backend_dispatch_record_validates_draw_texture_payload_shape() {
+        let parsed = parse_backend_dispatch_record("draw_texture|tex|1.0|2.0|3.0|4.0")
+            .expect("draw_texture record with full payload should parse");
+        assert_eq!(
+            parsed,
+            BackendDispatchCommand::DrawTexture {
+                texture: TextureHandle("tex".to_owned()),
+                position: Vec2 { x: 1.0, y: 2.0 },
+                size: Vec2 { x: 3.0, y: 4.0 }
+            }
+        );
+
+        let error = parse_backend_dispatch_record("draw_texture|tex|1.0|2.0|3.0")
+            .expect_err("draw_texture record missing size component should fail");
+        assert!(
+            error.contains("unsupported dispatch record"),
+            "unexpected parse error: {error}"
+        );
+    }
+
+    #[test]
+    fn dispatch_backend_record_surfaces_invalid_float_for_draw_texture() {
+        #[derive(Default)]
+        struct NoopBackend;
+
+        impl EngineBackend for NoopBackend {
+            fn clear_background(&mut self, _color: Color) {}
+            fn draw_circle(
+                &mut self,
+                _position: Vec2,
+                _radius: f32,
+                _color: Color,
+                _render_mode: VectorRenderMode,
+            ) {
+            }
+            fn is_key_down(&self, _key: &str) -> bool {
+                false
+            }
+            fn frame_time(&self) -> f32 {
+                0.016
+            }
+            fn load_texture(&mut self, path: &str) -> Result<TextureHandle, String> {
+                Ok(TextureHandle(path.to_owned()))
+            }
+            fn draw_texture(&mut self, _texture: &TextureHandle, _position: Vec2, _size: Vec2) {}
+            fn set_camera_target(&mut self, _target: Vec2) {}
+            fn draw_text(&mut self, _text: &str, _position: Vec2, _font_size: f32, _color: Color) {}
+        }
+
+        let mut backend = NoopBackend;
+        let error = dispatch_backend_record("draw_texture|tex|oops|2.0|3.0|4.0", &mut backend)
+            .expect_err("invalid draw_texture float should fail dispatch");
+        assert!(
+            error.contains("invalid float"),
+            "unexpected dispatch error: {error}"
+        );
+    }
 }

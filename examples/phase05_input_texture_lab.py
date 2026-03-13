@@ -41,6 +41,10 @@ def _active_texture_label() -> str:
     return labels[texture_index % len(labels)]
 
 
+def _is_fallback_active() -> bool:
+    return texture_index % 3 == 2
+
+
 def update(dt: float) -> None:
     global player_pos, sprite_scale, toggle_cooldown, texture_index
 
@@ -63,6 +67,8 @@ def update(dt: float) -> None:
     pycro.clear_background((0.08, 0.09, 0.11, 1.0))
 
     pycro.draw_circle((90.0, 76.0), 14.0 + (pycro.frame_time() * 220.0), (0.95, 0.80, 0.20, 1.0))
+    status_color = (0.90, 0.28, 0.28, 1.0) if _is_fallback_active() else (0.20, 0.92, 0.46, 1.0)
+    pycro.draw_circle((124.0, 76.0), 9.0, status_color)
 
     tex = _active_texture()
     if tex is not None:
@@ -82,8 +88,14 @@ def update(dt: float) -> None:
         (0.72, 0.90, 0.78, 1.0),
     )
     pycro.draw_text(
+        "fallback active" if _is_fallback_active() else "loaded texture active",
+        (18.0, 106.0),
+        18.0,
+        status_color,
+    )
+    pycro.draw_text(
         "controls: Left/Right move | Up/Down size | Space rotate texture",
-        (18.0, 80.0),
+        (18.0, 132.0),
         18.0,
         (0.86, 0.86, 0.90, 1.0),
     )
