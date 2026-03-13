@@ -1,6 +1,6 @@
 # Phase 05-platform-input-texture - Platform Input Texture
 
-status: in_progress
+status: closed
 objective: Expand input and texture workflows with platform evidence and no lifecycle regressions.
 tracked_tasks: platform-input-texture-coverage
 

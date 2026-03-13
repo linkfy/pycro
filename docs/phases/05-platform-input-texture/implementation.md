@@ -16,14 +16,14 @@ startup_gate: requirements_validated + design_validated
 | runtime-input-bridge | runtime-worker | runtime input path and lifecycle-safe dispatch checks | codex/05-runtime-input-bridge | .worktrees/05-runtime-input-bridge-runtime | complete (orchestrator fallback execution) |
 | platform-texture-paths | platform-worker | texture load/swap/fallback behavior and platform evidence | codex/05-platform-texture-paths | .worktrees/05-platform-texture-paths-platform | complete (manual scenario + docs evidence) |
 | api-surface-guards | api-worker | API signature/typing guards for input+texture workflows | codex/05-api-surface-guards | .worktrees/05-api-surface-guards-api | complete (orchestrator fallback execution) |
-| docs-sync-gate | docs-tracker | tracker/state/phase-doc synchronization after each slice | codex/05-docs-sync-gate | .worktrees/05-docs-sync-gate-docs | in_progress |
-| review-commit-gate | qa-reviewer + commit-steward | pre-commit findings and checkpoint creation | codex/05-review-commit-gate | .worktrees/05-review-commit-gate-qa | pending |
+| docs-sync-gate | docs-tracker | tracker/state/phase-doc synchronization after each slice | codex/05-docs-sync-gate | .worktrees/05-docs-sync-gate-docs | complete |
+| review-commit-gate | qa-reviewer + commit-steward | pre-commit findings and checkpoint creation | codex/05-review-commit-gate | .worktrees/05-review-commit-gate-qa | complete |
 
 ## Task Board
 
 | Task ID | Owner | Parallel Team | Status | Branch | Worktree | Validation Gate |
 | --- | --- | --- | --- | --- | --- | --- |
-| platform-input-texture-coverage | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | in_progress | codex/<phase>-<task> | .worktrees/<phase>-<task>-<agent> | per docs/validation-policy.md |
+| platform-input-texture-coverage | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/05-platform-input-texture-coverage-closeout | .worktrees/05-platform-input-texture-platform | per docs/validation-policy.md |
 
 ## Reporting Contract
 

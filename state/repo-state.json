@@ -2,32 +2,25 @@
   "schema_version": 2,
   "project": "pycro",
   "active_phase": {
-    "number": "05",
-    "id": "05-platform-input-texture",
-    "status": "in_progress",
-    "path": "docs/phases/05-platform-input-texture"
+    "number": "06",
+    "id": "06-ci-visual-payload",
+    "status": "planned",
+    "path": "docs/phases/06-ci-visual-payload"
   },
   "current_objective": {
-    "id": "platform-input-texture-coverage",
-    "title": "Expand input handling, texture workflows, and platform capability coverage",
-    "status": "in_progress",
-    "phase_doc": "docs/phases/05-platform-input-texture/implementation.md",
+    "id": "ci-visual-payload-smoke",
+    "title": "Add CI smoke coverage for visual and payload assertions on representative scenarios",
+    "status": "planned",
+    "phase_doc": "docs/phases/06-ci-visual-payload/implementation.md",
     "startup_gate": {
-      "requirements_validated": true,
-      "design_validated": true,
+      "requirements_validated": false,
+      "design_validated": false,
       "kickoff_date": "2026-03-14"
     },
     "manual_validation_scenario": "examples/phase05_input_texture_lab.py",
     "block_progress": {
-      "block_1": "complete",
-      "block_2": "complete",
-      "block_2_summary": "runtime/api guards and desktop capability evidence captured after orchestrator fallback execution",
-      "block_3": "complete",
-      "block_3_user_result": {
-        "outcome": "pass",
-        "observed_issues": "none",
-        "notes": "interactive controls and texture-state HUD behavior validated by user"
-      }
+      "phase_05": "complete",
+      "phase_05_closeout_doc": "docs/phases/05-platform-input-texture/closeout.md"
     }
   },
   "orchestration": {
@@ -50,7 +43,7 @@
     },
     "manager_agent": "worktree-manager"
   },
-  "current_branch": "codex/docs-phase-structure-reorg",
+  "current_branch": "codex/05-platform-input-texture-coverage-closeout",
   "phase_sequence": [
     {
       "number": "00",
@@ -85,7 +78,7 @@
     {
       "number": "05",
       "id": "05-platform-input-texture",
-      "status": "in_progress",
+      "status": "closed",
       "path": "docs/phases/05-platform-input-texture"
     },
     {
@@ -186,11 +179,11 @@
       "id": "platform-input-texture-coverage",
       "phase": "05",
       "owner": "platform-worker",
-      "status": "in_progress",
-      "branch": "codex/05-platform-input-texture-coverage",
+      "status": "complete",
+      "branch": "codex/05-platform-input-texture-coverage-closeout",
       "worktree": ".worktrees/05-platform-input-texture-platform",
       "phase_doc": "docs/phases/05-platform-input-texture/implementation.md",
-      "qa": "pending"
+      "qa": "pass"
     },
     {
       "id": "ci-visual-payload-smoke",
