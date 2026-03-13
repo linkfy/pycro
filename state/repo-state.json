@@ -2,22 +2,22 @@
   "schema_version": 2,
   "project": "pycro",
   "active_phase": {
-    "number": "09",
-    "id": "09-project-init-quickstart",
-    "status": "in_progress",
-    "path": "docs/phases/09-project-init-quickstart"
+    "number": "10",
+    "id": "10-update-only-lifecycle",
+    "status": "complete",
+    "path": "docs/phases/10-update-only-lifecycle"
   },
   "current_objective": {
-    "id": "project-init-quickstart",
-    "title": "Add `pycro init <project_name>` to scaffold a first-run project with starter files",
-    "status": "in_progress",
-    "phase_doc": "docs/phases/09-project-init-quickstart/implementation.md",
+    "id": "lifecycle-update-only",
+    "title": "Update-only lifecycle plus project-default main.py execution and init-time local pycro executable copy",
+    "status": "complete",
+    "phase_doc": "docs/phases/10-update-only-lifecycle/implementation.md",
     "startup_gate": {
       "requirements_validated": true,
       "design_validated": true,
-      "kickoff_date": "2026-03-15"
+      "kickoff_date": "2026-03-14"
     },
-    "manual_validation_scenario": "none_required_initially",
+    "manual_validation_scenario": "n/a",
     "block_progress": {
       "phase_05": "complete",
       "phase_05_closeout_doc": "docs/phases/05-platform-input-texture/closeout.md",
@@ -26,7 +26,16 @@
       "phase_08_ci_typing_fix": "complete",
       "phase_08_release_hardening": "complete",
       "phase_09_planning": "complete",
-      "phase_09_init_scaffold": "in_progress"
+      "phase_09_init_scaffold": "complete",
+      "phase_09_closeout_doc": "docs/phases/09-project-init-quickstart/closeout.md",
+      "phase_10_kickoff": "in_progress",
+      "phase_10_update_only_contract": "implemented",
+      "phase_10_scope_refinement_main_and_self_copy": "accepted",
+      "phase_10_default_main_py": "implemented",
+      "phase_10_init_self_copy": "implemented",
+      "phase_10_validation_preflight": "pass",
+      "phase_10_closeout_doc": "docs/phases/10-update-only-lifecycle/closeout.md",
+      "phase_10_qa": "pass"
     }
   },
   "orchestration": {
@@ -54,7 +63,7 @@
     },
     "manager_agent": "worktree-manager"
   },
-  "current_branch": "codex/09-project-init-quickstart",
+  "current_branch": "codex/10-lifecycle-update-only",
   "phase_sequence": [
     {
       "number": "00",
@@ -113,8 +122,14 @@
     {
       "number": "09",
       "id": "09-project-init-quickstart",
-      "status": "in_progress",
+      "status": "closed",
       "path": "docs/phases/09-project-init-quickstart"
+    },
+    {
+      "number": "10",
+      "id": "10-update-only-lifecycle",
+      "status": "complete",
+      "path": "docs/phases/10-update-only-lifecycle"
     }
   ],
   "tasks": [
@@ -242,11 +257,21 @@
       "id": "project-init-quickstart",
       "phase": "09",
       "owner": "architecture-orchestrator",
-      "status": "in_progress",
-      "branch": "codex/09-project-init-quickstart",
+      "status": "complete",
+      "branch": "codex/09-project-init-closeout",
       "worktree": ".worktrees/09-project-init-orchestrator",
       "phase_doc": "docs/phases/09-project-init-quickstart/implementation.md",
-      "qa": "pending"
+      "qa": "pass"
+    },
+    {
+      "id": "lifecycle-update-only",
+      "phase": "10",
+      "owner": "architecture-orchestrator",
+      "status": "complete",
+      "branch": "codex/10-lifecycle-update-only",
+      "worktree": "/Users/linkfy/Code/pycro",
+      "phase_doc": "docs/phases/10-update-only-lifecycle/implementation.md",
+      "qa": "pass"
     }
   ],
   "streams": [

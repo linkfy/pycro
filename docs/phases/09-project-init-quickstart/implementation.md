@@ -11,7 +11,7 @@
 
 | Task ID | Owner | Parallel Team | Status | Branch | Worktree | Validation Gate |
 | --- | --- | --- | --- | --- | --- | --- |
-| project-init-quickstart | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | in_progress | codex/09-project-init-quickstart | .worktrees/09-project-init-orchestrator | per docs/validation-policy.md |
+| project-init-quickstart | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/09-project-init-closeout | .worktrees/09-project-init-orchestrator | per docs/validation-policy.md |
 
 ## Reporting Contract
 

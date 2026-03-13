@@ -3,7 +3,7 @@
 Canonical source: `python/pycro/__init__.pyi`.
 This document is a fast reference for the current generated stub API.
 
-Lifecycle contract: the engine loads a configured script path (commonly `examples/*.py`), runs optional `setup()`, then required `update(dt)` each frame.
+Lifecycle contract: the engine loads a configured script path (commonly `examples/*.py`) and calls required `update(dt)` each frame.
 
 ## API At A Glance
 
@@ -51,9 +51,6 @@ import pycro
 
 x = 160.0
 
-def setup() -> None:
-    pycro.clear_background((0.08, 0.10, 0.14, 1.0))
-
 def update(dt: float) -> None:
     global x
     x += 120.0 * dt
@@ -94,11 +91,10 @@ import pycro
 
 texture = None
 
-def setup() -> None:
-    global texture
-    texture = pycro.load_texture("examples/assets/kenney_development_essentials/Gradient/gradient-radial.png")
-
 def update(dt: float) -> None:
+    global texture
+    if texture is None:
+        texture = pycro.load_texture("examples/assets/kenney_development_essentials/Gradient/gradient-radial.png")
     pycro.clear_background((0.04, 0.04, 0.06, 1.0))
     if texture is not None:
         pycro.draw_texture(texture, (420.0, 220.0), (440.0, 260.0))

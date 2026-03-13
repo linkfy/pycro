@@ -1,8 +1,6 @@
 //! Script runtime lifecycle contract.
 
-use crate::api::{
-    ENTRYPOINT_SCRIPT, MODULE_NAME, SETUP_FUNCTION, UPDATE_FUNCTION, registration_plan,
-};
+use crate::api::{ENTRYPOINT_SCRIPT, MODULE_NAME, UPDATE_FUNCTION, registration_plan};
 use crate::backend::{
     CircleDraw, Color, EngineBackend, MacroquadBackendContract, TextureHandle, Vec2,
     VectorRenderMode,
@@ -133,7 +131,7 @@ where
         }
     }
 
-    /// Installs module, loads script, and runs optional `setup()`.
+    /// Installs module, loads script, and validates required `update(dt)`.
     pub fn load_main(&mut self) -> Result<(), RuntimeError> {
         let registration = registration_plan();
         let plan = ModuleInstallPlan {
@@ -150,11 +148,6 @@ where
 
         if !self.vm.has_function(UPDATE_FUNCTION)? {
             return Err(RuntimeError::MissingUpdateFunction);
-        }
-
-        if self.vm.has_function(SETUP_FUNCTION)? {
-            println!("[pycro] dispatch setup()");
-            self.vm.call_function(SETUP_FUNCTION, &[])?;
         }
 
         self.loaded = true;
@@ -202,7 +195,6 @@ where
 pub struct RustPythonVm {
     interpreter: Interpreter,
     scope: Option<Scope>,
-    setup_callable: Option<PyObjectRef>,
     update_callable: Option<PyObjectRef>,
     backend: Arc<Mutex<MacroquadBackendContract>>,
     draw_batch: Arc<Mutex<QueuedDrawBatch>>,
@@ -448,7 +440,6 @@ impl RustPythonVm {
         Self {
             interpreter: Interpreter::without_stdlib(Self::interpreter_settings()),
             scope: None,
-            setup_callable: None,
             update_callable: None,
             backend: Arc::new(Mutex::new(MacroquadBackendContract::default())),
             draw_batch: Arc::new(Mutex::new(QueuedDrawBatch::default())),
@@ -1995,7 +1986,6 @@ impl PythonVm for RustPythonVm {
         })?;
 
         self.scope = Some(scope);
-        self.setup_callable = None;
         self.update_callable = None;
         Ok(())
     }
@@ -2007,7 +1997,7 @@ impl PythonVm for RustPythonVm {
         })?;
 
         let scope = self.scope.clone().ok_or(RuntimeError::NotLoaded)?;
-        let (setup_callable, update_callable) = self.with_scope(scope, |vm, scope| {
+        let update_callable = self.with_scope(scope, |vm, scope| {
             Self::configure_import_path_for_script(vm, path)?;
             Self::install_stdlib_compat_modules(vm, path)?;
             Self::maybe_disable_gc(vm, path)?;
@@ -2025,14 +2015,6 @@ impl PythonVm for RustPythonVm {
                     path: path.to_owned(),
                     details: Self::exception_details(vm, &error),
                 })?;
-            let setup_callable = scope
-                .globals
-                .get_item_opt(SETUP_FUNCTION, vm)
-                .map_err(|error| RuntimeError::ScriptLoad {
-                    path: path.to_owned(),
-                    details: Self::exception_details(vm, &error),
-                })?
-                .filter(|value| value.as_object().to_callable().is_some());
             let update_callable = scope
                 .globals
                 .get_item_opt(UPDATE_FUNCTION, vm)
@@ -2043,9 +2025,8 @@ impl PythonVm for RustPythonVm {
                 .filter(|value| value.as_object().to_callable().is_some());
             Self::maybe_jit_functions(vm, &scope, &update_callable)?;
             Self::flush_stdio(vm);
-            Ok((setup_callable, update_callable))
+            Ok(update_callable)
         })?;
-        self.setup_callable = setup_callable;
         self.update_callable = update_callable;
         Ok(())
     }
@@ -2068,7 +2049,6 @@ impl PythonVm for RustPythonVm {
     fn call_function(&mut self, function: &str, args: &[RuntimeValue]) -> Result<(), RuntimeError> {
         let scope = self.scope.clone().ok_or(RuntimeError::NotLoaded)?;
         let cached_callable = match function {
-            SETUP_FUNCTION => self.setup_callable.clone(),
             UPDATE_FUNCTION => self.update_callable.clone(),
             _ => None,
         };
@@ -2243,7 +2223,7 @@ mod tests {
     }
 
     #[test]
-    fn setup_runs_once_and_update_runs_per_frame() {
+    fn load_main_does_not_dispatch_setup_and_update_runs_per_frame() {
         let vm = FakeVm {
             setup_present: true,
             update_present: true,
@@ -2257,11 +2237,23 @@ mod tests {
 
         assert_eq!(
             runtime.vm().calls,
-            vec![
-                "setup".to_owned(),
-                "update(0.016)".to_owned(),
-                "update(0.032)".to_owned(),
-            ]
+            vec!["update(0.016)".to_owned(), "update(0.032)".to_owned(),]
+        );
+    }
+
+    #[test]
+    fn load_main_allows_setup_definition_without_auto_invocation() {
+        let vm = FakeVm {
+            setup_present: true,
+            update_present: true,
+            ..FakeVm::default()
+        };
+        let mut runtime = ScriptRuntime::new(vm, RuntimeConfig::default());
+
+        runtime.load_main().expect("load_main should succeed");
+        assert!(
+            runtime.vm().calls.is_empty(),
+            "setup() should not be auto-dispatched during load_main"
         );
     }
 
@@ -2743,13 +2735,10 @@ import phase03_player
 
 hero = None
 
-def setup():
-    global hero
-    hero = phase03_player.create_player("Rhea")
-
 def update(dt):
+    global hero
     if hero is None:
-        raise RuntimeError("hero should be initialized in setup")
+        hero = phase03_player.create_player("Rhea")
     phase03_player.tick(hero, dt)
 "#,
                 ),

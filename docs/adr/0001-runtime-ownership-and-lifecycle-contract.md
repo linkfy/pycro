@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by ADR 0011 for lifecycle callback semantics
 
 ## Decision
 
@@ -13,4 +13,3 @@ Macroquad owns the frame loop and platform-facing runtime concerns. RustPython o
 - Lifecycle dispatch is a runtime contract, not an implementation detail.
 - Platform code must not take control away from the Macroquad-owned frame loop.
 - Any future scripting backend must justify why it preserves or replaces the RustPython contract.
-

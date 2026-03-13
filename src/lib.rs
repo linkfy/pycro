@@ -11,8 +11,8 @@ pub mod runtime;
 
 pub use api::{
     ApiFamily, ENTRYPOINT_SCRIPT, MODULE_NAME, ModuleSpec, PlatformMatrix, PlatformSupportLevel,
-    PythonAlias, PythonArg, PythonFunction, RegistrationFunction, SETUP_FUNCTION, UPDATE_FUNCTION,
-    module_spec, registration_plan, render_stub,
+    PythonAlias, PythonArg, PythonFunction, RegistrationFunction, UPDATE_FUNCTION, module_spec,
+    registration_plan, render_stub,
 };
 pub use backend::{
     BackendDispatch, Color, DesktopFrameLoop, DesktopLoopReport, EngineBackend, FrameLoopConfig,

@@ -19,7 +19,8 @@ This directory stores the canonical sequential delivery phases.
 - `06-ci-visual-payload` (planned)
 - `07-manual-playtest-evidence` (planned)
 - `08-git-cd-release-automation` (complete)
-- `09-project-init-quickstart` (in progress)
+- `09-project-init-quickstart` (complete)
+- `10-update-only-lifecycle` (complete)
 
 ## Required Files Per Phase
 
