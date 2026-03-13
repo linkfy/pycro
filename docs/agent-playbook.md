@@ -59,6 +59,8 @@ The main thread should avoid carrying large implementation context directly; del
 - `main` is the repository integration branch.
 - Agents must implement on `codex/<domain>-<task>` branches and merge into `main` only after validation gates are satisfied.
 - Before requesting/performing merge to `main`, confirm expected behavior with runnable evidence (tests/build + benchmark or scenario checks when relevant).
+- Before ending a delivery block, ask the user explicitly whether they want the branch merged into `main`.
+- If the branch is not merged, tracker quick-index entries that remain `[-]` must include `-> (Not merged)` for that work item.
 
 ## Manual Playtest Gate
 

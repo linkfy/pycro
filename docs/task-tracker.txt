@@ -3,6 +3,7 @@ Human-readable plain text tracker.
 Keep this file in sync with state/repo-state.json.
 
 QUICK INDEX
+notation: use `[-] -> (Not merged)` when a task is in progress and its latest branch work is not yet merged into `main`.
 1. [x] bootstrap-foundation: Validate and close the infrastructure bootstrap. Phase 0 is closed with review outcome persisted and gates green.
 2. [-] flow-mermaid-views: Continuous flow-visualizer subagent for Mermaid lifecycle/dispatch documentation (cross-cutting, not a phase gate).
 3. [x] runtime-basic-example-loader: Load a real script path and dispatch setup plus update(dt) through runtime module. Complete.
