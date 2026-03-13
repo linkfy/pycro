@@ -35,6 +35,8 @@ Commits like `phase05 closeout: ...` are not valid Conventional Commits and may 
 
 This repository enforces commit format in CI via `.github/workflows/commitlint.yml`.
 
+Important: docs-only commits (`docs(...)`) usually do not create a new release. Use `fix(...)` or `feat(...)` when you intentionally need a new release PR/version bump.
+
 ## Legacy History Bootstrap
 
 `release-please-config.json` includes `bootstrap-sha` to start parsing from a known-safe point and avoid legacy non-conventional commits in initial rollout.
