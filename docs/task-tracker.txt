@@ -66,3 +66,4 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 - local_ci_preflight: mandatory before push/merge (`cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`)
 - release_scope: release-please + release artifacts for `pycro` on linux/macos/windows (x64 + ARM)
 - ci_fix_scope: mypy override for optional pygame benchmark dependency
+- release_hardening: commitlint enforced + release-please token fallback + bootstrap-sha for legacy commit history
