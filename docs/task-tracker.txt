@@ -18,6 +18,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 07    | docs/phases/07-manual-playtest-evidence      | planned     | Manual playtest evidence gate                                 | queued after phase 06  |
 | 08    | docs/phases/08-git-cd-release-automation     | complete    | Git CD + Release Please + Python API readability             | complete + merged      |
 | 09    | docs/phases/09-project-init-quickstart       | complete    | CLI project bootstrap via `pycro init <project_name>`        | closed                  |
+| 10    | docs/phases/10-update-only-lifecycle         | planned     | Remove framework-owned `setup()` lifecycle dispatch          | queued after phase 09  |
 +-------+----------------------------------------------+-------------+---------------------------------------------------------------+------------------------+
 
 ## Task Table
@@ -38,6 +39,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 07    | manual-playtest-evidence-gate      | Capture explicit user playtest acceptance evidence      | example-scenario-worker   | architecture-orchestrator, docs-tracker, qa-reviewer                    | planned       | codex/07-manual-playtest-evidence-gate  | .worktrees/07-manual-playtest-example                | docs/phases/07-manual-playtest-evidence/implementation.md | pending   | roadmap  |
 | 08    | git-cd-release-automation          | Automate phase CD launch + Release Please + API readability | architecture-orchestrator | phase-planner, worktree-manager, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/08-git-cd-release-automation      | .worktrees/08-git-cd-release-orchestrator            | docs/phases/08-git-cd-release-automation/implementation.md | pass | merged |
 | 09    | project-init-quickstart            | Add `pycro init <project_name>` bootstrap scaffolding       | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward   | complete | codex/09-project-init-closeout          | .worktrees/09-project-init-orchestrator              | docs/phases/09-project-init-quickstart/implementation.md | pass | closed |
+| 10    | lifecycle-update-only              | Remove automatic setup dispatch; keep update(dt) as lifecycle contract | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/10-lifecycle-update-only          | .worktrees/10-lifecycle-update-orchestrator          | docs/phases/10-update-only-lifecycle/implementation.md | pending | roadmap |
 +-------+------------------------------------+---------------------------------------------------------+---------------------------+--------------------------------------------------------------------------+---------------+-----------------------------------------+------------------------------------------------------+------------------------------------------------------+------------------+----------+
 
 ## Streams (Non-Sequential)
@@ -77,3 +79,9 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 - objective: `pycro init <project_name>` project scaffolding (`main.py` + `pycro.pyi`)
 - template_contract: starter `main.py` includes `BG_COLOR`, global `text`, `setup`, and `update(dt)` with only `clear_background` + `draw_text`
 - phase_closeout: complete (`docs/phases/09-project-init-quickstart/closeout.md`)
+
+## Phase 10 Planning Note
+
+- objective: remove framework-owned `setup()` dispatch from runtime lifecycle
+- target_contract: required `update(dt)` only; user-defined init helpers remain user-owned
+- startup_gate: pending activation by orchestrator before implementation

@@ -116,6 +116,12 @@
       "id": "09-project-init-quickstart",
       "status": "closed",
       "path": "docs/phases/09-project-init-quickstart"
+    },
+    {
+      "number": "10",
+      "id": "10-update-only-lifecycle",
+      "status": "planned",
+      "path": "docs/phases/10-update-only-lifecycle"
     }
   ],
   "tasks": [
@@ -248,6 +254,16 @@
       "worktree": ".worktrees/09-project-init-orchestrator",
       "phase_doc": "docs/phases/09-project-init-quickstart/implementation.md",
       "qa": "pass"
+    },
+    {
+      "id": "lifecycle-update-only",
+      "phase": "10",
+      "owner": "architecture-orchestrator",
+      "status": "planned",
+      "branch": "codex/10-lifecycle-update-only",
+      "worktree": ".worktrees/10-lifecycle-update-orchestrator",
+      "phase_doc": "docs/phases/10-update-only-lifecycle/implementation.md",
+      "qa": "pending"
     }
   ],
   "streams": [

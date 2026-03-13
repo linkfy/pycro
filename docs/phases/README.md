@@ -20,6 +20,7 @@ This directory stores the canonical sequential delivery phases.
 - `07-manual-playtest-evidence` (planned)
 - `08-git-cd-release-automation` (complete)
 - `09-project-init-quickstart` (complete)
+- `10-update-only-lifecycle` (planned)
 
 ## Required Files Per Phase
 
