@@ -53,3 +53,4 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 - designated_manual_scenario: examples/phase05_input_texture_lab.py
 - parallel_team_tracks: runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward
 - block_2_summary: runtime + api guards merged via orchestrator fallback; platform capability matrix updated with phase-05 desktop evidence snapshot
+- block_3_gate: complete (user outcome pass, observed issues none)
