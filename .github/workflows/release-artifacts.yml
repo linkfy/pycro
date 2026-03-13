@@ -30,11 +30,11 @@ jobs:
             target: aarch64-pc-windows-msvc
             binary_name: pycro.exe
             archive_ext: zip
-          - os: macos-13
+          - os: macos-latest
             target: x86_64-apple-darwin
             binary_name: pycro
             archive_ext: tar.gz
-          - os: macos-14
+          - os: macos-latest
             target: aarch64-apple-darwin
             binary_name: pycro
             archive_ext: tar.gz

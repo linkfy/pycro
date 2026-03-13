@@ -14,6 +14,15 @@ This project uses Release Please to open release PRs from `main` and a separate 
 
 `release-please.yml` uses `RELEASE_PLEASE_TOKEN` when present and falls back to `GITHUB_TOKEN`.
 
+## Why Manual "Run workflow" May Not Create Release Assets
+
+This is expected with current workflow behavior:
+
+- `release-artifacts` uploads assets to a GitHub Release only on `release.published`.
+- On `workflow_dispatch`, it uploads workflow artifacts, but not release assets.
+
+So if you run it manually, seeing only `Source code` in Releases is normal unless the job was triggered by an actual published release event.
+
 ## Conventional Commit Requirement
 
 Release Please parses commit history. Commit subjects must follow Conventional Commits:
