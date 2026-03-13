@@ -5,7 +5,7 @@ Keep this file in sync with state/repo-state.json.
 QUICK INDEX
 notation: use `[-] -> (Not merged)` when a task is in progress and its latest branch work is not yet merged into `main`.
 1. [x] bootstrap-foundation: Validate and close the infrastructure bootstrap. Phase 0 is closed with review outcome persisted and gates green.
-2. [-] flow-mermaid-views: Continuous flow-visualizer subagent for Mermaid lifecycle/dispatch documentation (cross-cutting, not a phase gate).
+2. [x] flow-mermaid-views: Mermaid lifecycle/dispatch refresh closed for the current phase checkpoint (cross-cutting stream can be reopened on contract changes).
 3. [x] runtime-basic-example-loader: Load a real script path and dispatch setup plus update(dt) through runtime module. Complete.
 4. [x] platform-desktop-macroquad-loop: Provide the first desktop loop owner and backend contract implementation. Complete for phase-1 desktop slice.
 5. [x] api-dispatch-basic-surface: Connect the public pycro API registry to the backend contract without breaking stub generation. Complete.
@@ -52,7 +52,7 @@ TASK ORDER
 6. [x] Activate and deliver api-direct-bridge-rich-returns (direct backend bindings and rich return-path semantics).
 7. [x] Deliver runtime-python-module-imports (entry-script local import resolution).
 8. [x] Plan and deliver runtime-stdlib-enablement (native stdlib imports for scripts).
-9. [-] Keep Mermaid diagrams updated via flow-visualizer subagent as contracts evolve.
+9. [x] Keep Mermaid diagrams updated via flow-visualizer subagent as contracts evolve (current checkpoint closed).
 10. [-] Plan and deliver platform-input-texture-coverage (expanded input/textures/platform capabilities).
 11. [ ] Plan and deliver ci-visual-payload-smoke (CI screenshot/payload assertion gate).
 12. [ ] Plan and deliver manual-playtest-evidence-gate (interactive feature acceptance evidence from user playtests).
@@ -72,11 +72,12 @@ TASK flow-mermaid-views
 title: Maintain Mermaid visualizations for lifecycle and dispatch
 phase: continuous-docs-support
 owner: flow-visualizer
-status: in_progress
+status: complete
 depends_on: bootstrap-foundation
 evidence: docs/flow-mermaids.md created and parser-safe diagrams refreshed for lifecycle, dispatch, delivery, and phase-1 dependency order.
 evidence: docs/flow-mermaids.md now reflects phase-5 runtime behavior: update(dt) enqueues draw ops, flush_draw_batch() dispatches once per frame, and update-failure path discards queued draw batch.
-next_action: Continuous subagent duty; update diagrams on every lifecycle/API contract change.
+evidence: flow-mermaid refresh was merged to `main` via commit `930bc64`.
+next_action: Reopen this continuous stream on the next lifecycle/API/dispatch contract change.
 ENDTASK
 
 TASK runtime-basic-example-loader

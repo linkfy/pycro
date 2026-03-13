@@ -74,6 +74,7 @@ Scenario documentation policy: every new texture scenario must state which pack 
 - `docs-tracker` continuously maintains sync between `docs/task-tracker.txt` and `state/repo-state.json` (objective status, task status, task order, and quick-index roadmap entries).
 - `docs-tracker` keeps future phase roadmap items visible as unchecked `[ ]` quick-index entries until those phases are activated.
 - `docs-tracker` updates tracker-linked ADR references and machine state summary fields without copying raw execution logs.
+- Tracked task closure is mandatory: when a tracked task is delivered and merged into `main`, mark it as complete in both tracker and state before ending the work block.
 - `perf-study-recorder` appends every measured positive FPS delta to `mejoras_a_esutdiar.md` in tutorial format: technique, why it helps, risk, validation protocol, and benchmark evidence.
 - `flow-visualizer` updates Mermaid diagrams so lifecycle and dispatch behavior are reviewable without reading implementation code first.
 - The machine state file is a compact snapshot for agents. Do not append transcripts or verbose logs.

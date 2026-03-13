@@ -35,7 +35,7 @@
     ],
     "phase3_plan_doc": "docs/perf-phase-3-plan.md"
   },
-  "current_branch": "codex/docs-flow-mermaid-views",
+  "current_branch": "codex/benchmark-primitive-slices",
   "summary_contract": {
     "allowed_fields": [
       "changed_files",
@@ -83,16 +83,17 @@
       "title": "Maintain Mermaid visualizations for lifecycle and dispatch",
       "phase": "continuous-docs-support",
       "owner": "flow-visualizer",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "bootstrap-foundation"
       ],
       "evidence": [
         "docs/flow-mermaids.md maintained by flow-visualizer as a cross-cutting documentation stream",
         "Diagrams refreshed for lifecycle, dispatch, delivery, and phase closeout transitions",
-        "Phase-5 diagrams now capture draw-batch queueing during update(dt), single flush_draw_batch() dispatch per frame, and discard-on-update-failure behavior"
+        "Phase-5 diagrams now capture draw-batch queueing during update(dt), single flush_draw_batch() dispatch per frame, and discard-on-update-failure behavior",
+        "flow-mermaid refresh was merged to main via commit 930bc64"
       ],
-      "next_action": "Continuous subagent duty; update diagrams on every lifecycle/API contract change.",
+      "next_action": "Reopen this continuous stream on the next lifecycle/API/dispatch contract change.",
       "adr_refs": [
         "0001",
         "0002",
