@@ -35,6 +35,10 @@ Commit subjects must follow Conventional Commits so release automation can parse
 
 - valid examples: `feat(runtime): add direct bridge cache`, `fix(ci): handle optional pygame import`, `chore(docs): sync phase tracker`
 - avoid non-conventional prefixes such as `phase05 closeout: ...` or free-form headers with spaces before the first `:`
+- commitlint-allowed `type` values are: `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, `test`, `merge`
+- before push/merge, validate new commit subjects against the allowed types:
+  - `git log --format=%s origin/develop..HEAD`
+  - every line must match `<type>(<optional-scope>): <subject>` or `<type>: <subject>` with allowed `type`
 
 After required validations pass, `commit-steward` creates a checkpoint commit immediately.
 Before any push or merge, local CI-equivalent preflight must pass at minimum:

@@ -78,6 +78,10 @@ Worker report format is fixed:
 - `commit-steward` is mandatory after required validations are green.
 - If any gate is waived, waiver reason must be recorded in both tracker and state.
 - Required local preflight before push/merge: `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, and `cargo test`.
+- Required commitlint gate before push/merge:
+  - inspect pending subjects with `git log --format=%s origin/develop..HEAD`
+  - only allow commitlint types: `build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test|merge`
+  - if a non-conforming subject is found, rewrite commit message(s) locally before push.
 
 ## Documentation Synchronization
 
