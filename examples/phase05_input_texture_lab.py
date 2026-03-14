@@ -15,10 +15,10 @@ gradient_texture: pycro.TextureHandle | None = None
 missing_texture: pycro.TextureHandle | None = None
 
 
-def setup() -> None:
+def _ensure_assets_loaded() -> None:
     global checker_texture, gradient_texture, missing_texture
-    print("[phase05_lab] Controls: arrows move sprite, Up/Down change size.")
-    print("[phase05_lab] Hold Space to rotate texture source (loaded/fallback).")
+    if checker_texture is not None and gradient_texture is not None and missing_texture is not None:
+        return
 
     checker_texture = pycro.load_texture(
         "examples/assets/kenney_development_essentials/Checkerboard/checkerboard.png"
@@ -47,6 +47,8 @@ def _is_fallback_active() -> bool:
 
 def update(dt: float) -> None:
     global player_pos, sprite_scale, toggle_cooldown, texture_index
+
+    _ensure_assets_loaded()
 
     if pycro.is_key_down("Left"):
         player_pos[0] -= PLAYER_SPEED * dt
@@ -78,7 +80,11 @@ def update(dt: float) -> None:
             (sprite_scale, sprite_scale),
         )
     else:
-        pycro.draw_circle((player_pos[0], player_pos[1]), 34.0, (0.90, 0.22, 0.22, 1.0))
+        pycro.draw_circle(
+            (player_pos[0], player_pos[1]),
+            sprite_scale * 0.5,
+            (0.90, 0.22, 0.22, 1.0),
+        )
 
     pycro.draw_text("phase05_input_texture_lab", (18.0, 26.0), 26.0, (0.86, 0.95, 1.0, 1.0))
     pycro.draw_text(

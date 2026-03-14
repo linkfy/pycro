@@ -17,7 +17,7 @@ This directory stores the canonical sequential delivery phases.
 - `04-runtime-stdlib` (closed)
 - `05-platform-input-texture` (closed)
 - `06-ci-visual-payload` (complete)
-- `07-manual-playtest-evidence` (planned)
+- `07-manual-playtest-evidence` (closed)
 - `08-git-cd-release-automation` (complete)
 - `09-project-init-quickstart` (complete)
 - `10-update-only-lifecycle` (complete)
