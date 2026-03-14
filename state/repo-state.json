@@ -21,12 +21,6 @@
     "block_progress": {
       "phase_05": "complete",
       "phase_05_closeout_doc": "docs/phases/05-platform-input-texture/closeout.md",
-      "phase_07_kickoff": "complete",
-      "phase_07_manual_gate_first_outcome": "fail",
-      "phase_07_regression_fix": "implemented",
-      "phase_07_manual_gate_revalidation": "pass",
-      "phase_07_closeout_doc": "docs/phases/07-manual-playtest-evidence/closeout.md",
-      "phase_07_qa": "pass",
       "phase_08_planning": "complete",
       "phase_08_release_automation": "complete",
       "phase_08_ci_typing_fix": "complete",
@@ -48,6 +42,9 @@
       "phase_06_validation_preflight": "pass",
       "phase_06_closeout_doc": "docs/phases/06-ci-visual-payload/closeout.md",
       "phase_06_qa": "pass",
+      "phase_07_manual_playtest_gate": "complete",
+      "phase_07_closeout_doc": "docs/phases/07-manual-playtest-evidence/closeout.md",
+      "phase_07_qa": "pass",
       "phase_11_kickoff": "complete",
       "phase_11_develop_branch_bootstrap": "complete",
       "phase_11_develop_artifacts_workflow": "implemented",
@@ -67,7 +64,12 @@
       "phase_12_validation_preflight": "pass",
       "phase_12_closeout_doc": "docs/phases/12-vec2-color-float-coercion/closeout.md",
       "phase_12_qa": "pass",
-      "phase_13_cli_generate_stubs": "planned"
+      "phase_13_cli_generate_stubs": "planned",
+      "phase_14_project_build_foundation": "planned",
+      "phase_15_project_desktop_build": "planned",
+      "phase_16_project_web_build": "planned",
+      "phase_17_project_android_build": "planned",
+      "phase_18_project_ios_build": "planned"
     }
   },
   "orchestration": {
@@ -142,7 +144,7 @@
     {
       "number": "07",
       "id": "07-manual-playtest-evidence",
-      "status": "closed",
+      "status": "complete",
       "path": "docs/phases/07-manual-playtest-evidence"
     },
     {
@@ -180,6 +182,36 @@
       "id": "13-cli-generate-stubs-command",
       "status": "planned",
       "path": "docs/phases/13-cli-generate-stubs-command"
+    },
+    {
+      "number": "14",
+      "id": "14-project-build-foundation",
+      "status": "planned",
+      "path": "docs/phases/14-project-build-foundation"
+    },
+    {
+      "number": "15",
+      "id": "15-project-desktop-build",
+      "status": "planned",
+      "path": "docs/phases/15-project-desktop-build"
+    },
+    {
+      "number": "16",
+      "id": "16-project-web-build",
+      "status": "planned",
+      "path": "docs/phases/16-project-web-build"
+    },
+    {
+      "number": "17",
+      "id": "17-project-android-build",
+      "status": "planned",
+      "path": "docs/phases/17-project-android-build"
+    },
+    {
+      "number": "18",
+      "id": "18-project-ios-build",
+      "status": "planned",
+      "path": "docs/phases/18-project-ios-build"
     }
   ],
   "tasks": [
@@ -351,6 +383,56 @@
       "branch": "codex/13-cli-generate-stubs-subcommand",
       "worktree": ".worktrees/13-cli-generate-stubs-orchestrator",
       "phase_doc": "docs/phases/13-cli-generate-stubs-command/implementation.md",
+      "qa": "pending"
+    },
+    {
+      "id": "project-build-foundation",
+      "phase": "14",
+      "owner": "architecture-orchestrator",
+      "status": "planned",
+      "branch": "codex/14-project-build-foundation",
+      "worktree": ".worktrees/14-project-build-foundation-orchestrator",
+      "phase_doc": "docs/phases/14-project-build-foundation/implementation.md",
+      "qa": "pending"
+    },
+    {
+      "id": "project-desktop-build",
+      "phase": "15",
+      "owner": "architecture-orchestrator",
+      "status": "planned",
+      "branch": "codex/15-project-desktop-build",
+      "worktree": ".worktrees/15-project-desktop-build-orchestrator",
+      "phase_doc": "docs/phases/15-project-desktop-build/implementation.md",
+      "qa": "pending"
+    },
+    {
+      "id": "project-web-build",
+      "phase": "16",
+      "owner": "architecture-orchestrator",
+      "status": "planned",
+      "branch": "codex/16-project-web-build",
+      "worktree": ".worktrees/16-project-web-build-orchestrator",
+      "phase_doc": "docs/phases/16-project-web-build/implementation.md",
+      "qa": "pending"
+    },
+    {
+      "id": "project-android-build",
+      "phase": "17",
+      "owner": "architecture-orchestrator",
+      "status": "planned",
+      "branch": "codex/17-project-android-build",
+      "worktree": ".worktrees/17-project-android-build-orchestrator",
+      "phase_doc": "docs/phases/17-project-android-build/implementation.md",
+      "qa": "pending"
+    },
+    {
+      "id": "project-ios-build",
+      "phase": "18",
+      "owner": "architecture-orchestrator",
+      "status": "planned",
+      "branch": "codex/18-project-ios-build",
+      "worktree": ".worktrees/18-project-ios-build-orchestrator",
+      "phase_doc": "docs/phases/18-project-ios-build/implementation.md",
       "qa": "pending"
     }
   ],

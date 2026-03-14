@@ -24,6 +24,11 @@ This directory stores the canonical sequential delivery phases.
 - `11-develop-integration-artifacts` (complete)
 - `12-vec2-color-float-coercion` (complete)
 - `13-cli-generate-stubs-command` (planned)
+- `14-project-build-foundation` (planned)
+- `15-project-desktop-build` (planned)
+- `16-project-web-build` (planned)
+- `17-project-android-build` (planned)
+- `18-project-ios-build` (planned)
 
 ## Required Files Per Phase
 
