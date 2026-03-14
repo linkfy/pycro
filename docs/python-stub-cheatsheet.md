@@ -15,6 +15,21 @@ Lifecycle contract: the engine calls required `update(dt)` each frame. The frame
 | `Vec2` | `tuple[float, float]` | Two-dimensional vector tuple. |
 | `TextureHandle` | `str` | Opaque texture handle returned by the engine. |
 
+### Color Contract (Important)
+
+- `Color` values are normalized RGBA channels in the `0..1` range.
+- Passing channels like `255` will saturate to bright/white output because they are interpreted as floats, not byte colors.
+- Preferred style:
+  - black: `(0, 0, 0, 1)`
+  - white: `(1, 1, 1, 1)`
+  - cyan: `(0, 1, 1, 1)`
+
+### Enum
+
+| Name | Members | Description |
+| --- | --- | --- |
+| `KEY` | `SPACE`, `LEFT`, `RIGHT`, `UP`, `DOWN`, `ESCAPE`, `MOUSE_LEFT`, `MOUSE_RIGHT`, `MOUSE_MIDDLE` | Supported key values for `is_key_down`. |
+
 ### Functions
 
 | Function | Signature | Family | Summary |
@@ -24,7 +39,7 @@ Lifecycle contract: the engine calls required `update(dt)` each frame. The frame
 | `draw_text` | `(text: str, position: Vec2, font_size: float, color: Color) -> None` | render | Draw screen-space text using baseline anchor. |
 | `submit_render` | `(commands: list[tuple[object, ...]]) -> None` | render batch | Queue many render commands in one bridge call. |
 | `submit_circle_batch` | `(positions: list[Vec2], radii: list[float], colors: list[Color]) -> None` | circle batch | Queue many circles in one specialized batch call. |
-| `is_key_down` | `(key: str) -> bool` | input | Return whether a key is currently held. |
+| `is_key_down` | `(key: KEY) -> bool` | input | Return whether a key or mouse button is currently held. |
 | `frame_time` | `() -> float` | timing | Return last frame delta time in seconds. |
 | `load_texture` | `(path: str) -> TextureHandle` | textures/assets | Load texture and return opaque handle. |
 | `draw_texture` | `(texture: TextureHandle, position: Vec2, size: Vec2) -> None` | textures/assets | Draw texture at world-space position and size. |
@@ -75,14 +90,14 @@ import pycro
 pos = [640.0, 360.0]
 
 def update(dt: float) -> None:
-    speed = 260.0 if pycro.is_key_down("Space") else 150.0
-    if pycro.is_key_down("Left"):
+    speed = 260.0 if pycro.is_key_down(pycro.KEY.SPACE) else 150.0
+    if pycro.is_key_down(pycro.KEY.LEFT):
         pos[0] -= speed * dt
-    if pycro.is_key_down("Right"):
+    if pycro.is_key_down(pycro.KEY.RIGHT):
         pos[0] += speed * dt
-    if pycro.is_key_down("Up"):
+    if pycro.is_key_down(pycro.KEY.UP):
         pos[1] -= speed * dt
-    if pycro.is_key_down("Down"):
+    if pycro.is_key_down(pycro.KEY.DOWN):
         pos[1] += speed * dt
 
     pycro.clear_background((0.05, 0.06, 0.10, 1.0))
@@ -156,7 +171,7 @@ These scenarios were validated on 2026-03-14 with:
 
 ## Exported API (`__all__`)
 
-`["Color", "Vec2", "TextureHandle", "clear_background", "draw_circle", "is_key_down", "frame_time", "load_texture", "draw_texture", "set_camera_target", "draw_text", "submit_render", "submit_circle_batch"]`
+`["Color", "Vec2", "TextureHandle", "KEY", "clear_background", "draw_circle", "is_key_down", "frame_time", "load_texture", "draw_texture", "set_camera_target", "draw_text", "submit_render", "submit_circle_batch"]`
 
 ## Functions
 
@@ -170,7 +185,7 @@ These scenarios were validated on 2026-03-14 with:
 
 ### Input + Timing
 
-- `is_key_down(key: str) -> bool`: Return whether a named key is held on the current frame.
+- `is_key_down(key: KEY) -> bool`: Return whether a typed key value is held on the current frame.
 - `frame_time() -> float`: Return the last frame delta time in seconds.
 
 ### Textures / Assets

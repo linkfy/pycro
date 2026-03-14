@@ -14,13 +14,13 @@ def create_player(name: str) -> Player:
 
 
 def update_player(player: Player, dt: float) -> None:
-    if pycro.is_key_down("Right"):
+    if pycro.is_key_down(pycro.KEY.RIGHT):
         player.x += player.speed * dt
-    if pycro.is_key_down("Left"):
+    if pycro.is_key_down(pycro.KEY.LEFT):
         player.x -= player.speed * dt
-    if pycro.is_key_down("Down"):
+    if pycro.is_key_down(pycro.KEY.DOWN):
         player.y += player.speed * dt
-    if pycro.is_key_down("Up"):
+    if pycro.is_key_down(pycro.KEY.UP):
         player.y -= player.speed * dt
 
 

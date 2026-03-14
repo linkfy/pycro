@@ -22,6 +22,8 @@ This directory stores the canonical sequential delivery phases.
 - `09-project-init-quickstart` (complete)
 - `10-update-only-lifecycle` (complete)
 - `11-develop-integration-artifacts` (complete)
+- `12-vec2-color-float-coercion` (complete)
+- `13-cli-generate-stubs-command` (planned)
 
 ## Required Files Per Phase
 

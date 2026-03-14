@@ -7,6 +7,7 @@ use crate::backend::{
 };
 use parking_lot::{Mutex, MutexGuard};
 use rustpython_vm::builtins::{PyBaseExceptionRef, PyDictRef, PyFloat, PyList, PyStr, PyTuple};
+use rustpython_vm::function::FuncArgs;
 use rustpython_vm::scope::Scope;
 use rustpython_vm::{AsObject, Interpreter, PyObjectRef, PyResult, Settings, VirtualMachine};
 use std::collections::HashSet;
@@ -430,6 +431,7 @@ impl RustPythonVm {
             .ok()
             .and_then(|value| value.parse::<u8>().ok())
             .unwrap_or(2);
+        settings.path_list = vec![rustpython_pylib::LIB_PATH.to_owned(), String::new()];
         settings
     }
 
@@ -438,7 +440,9 @@ impl RustPythonVm {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            interpreter: Interpreter::without_stdlib(Self::interpreter_settings()),
+            interpreter: Interpreter::with_init(Self::interpreter_settings(), |vm| {
+                vm.add_native_modules(rustpython_stdlib::get_module_inits());
+            }),
             scope: None,
             update_callable: None,
             backend: Arc::new(Mutex::new(MacroquadBackendContract::default())),
@@ -469,7 +473,21 @@ impl RustPythonVm {
     }
 
     fn module_bootstrap_source() -> &'static str {
-        "Color = tuple\nVec2 = tuple\nTextureHandle = str\n"
+        r#"Color = tuple
+Vec2 = tuple
+TextureHandle = str
+
+class KEY:
+    SPACE = "Space"
+    LEFT = "Left"
+    RIGHT = "Right"
+    UP = "Up"
+    DOWN = "Down"
+    ESCAPE = "Escape"
+    MOUSE_LEFT = "MOUSE_LEFT"
+    MOUSE_RIGHT = "MOUSE_RIGHT"
+    MOUSE_MIDDLE = "MOUSE_MIDDLE"
+"#
     }
 
     fn with_scope<T>(
@@ -585,10 +603,38 @@ impl RustPythonVm {
         if let Some(float) = item.payload_if_subclass::<PyFloat>(vm) {
             return Ok(float.to_f64() as f32);
         }
-        let value: f64 = item.clone().try_into_value(vm).map_err(|_| {
-            vm.new_value_error(format!("{context}: expected float at index {index}"))
+
+        let coerced = vm
+            .call_method(item.as_object(), "__float__", ())
+            .map_err(|_| {
+                vm.new_value_error(format!(
+                    "{context}: expected numeric value (int/float) at index {index}"
+                ))
+            })?;
+        let value = coerced.payload_if_subclass::<PyFloat>(vm).ok_or_else(|| {
+            vm.new_value_error(format!(
+                "{context}: expected numeric value (int/float) at index {index}"
+            ))
         })?;
-        Ok(value as f32)
+        Ok(value.to_f64() as f32)
+    }
+
+    fn parse_key_name_py(
+        vm: &VirtualMachine,
+        key: &PyObjectRef,
+        context: &str,
+    ) -> PyResult<String> {
+        if let Some(py_str) = key.payload_if_subclass::<PyStr>(vm) {
+            return Ok(py_str.as_str().to_owned());
+        }
+        if let Ok(value) = key.get_attr("value", vm)
+            && let Some(py_str) = value.payload_if_subclass::<PyStr>(vm)
+        {
+            return Ok(py_str.as_str().to_owned());
+        }
+        Err(vm.new_value_error(format!(
+            "{context}: expected KEY enum value (e.g. KEY.ESCAPE)"
+        )))
     }
 
     fn parse_color_py(vm: &VirtualMachine, object: &PyObjectRef, context: &str) -> PyResult<Color> {
@@ -1284,9 +1330,25 @@ impl RustPythonVm {
                 }
                 "is_key_down" => {
                     let backend = Arc::clone(&backend);
-                    vm.new_function("is_key_down", move |key: String, vm: &VirtualMachine| {
-                        Self::with_backend_py(vm, &backend, |backend| Ok(backend.is_key_down(&key)))
-                    })
+                    vm.new_function(
+                        "is_key_down",
+                        move |mut args: FuncArgs, vm: &VirtualMachine| {
+                            if let Some(key_kw) = args.take_keyword("key") {
+                                if !args.args.is_empty() {
+                                    return Err(vm.new_type_error(
+                                        "is_key_down got multiple values for argument 'key'"
+                                            .to_owned(),
+                                    ));
+                                }
+                                args.prepend_arg(key_kw);
+                            }
+                            let (key,): (PyObjectRef,) = args.bind(vm)?;
+                            let key = Self::parse_key_name_py(vm, &key, "is_key_down key")?;
+                            Self::with_backend_py(vm, &backend, |backend| {
+                                Ok(backend.is_key_down(&key))
+                            })
+                        },
+                    )
                     .into()
                 }
                 "frame_time" => {
@@ -1523,7 +1585,7 @@ impl RustPythonVm {
 
         let script_dir = Path::new(path).parent().unwrap_or_else(|| Path::new("."));
 
-        if !script_dir.join("math.py").exists() {
+        if !script_dir.join("math.py").exists() && vm.import("math", 0).is_err() {
             let math_attrs = vm.ctx.new_dict();
             math_attrs
                 .set_item("__name__", vm.ctx.new_str("math").into(), vm)
@@ -1579,7 +1641,7 @@ impl RustPythonVm {
                 })?;
         }
 
-        if !script_dir.join("os.py").exists() {
+        if !script_dir.join("os.py").exists() && vm.import("os", 0).is_err() {
             let os_attrs = vm.ctx.new_dict();
             os_attrs
                 .set_item("__name__", vm.ctx.new_str("os").into(), vm)
@@ -2872,6 +2934,125 @@ def update(dt):
     }
 
     #[test]
+    fn draw_calls_accept_int_components_for_vec2_and_color() {
+        let script = r#"
+import pycro
+
+def update(dt):
+    pycro.draw_circle((10, 20), 5.0, (1, 2, 3, 4))
+    pycro.draw_text("ints", (30, 40), 18.0, (10, 20, 30, 255))
+    pycro.draw_texture("tex", (50, 60), (64, 48))
+"#;
+        let script_path = write_temp_script("int-components-coercion", script);
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime.load_main().expect("load_main should succeed");
+        runtime
+            .update(0.016)
+            .expect("update should accept int components for Vec2/Color");
+
+        assert_eq!(
+            runtime.vm().queued_draw_batch_snapshot(),
+            vec![
+                QueuedDrawOp::DrawCircle {
+                    position: Vec2 { x: 10.0, y: 20.0 },
+                    radius: 5.0,
+                    color: Color {
+                        r: 1.0,
+                        g: 2.0,
+                        b: 3.0,
+                        a: 4.0
+                    },
+                    render_mode: VectorRenderMode::Default,
+                },
+                QueuedDrawOp::DrawText {
+                    text: "ints".to_owned(),
+                    position: Vec2 { x: 30.0, y: 40.0 },
+                    font_size: 18.0,
+                    color: Color {
+                        r: 10.0,
+                        g: 20.0,
+                        b: 30.0,
+                        a: 255.0
+                    }
+                },
+                QueuedDrawOp::DrawTexture {
+                    texture: "tex".to_owned(),
+                    position: Vec2 { x: 50.0, y: 60.0 },
+                    size: Vec2 { x: 64.0, y: 48.0 }
+                },
+            ]
+        );
+
+        fs::remove_file(script_path).expect("temporary script should be removable");
+    }
+
+    #[test]
+    fn is_key_down_accepts_key_enum_values() {
+        let script = r#"
+import pycro
+
+def update(dt):
+    _ = dt
+    escape_down = pycro.is_key_down(pycro.KEY.ESCAPE)
+    mouse_down = pycro.is_key_down(pycro.KEY.MOUSE_LEFT)
+    if not isinstance(escape_down, bool):
+        raise RuntimeError("KEY.ESCAPE result is not bool")
+    if not isinstance(mouse_down, bool):
+        raise RuntimeError("KEY.MOUSE_LEFT result is not bool")
+"#;
+        let script_path = write_temp_script("key-enum-input", script);
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime.load_main().expect("load_main should succeed");
+        runtime
+            .update(0.016)
+            .expect("update should accept KEY enum values");
+
+        fs::remove_file(script_path).expect("temporary script should be removable");
+    }
+
+    #[test]
+    fn is_key_down_accepts_key_keyword_argument() {
+        let script = r#"
+import pycro
+
+def update(dt):
+    _ = dt
+    escape_down = pycro.is_key_down(key=pycro.KEY.ESCAPE)
+    mouse_down = pycro.is_key_down(key=pycro.KEY.MOUSE_LEFT)
+    if not isinstance(escape_down, bool):
+        raise RuntimeError("keyword KEY.ESCAPE result is not bool")
+    if not isinstance(mouse_down, bool):
+        raise RuntimeError("keyword KEY.MOUSE_LEFT result is not bool")
+"#;
+        let script_path = write_temp_script("key-enum-keyword-input", script);
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime.load_main().expect("load_main should succeed");
+        runtime
+            .update(0.016)
+            .expect("update should accept key keyword argument");
+
+        fs::remove_file(script_path).expect("temporary script should be removable");
+    }
+
+    #[test]
     fn load_main_supports_importing_sidecar_python_modules_from_script_directory() {
         let root = write_temp_project(
             "imports",
@@ -2966,6 +3147,42 @@ def update(dt):
         runtime
             .update(0.016)
             .expect("update should succeed using stdlib modules");
+
+        fs::remove_file(script_path).expect("temporary script should be removable");
+    }
+
+    #[test]
+    fn load_main_supports_stdlib_encodings_latin1() {
+        let script = r#"
+import codecs
+import re
+
+def update(dt):
+    latin1 = codecs.lookup("latin1")
+    if latin1 is None:
+        raise RuntimeError("codecs.lookup('latin1') returned None")
+    decoded = bytes([0xE9]).decode("latin1")
+    if ord(decoded) != 233:
+        raise RuntimeError("latin1 decode produced unexpected codepoint")
+    encoded = "caf\xe9".encode("latin1")
+    if encoded != b"caf\xe9":
+        raise RuntimeError("latin1 encode produced unexpected bytes")
+    _ = re.compile(br'^[ \t\f]*(?:[#\r\n]|$)', re.ASCII)
+"#;
+        let script_path = write_temp_script("stdlib-encodings-latin1", script);
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime
+            .load_main()
+            .expect("main with latin1 encoding usage should load");
+        runtime
+            .update(0.016)
+            .expect("update should succeed using latin1 encoding");
 
         fs::remove_file(script_path).expect("temporary script should be removable");
     }

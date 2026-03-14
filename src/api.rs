@@ -316,8 +316,8 @@ const DRAW_CIRCLE_ARGS: [PythonArg; 3] = [
 
 const IS_KEY_DOWN_ARGS: [PythonArg; 1] = [PythonArg {
     name: "key",
-    type_hint: "str",
-    summary: "Platform-neutral key identifier.",
+    type_hint: "KEY",
+    summary: "Typed key enum value from `KEY`.",
 }];
 
 const LOAD_TEXTURE_ARGS: [PythonArg; 1] = [PythonArg {
@@ -486,6 +486,18 @@ const MODULE_SPEC: ModuleSpec = ModuleSpec {
     functions: &FUNCTIONS,
 };
 
+const KEY_ENUM_MEMBERS: [(&str, &str); 9] = [
+    ("SPACE", "Space"),
+    ("LEFT", "Left"),
+    ("RIGHT", "Right"),
+    ("UP", "Up"),
+    ("DOWN", "Down"),
+    ("ESCAPE", "Escape"),
+    ("MOUSE_LEFT", "MOUSE_LEFT"),
+    ("MOUSE_RIGHT", "MOUSE_RIGHT"),
+    ("MOUSE_MIDDLE", "MOUSE_MIDDLE"),
+];
+
 /// Returns the canonical module specification.
 #[must_use]
 pub const fn module_spec() -> &'static ModuleSpec {
@@ -520,6 +532,7 @@ pub fn render_stub(spec: &ModuleSpec) -> String {
     )
     .expect("writing to String cannot fail");
     writeln!(output).expect("writing to String cannot fail");
+    writeln!(output, "from enum import Enum").expect("writing to String cannot fail");
     writeln!(output, "from typing import TypeAlias").expect("writing to String cannot fail");
     writeln!(output).expect("writing to String cannot fail");
 
@@ -530,7 +543,19 @@ pub fn render_stub(spec: &ModuleSpec) -> String {
         writeln!(output).expect("writing to String cannot fail");
     }
 
+    writeln!(output, "class KEY(str, Enum):").expect("writing to String cannot fail");
+    writeln!(
+        output,
+        "    \"\"\"Supported input keys for `is_key_down`.\"\"\""
+    )
+    .expect("writing to String cannot fail");
+    for (name, value) in KEY_ENUM_MEMBERS {
+        writeln!(output, "    {} = \"{}\"", name, value).expect("writing to String cannot fail");
+    }
+    writeln!(output).expect("writing to String cannot fail");
+
     let mut exports: Vec<&str> = spec.aliases.iter().map(|alias| alias.name).collect();
+    exports.push("KEY");
     exports.extend(spec.functions.iter().map(|function| function.name));
 
     writeln!(
@@ -630,7 +655,8 @@ mod tests {
             .find(|entry| entry.function_name == "is_key_down")
             .expect("is_key_down metadata should exist");
         assert_eq!(is_key_down.return_type, "bool");
-        assert!(stub.contains("def is_key_down(key: str) -> bool:"));
+        assert!(stub.contains("class KEY(str, Enum):"));
+        assert!(stub.contains("def is_key_down(key: KEY) -> bool:"));
 
         let frame_time = plan
             .iter()
