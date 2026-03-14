@@ -4,13 +4,13 @@
   "active_phase": {
     "number": "11",
     "id": "11-develop-integration-artifacts",
-    "status": "in_progress",
+    "status": "complete",
     "path": "docs/phases/11-develop-integration-artifacts"
   },
   "current_objective": {
     "id": "develop-ready-for-release-flow",
     "title": "Develop-first integration with per-push artifacts and manual ready-for-release promotion to main",
-    "status": "in_progress",
+    "status": "complete",
     "phase_doc": "docs/phases/11-develop-integration-artifacts/implementation.md",
     "startup_gate": {
       "requirements_validated": true,
@@ -48,11 +48,14 @@
       "phase_06_validation_preflight": "pass",
       "phase_06_closeout_doc": "docs/phases/06-ci-visual-payload/closeout.md",
       "phase_06_qa": "pass",
-      "phase_11_kickoff": "in_progress",
+      "phase_11_kickoff": "complete",
       "phase_11_develop_branch_bootstrap": "complete",
       "phase_11_develop_artifacts_workflow": "implemented",
       "phase_11_governance_docs_sync": "implemented",
-      "phase_11_validation_preflight": "pass"
+      "phase_11_validation_preflight": "pass",
+      "phase_11_local_artifact_smoke": "pass",
+      "phase_11_closeout_doc": "docs/phases/11-develop-integration-artifacts/closeout.md",
+      "phase_11_qa": "pass"
     }
   },
   "orchestration": {
@@ -151,7 +154,7 @@
     {
       "number": "11",
       "id": "11-develop-integration-artifacts",
-      "status": "in_progress",
+      "status": "complete",
       "path": "docs/phases/11-develop-integration-artifacts"
     }
   ],
@@ -300,11 +303,11 @@
       "id": "develop-ready-for-release-flow",
       "phase": "11",
       "owner": "architecture-orchestrator",
-      "status": "in_progress",
+      "status": "complete",
       "branch": "codex/11-develop-default-release-flow",
       "worktree": "/Users/linkfy/Code/pycro",
       "phase_doc": "docs/phases/11-develop-integration-artifacts/implementation.md",
-      "qa": "pending"
+      "qa": "pass"
     }
   ],
   "streams": [

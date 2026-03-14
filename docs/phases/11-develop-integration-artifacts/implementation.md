@@ -11,7 +11,7 @@
 
 | Task ID | Owner | Parallel Team | Status | Branch | Worktree | Validation Gate |
 | --- | --- | --- | --- | --- | --- | --- |
-| develop-ready-for-release-flow | architecture-orchestrator | docs-tracker, qa-reviewer, commit-steward | in_progress | codex/11-develop-default-release-flow | /Users/linkfy/Code/pycro | per docs/validation-policy.md |
+| develop-ready-for-release-flow | architecture-orchestrator | docs-tracker, qa-reviewer, commit-steward | complete | codex/11-develop-default-release-flow | /Users/linkfy/Code/pycro | pass |
 
 ## Reporting Contract
 
