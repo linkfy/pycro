@@ -23,11 +23,11 @@ def update(dt: float) -> None:
     pycro.clear_background((0.06, 0.07, 0.10, 1.0))
 
     speed = 140.0
-    if pycro.is_key_down("Left"):
+    if pycro.is_key_down(pycro.KEY.LEFT):
         camera_target_x -= speed * dt
-    if pycro.is_key_down("Right"):
+    if pycro.is_key_down(pycro.KEY.RIGHT):
         camera_target_x += speed * dt
-    if pycro.is_key_down("Space"):
+    if pycro.is_key_down(pycro.KEY.SPACE):
         camera_target_x = 320.0
 
     pycro.set_camera_target((camera_target_x, 180.0))

@@ -2,22 +2,22 @@
   "schema_version": 2,
   "project": "pycro",
   "active_phase": {
-    "number": "11",
-    "id": "11-develop-integration-artifacts",
+    "number": "12",
+    "id": "12-vec2-color-float-coercion",
     "status": "complete",
-    "path": "docs/phases/11-develop-integration-artifacts"
+    "path": "docs/phases/12-vec2-color-float-coercion"
   },
   "current_objective": {
-    "id": "develop-ready-for-release-flow",
-    "title": "Develop-first integration with per-push artifacts and manual ready-for-release promotion to main",
+    "id": "runtime-vec2-color-float-coercion",
+    "title": "Coerce Vec2/Color numerics and add typed KEY enum contract for is_key_down",
     "status": "complete",
-    "phase_doc": "docs/phases/11-develop-integration-artifacts/implementation.md",
+    "phase_doc": "docs/phases/12-vec2-color-float-coercion/implementation.md",
     "startup_gate": {
       "requirements_validated": true,
       "design_validated": true,
       "kickoff_date": "2026-03-14"
     },
-    "manual_validation_scenario": "n/a",
+    "manual_validation_scenario": "examples/phase12_vec2_color_numeric_coercion.py",
     "block_progress": {
       "phase_05": "complete",
       "phase_05_closeout_doc": "docs/phases/05-platform-input-texture/closeout.md",
@@ -55,7 +55,19 @@
       "phase_11_validation_preflight": "pass",
       "phase_11_local_artifact_smoke": "pass",
       "phase_11_closeout_doc": "docs/phases/11-develop-integration-artifacts/closeout.md",
-      "phase_11_qa": "pass"
+      "phase_11_qa": "pass",
+      "phase_12_kickoff": "complete",
+      "phase_12_runtime_numeric_coercion": "implemented",
+      "phase_12_key_enum_contract": "implemented",
+      "phase_12_mouse_key_mapping": "implemented",
+      "phase_12_stdlib_enablement": "implemented",
+      "phase_12_regression_tests": "implemented",
+      "phase_12_example_scenario": "implemented",
+      "phase_12_adr": "accepted",
+      "phase_12_validation_preflight": "pass",
+      "phase_12_closeout_doc": "docs/phases/12-vec2-color-float-coercion/closeout.md",
+      "phase_12_qa": "pass",
+      "phase_13_cli_generate_stubs": "planned"
     }
   },
   "orchestration": {
@@ -83,7 +95,7 @@
     },
     "manager_agent": "worktree-manager"
   },
-  "current_branch": "codex/11-develop-default-release-flow",
+  "current_branch": "codex/12-vec2-color-float-coercion",
   "phase_sequence": [
     {
       "number": "00",
@@ -156,6 +168,18 @@
       "id": "11-develop-integration-artifacts",
       "status": "complete",
       "path": "docs/phases/11-develop-integration-artifacts"
+    },
+    {
+      "number": "12",
+      "id": "12-vec2-color-float-coercion",
+      "status": "complete",
+      "path": "docs/phases/12-vec2-color-float-coercion"
+    },
+    {
+      "number": "13",
+      "id": "13-cli-generate-stubs-command",
+      "status": "planned",
+      "path": "docs/phases/13-cli-generate-stubs-command"
     }
   ],
   "tasks": [
@@ -308,6 +332,26 @@
       "worktree": "/Users/linkfy/Code/pycro",
       "phase_doc": "docs/phases/11-develop-integration-artifacts/implementation.md",
       "qa": "pass"
+    },
+    {
+      "id": "runtime-vec2-color-float-coercion",
+      "phase": "12",
+      "owner": "architecture-orchestrator",
+      "status": "complete",
+      "branch": "codex/12-vec2-color-float-coercion",
+      "worktree": "/Users/linkfy/Code/pycro",
+      "phase_doc": "docs/phases/12-vec2-color-float-coercion/implementation.md",
+      "qa": "pass"
+    },
+    {
+      "id": "cli-generate-stubs-subcommand",
+      "phase": "13",
+      "owner": "architecture-orchestrator",
+      "status": "planned",
+      "branch": "codex/13-cli-generate-stubs-subcommand",
+      "worktree": ".worktrees/13-cli-generate-stubs-orchestrator",
+      "phase_doc": "docs/phases/13-cli-generate-stubs-command/implementation.md",
+      "qa": "pending"
     }
   ],
   "streams": [

@@ -12,9 +12,11 @@ path = "src/main.rs"
 
 [dependencies]
 macroquad = "0.4"
-rustpython-vm = "0.4"
+rustpython-vm = { version = "0.4", features = ["importlib", "encodings"] }
 mimalloc = "0.1"
 parking_lot = "0.12"
+rustpython-stdlib = "0.4"
+rustpython-pylib = "0.4"
 
 [lints.clippy]
 dbg_macro = "deny"

@@ -50,19 +50,19 @@ def update(dt: float) -> None:
 
     _ensure_assets_loaded()
 
-    if pycro.is_key_down("Left"):
+    if pycro.is_key_down(pycro.KEY.LEFT):
         player_pos[0] -= PLAYER_SPEED * dt
-    if pycro.is_key_down("Right"):
+    if pycro.is_key_down(pycro.KEY.RIGHT):
         player_pos[0] += PLAYER_SPEED * dt
-    if pycro.is_key_down("Up"):
+    if pycro.is_key_down(pycro.KEY.UP):
         sprite_scale += PLAYER_SPEED * 0.60 * dt
-    if pycro.is_key_down("Down"):
+    if pycro.is_key_down(pycro.KEY.DOWN):
         sprite_scale -= PLAYER_SPEED * 0.60 * dt
 
     sprite_scale = max(MIN_SCALE, min(MAX_SCALE, sprite_scale))
     toggle_cooldown = max(0.0, toggle_cooldown - dt)
 
-    if pycro.is_key_down("Space") and toggle_cooldown <= 0.0:
+    if pycro.is_key_down(pycro.KEY.SPACE) and toggle_cooldown <= 0.0:
         texture_index += 1
         toggle_cooldown = TOGGLE_COOLDOWN_SECONDS
 

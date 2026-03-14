@@ -42,6 +42,13 @@ Current lifecycle behavior (`ScriptRuntime`):
 4. Require `update(dt)`; fail with `RuntimeError::MissingUpdateFunction` if missing.
 5. On each frame, call `update(dt)`.
 
+Color contract note:
+
+- `Color` is a normalized RGBA tuple contract (`0..1` per channel), not byte-based `0..255`.
+- Examples:
+  - black: `(0, 0, 0, 1)`
+  - white: `(1, 1, 1, 1)`
+
 Phase-4 import compatibility behavior (`RustPythonVm::load_script`):
 
 - Adds entry-script directory to `sys.path`.
@@ -74,7 +81,7 @@ Public authored API functions (from `FUNCTIONS`):
 
 - `clear_background(color: Color) -> None`
 - `draw_circle(position: Vec2, radius: float, color: Color) -> None`
-- `is_key_down(key: str) -> bool`
+- `is_key_down(key: KEY) -> bool`
 - `frame_time() -> float`
 - `load_texture(path: str) -> TextureHandle`
 - `draw_texture(texture: TextureHandle, position: Vec2, size: Vec2) -> None`
@@ -89,6 +96,10 @@ Deterministic outputs:
 - `render_stub(spec)`: deterministic `python/pycro/__init__.pyi` content.
 
 Note: `parse_backend_dispatch_record` and `dispatch_backend_record` still exist for typed record parsing/dispatch utility and tests; runtime API execution path is direct-call bridge.
+
+Argument binding note:
+
+- `is_key_down` accepts `key` as positional or keyword argument (`is_key_down(KEY.ESCAPE)` and `is_key_down(key=KEY.ESCAPE)`).
 
 ## Backend Module (`src/backend.rs`)
 

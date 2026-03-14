@@ -315,7 +315,7 @@ def update(dt: float) -> None:
     global _elapsed_wall_seconds, _stable_sample_seconds, _hud_refresh_in
     _ = dt
 
-    if pycro.is_key_down("Escape"):
+    if pycro.is_key_down(pycro.KEY.ESCAPE):
         _emit_summary("escape")
         raise SystemExit(0)
 
@@ -323,10 +323,10 @@ def update(dt: float) -> None:
     sim_dt = min(wall_dt, MAX_SIM_DT)
     _elapsed_wall_seconds += wall_dt
 
-    if _consume_left_repeat(pycro.is_key_down("Left"), sim_dt):
+    if _consume_left_repeat(pycro.is_key_down(pycro.KEY.LEFT), sim_dt):
         _set_ball_count(_ball_count() - BALL_STEP)
         _refresh_hud_lines()
-    if _consume_right_repeat(pycro.is_key_down("Right"), sim_dt):
+    if _consume_right_repeat(pycro.is_key_down(pycro.KEY.RIGHT), sim_dt):
         _set_ball_count(_ball_count() + BALL_STEP)
         _refresh_hud_lines()
     _auto_drive(sim_dt)

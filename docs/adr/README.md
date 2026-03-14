@@ -14,6 +14,7 @@
 - `0010`: Phase-folder governance, orchestrated delegation, and worktree-first parallelism
 - `0011`: Update-only lifecycle contract (`update(dt)` only, no framework `setup()` dispatch)
 - `0012`: Develop-first integration and manual release promotion to `main`
+- `0013`: Vec2/Color numeric coercion for Python runtime calls
 
 ## Process
 

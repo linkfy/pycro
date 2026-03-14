@@ -30,16 +30,16 @@ def setup() -> None:
 def update(dt: float) -> None:
     global phase, frequency, amplitude
 
-    if pycro.is_key_down("Left"):
+    if pycro.is_key_down(pycro.KEY.LEFT):
         frequency = max(0.4, frequency - (0.9 * dt))
-    if pycro.is_key_down("Right"):
+    if pycro.is_key_down(pycro.KEY.RIGHT):
         frequency = min(4.0, frequency + (0.9 * dt))
-    if pycro.is_key_down("Down"):
+    if pycro.is_key_down(pycro.KEY.DOWN):
         amplitude = max(24.0, amplitude - (120.0 * dt))
-    if pycro.is_key_down("Up"):
+    if pycro.is_key_down(pycro.KEY.UP):
         amplitude = min(220.0, amplitude + (120.0 * dt))
 
-    if pycro.is_key_down("Space"):
+    if pycro.is_key_down(pycro.KEY.SPACE):
         phase = 0.0
     else:
         phase += pycro.frame_time() * WAVE_SPEED

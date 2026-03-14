@@ -18,7 +18,7 @@ def setup() -> None:
 def update(dt: float) -> None:
     pycro.clear_background((0.08, 0.09, 0.12, 1.0))
 
-    if pycro.is_key_down("Space"):
+    if pycro.is_key_down(pycro.KEY.SPACE):
         pycro.set_camera_target(CAMERA_FOCUS_TARGET)
 
     pycro.draw_circle(MAIN_CIRCLE_POSITION, 24.0, (0.2, 0.7, 1.0, 1.0))

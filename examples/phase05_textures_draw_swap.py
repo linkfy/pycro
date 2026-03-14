@@ -22,7 +22,7 @@ def update(dt: float) -> None:
         pycro.draw_circle((420.0, 260.0), 45.0, (0.95, 0.22, 0.22, 1.0))
         return
 
-    show_loaded_left = not pycro.is_key_down("Space")
+    show_loaded_left = not pycro.is_key_down(pycro.KEY.SPACE)
 
     left_tex = loaded_texture if show_loaded_left else missing_texture
     right_tex = missing_texture if show_loaded_left else loaded_texture

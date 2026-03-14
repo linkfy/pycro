@@ -20,6 +20,8 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 09    | docs/phases/09-project-init-quickstart       | complete    | CLI project bootstrap via `pycro init <project_name>`        | closed                  |
 | 10    | docs/phases/10-update-only-lifecycle         | complete    | Update-only lifecycle + default `main.py` + init self-copy  | closed (2026-03-14)    |
 | 11    | docs/phases/11-develop-integration-artifacts | complete    | Develop-first flow + push artifacts for validation           | closed (2026-03-14)    |
+| 12    | docs/phases/12-vec2-color-float-coercion     | complete    | Vec2/Color numeric coercion + typed KEY enum input contract  | closed (2026-03-14)    |
+| 13    | docs/phases/13-cli-generate-stubs-command    | planned     | CLI subcommand `pycro generate_stubs` for `.pyi` regeneration| queued post phase 12   |
 +-------+----------------------------------------------+-------------+---------------------------------------------------------------+------------------------+
 
 ## Task Table
@@ -42,6 +44,8 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 09    | project-init-quickstart            | Add `pycro init <project_name>` bootstrap scaffolding       | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward   | complete | codex/09-project-init-closeout          | .worktrees/09-project-init-orchestrator              | docs/phases/09-project-init-quickstart/implementation.md | pass | closed |
 | 10    | lifecycle-update-only              | Remove setup auto-dispatch; default to `main.py`; copy `pycro` binary on init | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/10-lifecycle-update-only       | /Users/linkfy/Code/pycro                               | docs/phases/10-update-only-lifecycle/implementation.md | pass | merged |
 | 11    | develop-ready-for-release-flow     | Default merges to `develop`, manual ready-for-release PR to `main`, artifacts on every `develop` push | architecture-orchestrator | docs-tracker, qa-reviewer, commit-steward | complete | codex/11-develop-default-release-flow | /Users/linkfy/Code/pycro | docs/phases/11-develop-integration-artifacts/implementation.md | pass | closed |
+| 12    | runtime-vec2-color-float-coercion  | Coerce Vec2/Color numerics and add typed `KEY` enum for `is_key_down` | architecture-orchestrator | runtime-worker, example-scenario-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/12-vec2-color-float-coercion | /Users/linkfy/Code/pycro | docs/phases/12-vec2-color-float-coercion/implementation.md | pass | closed |
+| 13    | cli-generate-stubs-subcommand      | Add `pycro generate_stubs` CLI path that regenerates `python/pycro/__init__.pyi` | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/13-cli-generate-stubs-subcommand | .worktrees/13-cli-generate-stubs-orchestrator | docs/phases/13-cli-generate-stubs-command/implementation.md | pending | queued |
 +-------+------------------------------------+---------------------------------------------------------+---------------------------+--------------------------------------------------------------------------+---------------+-----------------------------------------+------------------------------------------------------+------------------------------------------------------+------------------+----------+
 
 ## Streams (Non-Sequential)
@@ -121,3 +125,24 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 - validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
 - local_artifact_smoke: pass (host target `aarch64-apple-darwin`, archive packaging contract validated)
 - phase_closeout: complete (`docs/phases/11-develop-integration-artifacts/closeout.md`)
+
+## Phase 12 Execution Note
+
+- objective: coerce numeric Vec2/Color components to float during runtime argument parsing
+- startup_gate: requirements + design validated, implementation opened (2026-03-14)
+- runtime_scope: `parse_number_item_at_py` now accepts Python real numbers (`int` + `float`) via numeric coercion
+- input_contract: `KEY` enum is generated in module stub/bootstrap; `is_key_down` consumes enum values (e.g., `KEY.ESCAPE`, `KEY.MOUSE_LEFT`)
+- input_binding: `is_key_down` supports explicit keyword binding (`is_key_down(key=KEY.ESCAPE)`) in addition to positional usage
+- backend_mapping: mouse button keys (`MOUSE_LEFT`, `MOUSE_RIGHT`, `MOUSE_MIDDLE`) mapped for input polling
+- stdlib_scope: runtime now initializes stdlib module support + stdlib lib path to allow imports like `typing`/`dataclasses`
+- regression_tests: runtime test covers `draw_circle`, `draw_text`, and `draw_texture` with integer components
+- manual_scenario: `examples/phase12_vec2_color_numeric_coercion.py`
+- adr: `docs/adr/0013-vec2-color-numeric-coercion.md`
+- validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
+- phase_closeout: complete (`docs/phases/12-vec2-color-float-coercion/closeout.md`)
+
+## Phase 13 Planning Note
+
+- objective: expose stub generation through CLI as `pycro generate_stubs`
+- requested_contract: command regenerates `python/pycro/__init__.pyi` without requiring direct `cargo run --bin generate_stubs` usage
+- status: planned (queued after phase 12 closeout)

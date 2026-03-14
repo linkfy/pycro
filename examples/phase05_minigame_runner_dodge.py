@@ -64,7 +64,7 @@ def update(dt: float) -> None:
         draw_world()
         pycro.draw_text("Game Over", (360.0, 230.0), 44.0, (1.0, 0.3, 0.3, 1.0))
         pycro.draw_text("Press Space to restart", (320.0, 275.0), 30.0, (1.0, 1.0, 1.0, 1.0))
-        if pycro.is_key_down("Space"):
+        if pycro.is_key_down(pycro.KEY.SPACE):
             reset_game()
         return
 
@@ -91,13 +91,13 @@ def simulate(step: float) -> None:
 
     dx = 0.0
     dy = 0.0
-    if pycro.is_key_down("Left"):
+    if pycro.is_key_down(pycro.KEY.LEFT):
         dx -= PLAYER_SPEED * step
-    if pycro.is_key_down("Right"):
+    if pycro.is_key_down(pycro.KEY.RIGHT):
         dx += PLAYER_SPEED * step
-    if pycro.is_key_down("Up"):
+    if pycro.is_key_down(pycro.KEY.UP):
         dy -= PLAYER_SPEED * step
-    if pycro.is_key_down("Down"):
+    if pycro.is_key_down(pycro.KEY.DOWN):
         dy += PLAYER_SPEED * step
     player_x = clamp(player_x + dx, 20.0, SCREEN_W - PLAYER_W - 20.0)
     player_y = clamp(player_y + dy, 20.0, SCREEN_H - PLAYER_H - 20.0)
