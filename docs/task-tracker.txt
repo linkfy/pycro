@@ -19,7 +19,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 08    | docs/phases/08-git-cd-release-automation     | complete    | Git CD + Release Please + Python API readability             | complete + merged      |
 | 09    | docs/phases/09-project-init-quickstart       | complete    | CLI project bootstrap via `pycro init <project_name>`        | closed                  |
 | 10    | docs/phases/10-update-only-lifecycle         | complete    | Update-only lifecycle + default `main.py` + init self-copy  | closed (2026-03-14)    |
-| 11    | docs/phases/11-develop-integration-artifacts | in_progress | Develop-first flow + push artifacts for validation           | active (2026-03-14)    |
+| 11    | docs/phases/11-develop-integration-artifacts | complete    | Develop-first flow + push artifacts for validation           | closed (2026-03-14)    |
 +-------+----------------------------------------------+-------------+---------------------------------------------------------------+------------------------+
 
 ## Task Table
@@ -41,7 +41,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 08    | git-cd-release-automation          | Automate phase CD launch + Release Please + API readability | architecture-orchestrator | phase-planner, worktree-manager, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/08-git-cd-release-automation      | .worktrees/08-git-cd-release-orchestrator            | docs/phases/08-git-cd-release-automation/implementation.md | pass | merged |
 | 09    | project-init-quickstart            | Add `pycro init <project_name>` bootstrap scaffolding       | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward   | complete | codex/09-project-init-closeout          | .worktrees/09-project-init-orchestrator              | docs/phases/09-project-init-quickstart/implementation.md | pass | closed |
 | 10    | lifecycle-update-only              | Remove setup auto-dispatch; default to `main.py`; copy `pycro` binary on init | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/10-lifecycle-update-only       | /Users/linkfy/Code/pycro                               | docs/phases/10-update-only-lifecycle/implementation.md | pass | merged |
-| 11    | develop-ready-for-release-flow     | Default merges to `develop`, manual ready-for-release PR to `main`, artifacts on every `develop` push | architecture-orchestrator | docs-tracker, qa-reviewer, commit-steward | in_progress | codex/11-develop-default-release-flow | /Users/linkfy/Code/pycro | docs/phases/11-develop-integration-artifacts/implementation.md | pending | active |
+| 11    | develop-ready-for-release-flow     | Default merges to `develop`, manual ready-for-release PR to `main`, artifacts on every `develop` push | architecture-orchestrator | docs-tracker, qa-reviewer, commit-steward | complete | codex/11-develop-default-release-flow | /Users/linkfy/Code/pycro | docs/phases/11-develop-integration-artifacts/implementation.md | pass | closed |
 +-------+------------------------------------+---------------------------------------------------------+---------------------------+--------------------------------------------------------------------------+---------------+-----------------------------------------+------------------------------------------------------+------------------------------------------------------+------------------+----------+
 
 ## Streams (Non-Sequential)
@@ -109,3 +109,5 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 - bootstrap: `develop` branch created and pushed to origin
 - startup_gate: requirements + design validated, implementation opened (2026-03-14)
 - validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
+- local_artifact_smoke: pass (host target `aarch64-apple-darwin`, archive packaging contract validated)
+- phase_closeout: complete (`docs/phases/11-develop-integration-artifacts/closeout.md`)
