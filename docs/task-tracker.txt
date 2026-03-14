@@ -15,7 +15,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 04    | docs/phases/04-runtime-stdlib                | closed      | Stdlib import compatibility (math, os)                        | complete               |
 | 05    | docs/phases/05-platform-input-texture        | complete    | Input/texture/platform evidence expansion                     | closed + merged        |
 | 06    | docs/phases/06-ci-visual-payload             | planned     | CI visual/payload smoke assertions                            | queued (deferred by phase 11 priority) |
-| 07    | docs/phases/07-manual-playtest-evidence      | planned     | Manual playtest evidence gate                                 | queued after phase 06  |
+| 07    | docs/phases/07-manual-playtest-evidence      | closed      | Manual playtest evidence gate                                 | closed (2026-03-14)    |
 | 08    | docs/phases/08-git-cd-release-automation     | complete    | Git CD + Release Please + Python API readability             | complete + merged      |
 | 09    | docs/phases/09-project-init-quickstart       | complete    | CLI project bootstrap via `pycro init <project_name>`        | closed                  |
 | 10    | docs/phases/10-update-only-lifecycle         | complete    | Update-only lifecycle + default `main.py` + init self-copy  | closed (2026-03-14)    |
@@ -37,7 +37,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 04    | runtime-stdlib-enablement          | Enable math and os stdlib compatibility                 | runtime-worker            | architecture-orchestrator, qa-reviewer                                  | complete      | codex/04-runtime-stdlib-enablement      | .worktrees/04-runtime-stdlib-enablement-runtime      | docs/phases/04-runtime-stdlib/implementation.md     | pass             | merged   |
 | 05    | platform-input-texture-coverage    | Expand input/texture workflows and platform evidence    | platform-worker           | architecture-orchestrator, runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/05-platform-input-texture-coverage-closeout | .worktrees/05-platform-input-texture-platform      | docs/phases/05-platform-input-texture/implementation.md | pass      | merged   |
 | 06    | ci-visual-payload-smoke            | Add CI smoke for visual/payload assertions              | architecture-orchestrator | platform-worker, api-worker, docs-tracker, qa-reviewer                  | planned       | codex/06-ci-visual-payload-smoke        | .worktrees/06-ci-visual-payload-orchestrator         | docs/phases/06-ci-visual-payload/implementation.md  | pending          | roadmap  |
-| 07    | manual-playtest-evidence-gate      | Capture explicit user playtest acceptance evidence      | example-scenario-worker   | architecture-orchestrator, docs-tracker, qa-reviewer                    | planned       | codex/07-manual-playtest-evidence-gate  | .worktrees/07-manual-playtest-example                | docs/phases/07-manual-playtest-evidence/implementation.md | pending   | roadmap  |
+| 07    | manual-playtest-evidence-gate      | Capture explicit user playtest acceptance evidence      | example-scenario-worker   | architecture-orchestrator, docs-tracker, qa-reviewer, commit-steward    | complete      | codex/07-manual-playtest-evidence-gate  | .worktrees/07-manual-playtest-example                | docs/phases/07-manual-playtest-evidence/implementation.md | pass      | closed   |
 | 08    | git-cd-release-automation          | Automate phase CD launch + Release Please + API readability | architecture-orchestrator | phase-planner, worktree-manager, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/08-git-cd-release-automation      | .worktrees/08-git-cd-release-orchestrator            | docs/phases/08-git-cd-release-automation/implementation.md | pass | merged |
 | 09    | project-init-quickstart            | Add `pycro init <project_name>` bootstrap scaffolding       | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward   | complete | codex/09-project-init-closeout          | .worktrees/09-project-init-orchestrator              | docs/phases/09-project-init-quickstart/implementation.md | pass | closed |
 | 10    | lifecycle-update-only              | Remove setup auto-dispatch; default to `main.py`; copy `pycro` binary on init | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/10-lifecycle-update-only       | /Users/linkfy/Code/pycro                               | docs/phases/10-update-only-lifecycle/implementation.md | pass | merged |
@@ -63,6 +63,16 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 - block_2_summary: runtime + api guards merged via orchestrator fallback; platform capability matrix updated with phase-05 desktop evidence snapshot
 - block_3_gate: complete (user outcome pass, observed issues none)
 - phase_closeout: complete (qa-reviewer pass, closeout doc recorded)
+
+## Phase 07 Execution Note
+
+- startup_gate: requirements + design validated before implementation
+- orchestrator_mode: active and mandatory
+- designated_manual_scenario: `examples/phase05_input_texture_lab.py`
+- first_manual_outcome: fail (`Up`/`Down` size + `Space` texture rotation)
+- fix_summary: scenario moved texture init to lazy `update()` path; fallback marker now scales with `sprite_scale`
+- manual_revalidation_outcome: pass
+- phase_closeout: complete (`docs/phases/07-manual-playtest-evidence/closeout.md`)
 
 ## Phase 08 Execution Note
 

@@ -21,6 +21,12 @@
     "block_progress": {
       "phase_05": "complete",
       "phase_05_closeout_doc": "docs/phases/05-platform-input-texture/closeout.md",
+      "phase_07_kickoff": "complete",
+      "phase_07_manual_gate_first_outcome": "fail",
+      "phase_07_regression_fix": "implemented",
+      "phase_07_manual_gate_revalidation": "pass",
+      "phase_07_closeout_doc": "docs/phases/07-manual-playtest-evidence/closeout.md",
+      "phase_07_qa": "pass",
       "phase_08_planning": "complete",
       "phase_08_release_automation": "complete",
       "phase_08_ci_typing_fix": "complete",
@@ -115,7 +121,7 @@
     {
       "number": "07",
       "id": "07-manual-playtest-evidence",
-      "status": "planned",
+      "status": "closed",
       "path": "docs/phases/07-manual-playtest-evidence"
     },
     {
@@ -248,11 +254,11 @@
       "id": "manual-playtest-evidence-gate",
       "phase": "07",
       "owner": "example-scenario-worker",
-      "status": "planned",
+      "status": "complete",
       "branch": "codex/07-manual-playtest-evidence-gate",
       "worktree": ".worktrees/07-manual-playtest-example",
       "phase_doc": "docs/phases/07-manual-playtest-evidence/implementation.md",
-      "qa": "pending"
+      "qa": "pass"
     },
     {
       "id": "git-cd-release-automation",
