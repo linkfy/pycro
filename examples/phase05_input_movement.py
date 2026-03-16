@@ -16,16 +16,16 @@ def setup() -> None:
 def update(dt: float) -> None:
     global player_x, player_y
 
-    turbo = pycro.is_key_down("Space")
+    turbo = pycro.is_key_down(pycro.KEY.SPACE)
     speed = PLAYER_SPEED * (1.75 if turbo else 1.0)
 
-    if pycro.is_key_down("Left"):
+    if pycro.is_key_down(pycro.KEY.LEFT):
         player_x -= speed * dt
-    if pycro.is_key_down("Right"):
+    if pycro.is_key_down(pycro.KEY.RIGHT):
         player_x += speed * dt
-    if pycro.is_key_down("Up"):
+    if pycro.is_key_down(pycro.KEY.UP):
         player_y -= speed * dt
-    if pycro.is_key_down("Down"):
+    if pycro.is_key_down(pycro.KEY.DOWN):
         player_y += speed * dt
 
     background = (0.20, 0.08, 0.08, 1.0) if turbo else (0.06, 0.08, 0.14, 1.0)

@@ -16,7 +16,7 @@ This file is the canonical skill activation map by agent.
 | qa-reviewer | review-gate-contract | risk-audit-contract | `docs/agents/skills/review-gate-contract.md`, `docs/agents/skills/risk-audit-contract.md` | before implementation commit | exploratory spike with no commit intent |
 | commit-steward | commit-gate-contract | changelog-contract | `docs/agents/skills/commit-gate-contract.md`, `docs/agents/skills/changelog-contract.md` | validations are green and QA gate passed/waived | QA unresolved or mandatory validations failing |
 | worktree-manager | worktree-contract | merge-prep-contract | `docs/agents/skills/worktree-contract.md`, `docs/agents/skills/merge-prep-contract.md` | two or more active slices can collide or run in parallel | single-slice work with no collision risk |
-| merge-integrator | merge-gate-contract | rollback-contract | `docs/agents/skills/merge-gate-contract.md`, `docs/agents/skills/rollback-contract.md` | user approved merge to `main` and gates are green | branch is unverified or user did not approve merge |
+| merge-integrator | merge-gate-contract | rollback-contract | `docs/agents/skills/merge-gate-contract.md`, `docs/agents/skills/rollback-contract.md` | user approved merge to `develop` (default) or manual ready-for-release merge to `main`, and gates are green | branch is unverified or user did not approve merge |
 
 ## Skill Sources
 

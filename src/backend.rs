@@ -1,7 +1,9 @@
 //! Backend contract used by the API layer.
 //! The first backend owner is Macroquad, but the contract is backend-agnostic.
 
-use macroquad::input::{KeyCode, is_key_down, is_quit_requested};
+use macroquad::input::{KeyCode, MouseButton, is_quit_requested};
+#[cfg(not(test))]
+use macroquad::input::{is_key_down, is_mouse_button_down};
 use macroquad::math::vec2;
 #[cfg(target_os = "macos")]
 use macroquad::miniquad::conf::AppleGfxApi;
@@ -487,6 +489,15 @@ fn key_code_from_name(key: &str) -> Option<KeyCode> {
     }
 }
 
+fn mouse_button_from_name(key: &str) -> Option<MouseButton> {
+    match key {
+        "MOUSE_LEFT" | "mouse_left" | "MouseLeft" => Some(MouseButton::Left),
+        "MOUSE_RIGHT" | "mouse_right" | "MouseRight" => Some(MouseButton::Right),
+        "MOUSE_MIDDLE" | "mouse_middle" | "MouseMiddle" => Some(MouseButton::Middle),
+        _ => None,
+    }
+}
+
 impl EngineBackend for MacroquadBackendContract {
     fn clear_background(&mut self, color: Color) {
         self.apply_drawcall_capacity_once();
@@ -583,7 +594,17 @@ impl EngineBackend for MacroquadBackendContract {
     }
 
     fn is_key_down(&self, key: &str) -> bool {
-        key_code_from_name(key).is_some_and(is_key_down)
+        #[cfg(test)]
+        {
+            mouse_button_from_name(key).is_some() || key_code_from_name(key).is_some()
+        }
+        #[cfg(not(test))]
+        {
+            if let Some(button) = mouse_button_from_name(key) {
+                return is_mouse_button_down(button);
+            }
+            key_code_from_name(key).is_some_and(is_key_down)
+        }
     }
 
     fn frame_time(&self) -> f32 {
@@ -665,7 +686,7 @@ impl EngineBackend for MacroquadBackendContract {
 
 #[cfg(test)]
 mod tests {
-    use super::key_code_from_name;
+    use super::{key_code_from_name, mouse_button_from_name};
 
     #[test]
     fn key_code_from_name_supports_expected_aliases() {
@@ -690,6 +711,26 @@ mod tests {
             assert!(
                 key_code_from_name(key).is_none(),
                 "unexpected mapping for unsupported key {key:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn mouse_button_from_name_supports_expected_aliases() {
+        for key in [
+            "MOUSE_LEFT",
+            "mouse_left",
+            "MouseLeft",
+            "MOUSE_RIGHT",
+            "mouse_right",
+            "MouseRight",
+            "MOUSE_MIDDLE",
+            "mouse_middle",
+            "MouseMiddle",
+        ] {
+            assert!(
+                mouse_button_from_name(key).is_some(),
+                "expected known mouse mapping for {key}"
             );
         }
     }

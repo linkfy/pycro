@@ -21,15 +21,15 @@ def setup() -> None:
 def update(dt: float) -> None:
     global target_x, target_y
 
-    speed = CAMERA_SPEED * (2.0 if pycro.is_key_down("Space") else 1.0)
+    speed = CAMERA_SPEED * (2.0 if pycro.is_key_down(pycro.KEY.SPACE) else 1.0)
 
-    if pycro.is_key_down("Left"):
+    if pycro.is_key_down(pycro.KEY.LEFT):
         target_x -= speed * dt
-    if pycro.is_key_down("Right"):
+    if pycro.is_key_down(pycro.KEY.RIGHT):
         target_x += speed * dt
-    if pycro.is_key_down("Up"):
+    if pycro.is_key_down(pycro.KEY.UP):
         target_y -= speed * dt
-    if pycro.is_key_down("Down"):
+    if pycro.is_key_down(pycro.KEY.DOWN):
         target_y += speed * dt
 
     pycro.set_camera_target((target_x, target_y))

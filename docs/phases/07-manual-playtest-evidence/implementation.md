@@ -4,12 +4,13 @@
 1. Run designated playable scenarios with user.
 2. Record outcome and follow-ups.
 3. Close phase only after acceptance evidence is synchronized.
+4. If scenario behavior regresses, patch the scenario/runtime contract, then re-run manual acceptance.
 
 ## Task Board
 
 | Task ID | Owner | Parallel Team | Status | Branch | Worktree | Validation Gate |
 | --- | --- | --- | --- | --- | --- | --- |
-| manual-playtest-evidence-gate | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/<phase>-<task> | .worktrees/<phase>-<task>-<agent> | per docs/validation-policy.md |
+| manual-playtest-evidence-gate | example-scenario-worker | architecture-orchestrator, docs-tracker, qa-reviewer, commit-steward | complete | codex/07-manual-playtest-evidence-gate | .worktrees/07-manual-playtest-example | pass (`docs/phases/07-manual-playtest-evidence/closeout.md`) |
 
 ## Reporting Contract
 

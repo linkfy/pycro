@@ -92,16 +92,16 @@ def _update_effective_fps(frame_dt: float) -> None:
         return
 
     moved = False
-    if pycro.is_key_down("Left"):
+    if pycro.is_key_down(pycro.KEY.LEFT):
         effective_fps = max(MIN_FPS, effective_fps - 1)
         moved = True
-    if pycro.is_key_down("Right"):
+    if pycro.is_key_down(pycro.KEY.RIGHT):
         effective_fps = min(MAX_FPS, effective_fps + 1)
         moved = True
-    if pycro.is_key_down("Up"):
+    if pycro.is_key_down(pycro.KEY.UP):
         speed_scale = min(MAX_SPEED_SCALE, speed_scale + SPEED_STEP)
         moved = True
-    if pycro.is_key_down("Down"):
+    if pycro.is_key_down(pycro.KEY.DOWN):
         speed_scale = max(MIN_SPEED_SCALE, speed_scale - SPEED_STEP)
         moved = True
 

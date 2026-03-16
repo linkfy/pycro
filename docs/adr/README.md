@@ -13,6 +13,11 @@
 - `0009`: Batched render submission API (`submit_render`)
 - `0010`: Phase-folder governance, orchestrated delegation, and worktree-first parallelism
 - `0011`: Update-only lifecycle contract (`update(dt)` only, no framework `setup()` dispatch)
+- `0012`: Develop-first integration and manual release promotion to `main`
+- `0013`: Vec2/Color numeric coercion for Python runtime calls
+- `0014`: `pycro generate_stubs` default output path set to project-local `pycro.pyi`
+- `0015`: `pycro project build` CLI foundation and canonical external project contract
+- `0016`: Embedded project payload build strategy for multi-target packaging
 
 ## Process
 

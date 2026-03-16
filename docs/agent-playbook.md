@@ -43,13 +43,14 @@ Conditional agents:
 - `flow-visualizer` for lifecycle/dispatch contract updates
 - `interactive-refinement-recorder` when scope or requirements shift during execution
 - `worktree-manager` when parallel slices can collide
-- `merge-integrator` only after user-approved merge to `main`
+- `merge-integrator` only after user-approved merge to `develop` (default) or manual ready-for-release promotion from `develop` to `main`
 
 Mandatory closeout rule:
 
 - At the end of every phase, before any merge action, the orchestrator must explicitly ask the user if they want to merge now.
 - No merge is allowed from implicit consent or by default; a direct user "yes" is required for each phase closeout.
-- No merge/push is allowed until formal phase closeout is recorded (`closeout.md` + tracker/state sync) and `qa-reviewer` is `pass` (or explicit waiver recorded).
+- No merge/push is allowed until formal phase closeout is recorded (`closeout.md` + tracker/state sync) and `qa-reviewer` is `pass` (or explicit waiver recorded). Default merge target is `develop`; promotion to `main` is a separate explicit ready-for-release action.
+- Mandatory develop gate: do not merge into `develop` while phase status is in progress/planned. Merge is allowed only after phase finalization, unless the programmer explicitly requests an override.
 
 ## Worktree Policy
 
@@ -77,6 +78,10 @@ Worker report format is fixed:
 - `commit-steward` is mandatory after required validations are green.
 - If any gate is waived, waiver reason must be recorded in both tracker and state.
 - Required local preflight before push/merge: `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, and `cargo test`.
+- Required commitlint gate before push/merge:
+  - inspect pending subjects with `git log --format=%s origin/develop..HEAD`
+  - only allow commitlint types: `build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test|merge`
+  - if a non-conforming subject is found, rewrite commit message(s) locally before push.
 
 ## Documentation Synchronization
 

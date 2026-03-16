@@ -84,13 +84,13 @@ def _move_cursor(dt: float) -> None:
     dx = 0.0
     dy = 0.0
 
-    if pycro.is_key_down("Left"):
+    if pycro.is_key_down(pycro.KEY.LEFT):
         dx -= 1.0
-    if pycro.is_key_down("Right"):
+    if pycro.is_key_down(pycro.KEY.RIGHT):
         dx += 1.0
-    if pycro.is_key_down("Up"):
+    if pycro.is_key_down(pycro.KEY.UP):
         dy -= 1.0
-    if pycro.is_key_down("Down"):
+    if pycro.is_key_down(pycro.KEY.DOWN):
         dy += 1.0
 
     cursor_x = _clamp(cursor_x + dx * CURSOR_SPEED * dt, PLAYFIELD_MIN_X, PLAYFIELD_MAX_X)
@@ -228,7 +228,7 @@ def update(dt: float) -> None:
         if remaining_seconds <= 0.0:
             round_over = True
 
-    space_down = pycro.is_key_down("Space")
+    space_down = pycro.is_key_down(pycro.KEY.SPACE)
     space_pressed = space_down and not space_was_down
     if space_pressed:
         _handle_space_action(space_pressed)

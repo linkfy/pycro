@@ -7,6 +7,8 @@ static GLOBAL_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 pub mod api;
 pub mod backend;
+pub mod embedded_project;
+pub mod project;
 pub mod runtime;
 
 pub use api::{
@@ -17,6 +19,14 @@ pub use api::{
 pub use backend::{
     BackendDispatch, Color, DesktopFrameLoop, DesktopLoopReport, EngineBackend, FrameLoopConfig,
     MacroquadBackendContract, TextureHandle, Vec2, window_conf,
+};
+pub use embedded_project::{
+    EmbeddedProjectFile, EmbeddedProjectPayload, embedded_project_payload,
+    resolve_payload_relative_path,
+};
+pub use project::{
+    PROJECT_MANIFEST_FILE_NAME, ProjectBuildTarget, ProjectBundle, ProjectContract,
+    ResourceProviderKind, build_project_bundle,
 };
 pub use runtime::{
     ModuleInstallPlan, PythonVm, RuntimeConfig, RuntimeError, RuntimeValue, RustPythonVm,

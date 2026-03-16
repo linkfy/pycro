@@ -14,11 +14,19 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 03    | docs/phases/03-python-module-imports         | closed      | Entry-script sidecar import compatibility                     | complete               |
 | 04    | docs/phases/04-runtime-stdlib                | closed      | Stdlib import compatibility (math, os)                        | complete               |
 | 05    | docs/phases/05-platform-input-texture        | complete    | Input/texture/platform evidence expansion                     | closed + merged        |
-| 06    | docs/phases/06-ci-visual-payload             | planned     | CI visual/payload smoke assertions                            | next queued phase       |
-| 07    | docs/phases/07-manual-playtest-evidence      | planned     | Manual playtest evidence gate                                 | queued after phase 06  |
+| 06    | docs/phases/06-ci-visual-payload             | complete    | CI visual/payload smoke assertions                            | closed (2026-03-14) |
+| 07    | docs/phases/07-manual-playtest-evidence      | complete    | Manual playtest evidence gate                                 | closed (2026-03-14)    |
 | 08    | docs/phases/08-git-cd-release-automation     | complete    | Git CD + Release Please + Python API readability             | complete + merged      |
 | 09    | docs/phases/09-project-init-quickstart       | complete    | CLI project bootstrap via `pycro init <project_name>`        | closed                  |
 | 10    | docs/phases/10-update-only-lifecycle         | complete    | Update-only lifecycle + default `main.py` + init self-copy  | closed (2026-03-14)    |
+| 11    | docs/phases/11-develop-integration-artifacts | complete    | Develop-first flow + push artifacts for validation           | closed (2026-03-14)    |
+| 12    | docs/phases/12-vec2-color-float-coercion     | complete    | Vec2/Color numeric coercion + typed KEY enum input contract  | closed (2026-03-14)    |
+| 13    | docs/phases/13-cli-generate-stubs-command    | complete    | CLI subcommand `pycro generate_stubs` for `.pyi` regeneration| closed (2026-03-16)    |
+| 14    | docs/phases/14-project-build-foundation      | complete    | `pycro project` base contract + shared project bundle        | closed (2026-03-16) |
+| 15    | docs/phases/15-project-desktop-build         | complete    | Desktop target for `pycro project build` with embedded payload | closed (2026-03-17) |
+| 16    | docs/phases/16-project-web-build             | planned     | Web target for `pycro project build` using shared embedded payload | queued after phase 15  |
+| 17    | docs/phases/17-project-android-build         | planned     | Android target for `pycro project build` using shared embedded payload | queued after phase 16  |
+| 18    | docs/phases/18-project-ios-build             | planned     | iOS target for `pycro project build` using shared embedded payload | queued after phase 17  |
 +-------+----------------------------------------------+-------------+---------------------------------------------------------------+------------------------+
 
 ## Task Table
@@ -35,11 +43,19 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 03    | runtime-python-module-imports      | Ensure sidecar module imports from entry directory      | runtime-worker            | architecture-orchestrator, qa-reviewer                                  | complete      | codex/03-runtime-python-module-imports  | .worktrees/03-runtime-python-module-imports-runtime  | docs/phases/03-python-module-imports/implementation.md | pass          | merged   |
 | 04    | runtime-stdlib-enablement          | Enable math and os stdlib compatibility                 | runtime-worker            | architecture-orchestrator, qa-reviewer                                  | complete      | codex/04-runtime-stdlib-enablement      | .worktrees/04-runtime-stdlib-enablement-runtime      | docs/phases/04-runtime-stdlib/implementation.md     | pass             | merged   |
 | 05    | platform-input-texture-coverage    | Expand input/texture workflows and platform evidence    | platform-worker           | architecture-orchestrator, runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/05-platform-input-texture-coverage-closeout | .worktrees/05-platform-input-texture-platform      | docs/phases/05-platform-input-texture/implementation.md | pass      | merged   |
-| 06    | ci-visual-payload-smoke            | Add CI smoke for visual/payload assertions              | architecture-orchestrator | platform-worker, api-worker, docs-tracker, qa-reviewer                  | planned       | codex/06-ci-visual-payload-smoke        | .worktrees/06-ci-visual-payload-orchestrator         | docs/phases/06-ci-visual-payload/implementation.md  | pending          | roadmap  |
-| 07    | manual-playtest-evidence-gate      | Capture explicit user playtest acceptance evidence      | example-scenario-worker   | architecture-orchestrator, docs-tracker, qa-reviewer                    | planned       | codex/07-manual-playtest-evidence-gate  | .worktrees/07-manual-playtest-example                | docs/phases/07-manual-playtest-evidence/implementation.md | pending   | roadmap  |
+| 06    | ci-visual-payload-smoke            | Add CI smoke for visual/payload assertions              | architecture-orchestrator | platform-worker, api-worker, docs-tracker, qa-reviewer                  | complete      | codex/06-ci-visual-payload-smoke        | /Users/linkfy/Code/pycro                              | docs/phases/06-ci-visual-payload/implementation.md  | pass             | merged  |
+| 07    | manual-playtest-evidence-gate      | Capture explicit user playtest acceptance evidence      | example-scenario-worker   | architecture-orchestrator, docs-tracker, qa-reviewer                    | complete      | codex/07-manual-playtest-evidence-gate  | .worktrees/07-manual-playtest-example                | docs/phases/07-manual-playtest-evidence/implementation.md | pass      | closed   |
 | 08    | git-cd-release-automation          | Automate phase CD launch + Release Please + API readability | architecture-orchestrator | phase-planner, worktree-manager, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/08-git-cd-release-automation      | .worktrees/08-git-cd-release-orchestrator            | docs/phases/08-git-cd-release-automation/implementation.md | pass | merged |
 | 09    | project-init-quickstart            | Add `pycro init <project_name>` bootstrap scaffolding       | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward   | complete | codex/09-project-init-closeout          | .worktrees/09-project-init-orchestrator              | docs/phases/09-project-init-quickstart/implementation.md | pass | closed |
 | 10    | lifecycle-update-only              | Remove setup auto-dispatch; default to `main.py`; copy `pycro` binary on init | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/10-lifecycle-update-only       | /Users/linkfy/Code/pycro                               | docs/phases/10-update-only-lifecycle/implementation.md | pass | merged |
+| 11    | develop-ready-for-release-flow     | Default merges to `develop`, manual ready-for-release PR to `main`, artifacts on every `develop` push | architecture-orchestrator | docs-tracker, qa-reviewer, commit-steward | complete | codex/11-develop-default-release-flow | /Users/linkfy/Code/pycro | docs/phases/11-develop-integration-artifacts/implementation.md | pass | closed |
+| 12    | runtime-vec2-color-float-coercion  | Coerce Vec2/Color numerics and add typed `KEY` enum for `is_key_down` | architecture-orchestrator | runtime-worker, example-scenario-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/12-vec2-color-float-coercion | /Users/linkfy/Code/pycro | docs/phases/12-vec2-color-float-coercion/implementation.md | pass | closed |
+| 13    | cli-generate-stubs-subcommand      | Add `pycro generate_stubs` CLI path that regenerates project-local `pycro.pyi` | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/13-cli-generate-stubs-subcommand | /Users/linkfy/Code/pycro | docs/phases/13-cli-generate-stubs-command/implementation.md | pass | closed |
+| 14    | project-build-foundation           | Add `pycro project` namespace, external project contract, and shared project bundle architecture | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/14-project-build-foundation | .worktrees/14-project-build-foundation-orchestrator | docs/phases/14-project-build-foundation/implementation.md | pass | closed |
+| 15    | project-desktop-build              | Add desktop target support for `pycro project build` with embedded project payload | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward, example-scenario-worker | complete | codex/15-project-desktop-build | .worktrees/15-project-desktop-build-orchestrator | docs/phases/15-project-desktop-build/implementation.md | pass | closed |
+| 16    | project-web-build                  | Add web target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward, example-scenario-worker | planned | codex/16-project-web-build | .worktrees/16-project-web-build-orchestrator | docs/phases/16-project-web-build/implementation.md | pending | queued |
+| 17    | project-android-build              | Add Android target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/17-project-android-build | .worktrees/17-project-android-build-orchestrator | docs/phases/17-project-android-build/implementation.md | pending | queued |
+| 18    | project-ios-build                  | Add iOS target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/18-project-ios-build | .worktrees/18-project-ios-build-orchestrator | docs/phases/18-project-ios-build/implementation.md | pending | queued |
 +-------+------------------------------------+---------------------------------------------------------+---------------------------+--------------------------------------------------------------------------+---------------+-----------------------------------------+------------------------------------------------------+------------------------------------------------------+------------------+----------+
 
 ## Streams (Non-Sequential)
@@ -61,6 +77,25 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 - block_2_summary: runtime + api guards merged via orchestrator fallback; platform capability matrix updated with phase-05 desktop evidence snapshot
 - block_3_gate: complete (user outcome pass, observed issues none)
 - phase_closeout: complete (qa-reviewer pass, closeout doc recorded)
+
+## Phase 06 Execution Note
+
+- objective: add deterministic CI visual/payload smoke assertions
+- startup_gate: requirements + design validated, implementation opened (2026-03-14)
+- fixtures: `examples/phase05_timing_frame_pulse.py` and `examples/phase05_runtime_draw_flush_batch.py` are asserted through runtime smoke tests for deterministic queued payload behavior
+- ci_gate: explicit `Visual Payload Smoke` step added to `.github/workflows/ci.yml`
+- validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
+- phase_closeout: complete (`docs/phases/06-ci-visual-payload/closeout.md`)
+
+## Phase 07 Execution Note
+
+- objective: capture explicit user playtest acceptance evidence for interactive feature gates
+- designated_manual_scenario: `examples/phase05_input_texture_lab.py`
+- user_outcome: pass (manual playtest evidence synchronized)
+- evidence_trace:
+  - `docs/phases/05-platform-input-texture/closeout.md`
+  - `docs/phases/07-manual-playtest-evidence/closeout.md`
+- phase_closeout: complete (`docs/phases/07-manual-playtest-evidence/closeout.md`)
 
 ## Phase 08 Execution Note
 
@@ -89,3 +124,84 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 - refinement_status: implemented (`parse_cli_command` default -> `main.py`; scaffold copies local `pycro` executable)
 - validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
 - phase_closeout: complete (`docs/phases/10-update-only-lifecycle/closeout.md`)
+
+## Phase 11 Execution Note
+
+- objective: develop-first delivery model with manual promotion to `main`
+- branch_policy: feature/phase branches merge into `develop` by default; `main` is release-only
+- artifact_policy: workflow artifacts generated for every push to `develop` for tester download
+- bootstrap: `develop` branch created and pushed to origin
+- startup_gate: requirements + design validated, implementation opened (2026-03-14)
+- validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
+- local_artifact_smoke: pass (host target `aarch64-apple-darwin`, archive packaging contract validated)
+- phase_closeout: complete (`docs/phases/11-develop-integration-artifacts/closeout.md`)
+
+## Phase 12 Execution Note
+
+- objective: coerce numeric Vec2/Color components to float during runtime argument parsing
+- startup_gate: requirements + design validated, implementation opened (2026-03-14)
+- runtime_scope: `parse_number_item_at_py` now accepts Python real numbers (`int` + `float`) via numeric coercion
+- input_contract: `KEY` enum is generated in module stub/bootstrap; `is_key_down` consumes enum values (e.g., `KEY.ESCAPE`, `KEY.MOUSE_LEFT`)
+- input_binding: `is_key_down` supports explicit keyword binding (`is_key_down(key=KEY.ESCAPE)`) in addition to positional usage
+- backend_mapping: mouse button keys (`MOUSE_LEFT`, `MOUSE_RIGHT`, `MOUSE_MIDDLE`) mapped for input polling
+- stdlib_scope: runtime now initializes stdlib module support + stdlib lib path to allow imports like `typing`/`dataclasses`
+- regression_tests: runtime test covers `draw_circle`, `draw_text`, and `draw_texture` with integer components
+- manual_scenario: `examples/phase12_vec2_color_numeric_coercion.py`
+- adr: `docs/adr/0013-vec2-color-numeric-coercion.md`
+- validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
+- phase_closeout: complete (`docs/phases/12-vec2-color-float-coercion/closeout.md`)
+
+## Phase 13 Execution Note
+
+- objective: expose stub generation through CLI as `pycro generate_stubs`
+- startup_gate: requirements + design validated, implementation opened (2026-03-16)
+- cli_scope: `pycro generate_stubs` added to main CLI with default write mode to project-local `pycro.pyi`
+- metadata_contract: command renders stubs from canonical API metadata via `render_stub(module_spec())`
+- adr: `docs/adr/0014-generate-stubs-project-local-default.md`
+- compatibility_rule: existing `pycro` default run and `pycro init <project_name>` behavior preserved
+- validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
+- phase_closeout: complete (`docs/phases/13-cli-generate-stubs-command/closeout.md`)
+
+## Phase 14 Execution Note
+
+- objective: introduce the `pycro project` CLI namespace and external project contract without breaking current run/init behavior
+- shared_contract: define canonical project structure (`main.py`, local `.py`, optional `assets/`, reserved `pycro-project.toml`) and shared project bundle architecture
+- compatibility_rule: direct script execution and normal Cargo builds remain valid and unchanged
+- startup_gate: requirements + design validated, implementation opened (2026-03-16)
+- orchestrator_mode: active and mandatory (runtime/api/docs-tracker delegation launched)
+- current_implementation_scope: `pycro project build [--project <path>|<path>] --target <desktop|web|android|ios>` parser + project contract validation + shared bundle model, plus alias `pycro build [--project <path>|<path>] [--target ...]` (default target `desktop`)
+- adr: `docs/adr/0015-project-build-foundation-contract.md`
+- validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
+- phase_closeout: complete (`docs/phases/14-project-build-foundation/closeout.md`)
+
+## Phase 15 Execution Note
+
+- objective: add the first functional `pycro project build --target desktop` flow with embedded project payload
+- startup_gate: requirements + design validated, implementation opened (2026-03-16)
+- orchestrator_mode: active and mandatory
+- refinement_status: loose `dist/desktop` packaging was rejected on 2026-03-17 because it does not scale to the planned web/Android/iOS embedding model
+- current_implementation_scope: phase 15 is now redefined around a source-assisted builder that compiles a desktop artifact with embedded Python payload, using a shared packaging architecture intended for future web/Android/iOS targets
+- implementation_slice_1: complete (`build.rs` embeds project payload; desktop build command compiles release artifact with `PYCRO_EMBED_PROJECT_ROOT`; runtime boots embedded payload by default when present)
+- implementation_slice_2: complete (`scripts/phase15_desktop_embedded_smoke.py` validates embedded startup + sidecar import + `assets` load from built artifact; scenario `examples/phase15_embedded_payload_lab.py` added)
+- desktop_output_contract: default artifact name is `dist/desktop/game` with optional override `--exe <name>`
+- validation_preflight: pass (`python3 scripts/phase15_desktop_embedded_smoke.py`, `python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
+- adr: `docs/adr/0016-embedded-project-payload-build-strategy.md`
+- phase_closeout: complete (`docs/phases/15-project-desktop-build/closeout.md`)
+
+## Phase 16 Planning Note
+
+- objective: add `pycro project build --target web`
+- dependency: reuse the shared embedded payload strategy from phase 15 rather than creating a web-specific project contract
+- output_rule: emit a web-servable runtime/output layout that still consumes packaged payload rather than loose project `.py` files
+
+## Phase 17 Planning Note
+
+- objective: add `pycro project build --target android`
+- dependency: reuse the shared embedded payload strategy and target architecture from earlier phases
+- packaging_rule: document one concrete Android v1 output contract with embedded payload and explicit toolchain requirements
+
+## Phase 18 Planning Note
+
+- objective: add `pycro project build --target ios`
+- dependency: reuse the shared embedded payload strategy and target architecture from earlier phases
+- packaging_rule: document one concrete iOS v1 output contract with embedded payload and explicit macOS/Xcode host requirements

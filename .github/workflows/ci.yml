@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "codex/**"
+      - develop
       - main
   pull_request:
 
@@ -31,6 +32,8 @@ jobs:
         run: cargo clippy --all-targets -- -D warnings
       - name: Test
         run: cargo test
+      - name: Visual Payload Smoke
+        run: cargo test runtime::tests::visual_payload_smoke_ -- --nocapture
       - name: Stub Drift
         run: cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi
       - name: Typing Smoke

@@ -27,7 +27,7 @@ def update(dt: float) -> None:
     global elapsed
     _ = dt
 
-    if pycro.is_key_down("Space"):
+    if pycro.is_key_down(pycro.KEY.SPACE):
         elapsed = 0.0
     else:
         elapsed += pycro.frame_time()

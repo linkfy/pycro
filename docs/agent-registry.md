@@ -14,9 +14,9 @@ This file defines ownership and boundaries. Skill activation rules live in `docs
 | interactive-refinement-recorder | worker | requirement/task refinements inside phase docs and sync triggers | user feedback, orchestrator decisions | `interactive-refinement.md` updates + sync checklist |
 | flow-visualizer | worker | lifecycle/dispatch Mermaid diagrams | architecture plan, runtime/API changes | refreshed flow diagrams with concise notes |
 | qa-reviewer | reviewer | post-implementation review gate and waiver decisions | diffs, validation evidence, tracker links | findings list or explicit waiver |
-| commit-steward | steward | checkpoint commit creation after green validations | qa outcome, validation report, tracker/state sync | commit SHA or explicit block reason |
+| commit-steward | steward | checkpoint commit creation after green validations + conventional commitlint subject enforcement | qa outcome, validation report, tracker/state sync, pending commit subjects | commit SHA or explicit block reason (including commitlint violations) |
 | worktree-manager | worker | create/remove worktrees for parallel slices, prevent collisions | orchestrator parallelization plan | worktree map and branch/worktree assignment evidence |
-| merge-integrator | worker | controlled merge into `main` after gates and explicit per-phase user confirmation | green validations, qa pass, branch status, user "merge now" confirmation | merge commit and post-merge sync evidence |
+| merge-integrator | worker | controlled merge into `develop` by default, and manual ready-for-release promotion from `develop` to `main` | green validations, qa pass, branch status, user "merge now" confirmation + target branch | merge commit and post-merge sync evidence |
 
 ## Summary Contract
 
