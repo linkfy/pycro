@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.3](https://github.com/linkfy/pycro/compare/pycro_cli-v0.4.2...pycro_cli-v0.4.3) (2026-03-16)
+
+
+### Bug Fixes
+
+* **input:** add pressed-state fallback for windows key polling ([0f12a3e](https://github.com/linkfy/pycro/commit/0f12a3ec89e371b8420a2b0e7824d2005da32c31))
+
 ## [0.4.2](https://github.com/linkfy/pycro/compare/pycro_cli-v0.4.1...pycro_cli-v0.4.2) (2026-03-16)
 
 
