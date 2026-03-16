@@ -3,7 +3,9 @@
 
 use macroquad::input::{KeyCode, MouseButton, is_quit_requested};
 #[cfg(not(test))]
-use macroquad::input::{is_key_down, is_mouse_button_down};
+use macroquad::input::{
+    is_key_down, is_key_pressed, is_mouse_button_down, is_mouse_button_pressed,
+};
 use macroquad::math::vec2;
 #[cfg(target_os = "macos")]
 use macroquad::miniquad::conf::AppleGfxApi;
@@ -215,7 +217,8 @@ impl DesktopFrameLoop {
     ) -> Result<DesktopLoopReport, String> {
         let mut frames_executed = 0usize;
         loop {
-            let dt = self.config.fixed_dt_seconds.unwrap_or_else(get_frame_time);
+            let dt =
+                normalized_frame_dt(self.config.fixed_dt_seconds.unwrap_or_else(get_frame_time));
             on_frame(dt)?;
             frames_executed += 1;
 
@@ -231,6 +234,14 @@ impl DesktopFrameLoop {
         }
 
         Ok(DesktopLoopReport { frames_executed })
+    }
+}
+
+fn normalized_frame_dt(dt: f32) -> f32 {
+    if dt.is_finite() && dt > 0.0 {
+        dt
+    } else {
+        1.0 / 60.0
     }
 }
 
@@ -601,9 +612,10 @@ impl EngineBackend for MacroquadBackendContract {
         #[cfg(not(test))]
         {
             if let Some(button) = mouse_button_from_name(key) {
-                return is_mouse_button_down(button);
+                return is_mouse_button_down(button) || is_mouse_button_pressed(button);
             }
-            key_code_from_name(key).is_some_and(is_key_down)
+            key_code_from_name(key)
+                .is_some_and(|mapped| is_key_down(mapped) || is_key_pressed(mapped))
         }
     }
 
@@ -686,7 +698,7 @@ impl EngineBackend for MacroquadBackendContract {
 
 #[cfg(test)]
 mod tests {
-    use super::{key_code_from_name, mouse_button_from_name};
+    use super::{key_code_from_name, mouse_button_from_name, normalized_frame_dt};
 
     #[test]
     fn key_code_from_name_supports_expected_aliases() {
@@ -733,5 +745,19 @@ mod tests {
                 "expected known mouse mapping for {key}"
             );
         }
+    }
+
+    #[test]
+    fn normalized_frame_dt_uses_fallback_for_non_positive_or_invalid_values() {
+        let fallback = 1.0 / 60.0;
+        assert_eq!(normalized_frame_dt(0.0), fallback);
+        assert_eq!(normalized_frame_dt(-0.01), fallback);
+        assert_eq!(normalized_frame_dt(f32::NAN), fallback);
+        assert_eq!(normalized_frame_dt(f32::INFINITY), fallback);
+    }
+
+    #[test]
+    fn normalized_frame_dt_keeps_positive_finite_values() {
+        assert_eq!(normalized_frame_dt(0.016), 0.016);
     }
 }
