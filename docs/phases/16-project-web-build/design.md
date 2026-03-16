@@ -2,8 +2,8 @@
 
 ## Implementation Approach
 
-- Implement a web target adapter that consumes the canonical project bundle from phase 14.
-- Emit a web-specific output layout (HTML/bootstrap + runtime artifacts + packaged project resources).
+- Implement a web target adapter that consumes the shared embedded project payload introduced by the desktop phase.
+- Emit a web-specific output layout (HTML/bootstrap + runtime artifacts + payload asset) while keeping the gameplay Python sources inside the packaged payload flow rather than as loose project files.
 - Route project resource access through the runtime/provider abstraction rather than assuming host filesystem paths.
 - Keep target-specific behavior isolated so desktop/mobile targets remain unaffected.
 

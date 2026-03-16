@@ -66,25 +66,46 @@ Check stub drift without writing changes:
 
 Important: the command is `generate_stubs` (underscore), not `generate-stubs`.
 
-Project build foundation (phase 14):
+Project build (desktop, phase 15):
 
 ```bash
 ./pycro project build . --target desktop
 ```
 
-Short alias (defaults to `desktop` target when omitted):
+Custom artifact name:
+
+```bash
+./pycro project build . --target desktop --exe game
+```
+
+Desktop build output:
+
+- default artifact path: `./dist/desktop/game` (or `game.exe` on Windows)
+- packaging model: embedded project payload (`main.py`, root sidecar `.py`, optional `assets/**`, optional `pycro-project.toml`)
+
+Run the built artifact:
+
+```bash
+./dist/desktop/game
+```
+
+Short alias (desktop default target):
 
 ```bash
 ./pycro build .
 ```
 
-Equivalent alias with explicit target:
+Explicit target via alias:
 
 ```bash
-./pycro build . --target web
+./pycro build . --target desktop
 ```
 
-Note: phase 14 validates project contract and bundle inputs; target packaging is implemented in downstream phases.
+Alias with custom artifact name:
+
+```bash
+./pycro build . --target desktop --exe game
+```
 
 ## Run Playable Examples
 

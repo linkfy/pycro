@@ -5,6 +5,7 @@ edition = "2024"
 license = "MIT"
 rust-version = "1.91"
 default-run = "pycro"
+build = "build.rs"
 
 [[bin]]
 name = "pycro"

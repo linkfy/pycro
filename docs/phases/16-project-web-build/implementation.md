@@ -1,10 +1,10 @@
 # Task Implementation
 
 ## Execution Steps
-1. Activate the web target phase after phase 14 foundations and phase 15 desktop learnings are stable.
+1. Activate the web target phase after the embedded payload contract from phase 15 is stable.
 2. Implement target parsing and build orchestration for `--target web`.
-3. Produce the required web runtime and packaged project output under `dist/`.
-4. Add smoke validation for web startup, module loading, and asset access.
+3. Produce the required web runtime and packaged output using the shared embedded project payload rather than loose project sources.
+4. Add smoke validation for web startup, embedded module loading, and asset access.
 5. Close the phase with synchronized tracker/state and validation evidence.
 
 ## Task Board

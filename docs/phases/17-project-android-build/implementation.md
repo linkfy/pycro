@@ -1,10 +1,10 @@
 # Task Implementation
 
 ## Execution Steps
-1. Activate the Android target phase after phases 14-16 stabilize the shared project and target model.
+1. Activate the Android target phase after phases 15-16 stabilize the shared embedded payload and target model.
 2. Implement target parsing and build orchestration for `--target android`.
-3. Generate the chosen Android output format and package project scripts/assets into the target layout.
-4. Add smoke validation for generated-project startup assumptions and packaged asset presence.
+3. Generate the chosen Android output format and package project payload/assets into the target layout.
+4. Add smoke validation for generated-project startup assumptions and embedded asset presence.
 5. Close the phase with synchronized tracker/state and validation evidence.
 
 ## Task Board

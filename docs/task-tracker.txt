@@ -23,10 +23,10 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 12    | docs/phases/12-vec2-color-float-coercion     | complete    | Vec2/Color numeric coercion + typed KEY enum input contract  | closed (2026-03-14)    |
 | 13    | docs/phases/13-cli-generate-stubs-command    | complete    | CLI subcommand `pycro generate_stubs` for `.pyi` regeneration| closed (2026-03-16)    |
 | 14    | docs/phases/14-project-build-foundation      | complete    | `pycro project` base contract + shared project bundle        | closed (2026-03-16) |
-| 15    | docs/phases/15-project-desktop-build         | planned     | Desktop target for `pycro project build`                     | queued after phase 14  |
-| 16    | docs/phases/16-project-web-build             | planned     | Web target for `pycro project build`                         | queued after phase 15  |
-| 17    | docs/phases/17-project-android-build         | planned     | Android target for `pycro project build`                     | queued after phase 16  |
-| 18    | docs/phases/18-project-ios-build             | planned     | iOS target for `pycro project build`                         | queued after phase 17  |
+| 15    | docs/phases/15-project-desktop-build         | complete    | Desktop target for `pycro project build` with embedded payload | closed (2026-03-17) |
+| 16    | docs/phases/16-project-web-build             | planned     | Web target for `pycro project build` using shared embedded payload | queued after phase 15  |
+| 17    | docs/phases/17-project-android-build         | planned     | Android target for `pycro project build` using shared embedded payload | queued after phase 16  |
+| 18    | docs/phases/18-project-ios-build             | planned     | iOS target for `pycro project build` using shared embedded payload | queued after phase 17  |
 +-------+----------------------------------------------+-------------+---------------------------------------------------------------+------------------------+
 
 ## Task Table
@@ -52,7 +52,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 12    | runtime-vec2-color-float-coercion  | Coerce Vec2/Color numerics and add typed `KEY` enum for `is_key_down` | architecture-orchestrator | runtime-worker, example-scenario-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/12-vec2-color-float-coercion | /Users/linkfy/Code/pycro | docs/phases/12-vec2-color-float-coercion/implementation.md | pass | closed |
 | 13    | cli-generate-stubs-subcommand      | Add `pycro generate_stubs` CLI path that regenerates project-local `pycro.pyi` | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/13-cli-generate-stubs-subcommand | /Users/linkfy/Code/pycro | docs/phases/13-cli-generate-stubs-command/implementation.md | pass | closed |
 | 14    | project-build-foundation           | Add `pycro project` namespace, external project contract, and shared project bundle architecture | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/14-project-build-foundation | .worktrees/14-project-build-foundation-orchestrator | docs/phases/14-project-build-foundation/implementation.md | pass | closed |
-| 15    | project-desktop-build              | Add desktop target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward, example-scenario-worker | planned | codex/15-project-desktop-build | .worktrees/15-project-desktop-build-orchestrator | docs/phases/15-project-desktop-build/implementation.md | pending | queued |
+| 15    | project-desktop-build              | Add desktop target support for `pycro project build` with embedded project payload | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward, example-scenario-worker | complete | codex/15-project-desktop-build | .worktrees/15-project-desktop-build-orchestrator | docs/phases/15-project-desktop-build/implementation.md | pass | closed |
 | 16    | project-web-build                  | Add web target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward, example-scenario-worker | planned | codex/16-project-web-build | .worktrees/16-project-web-build-orchestrator | docs/phases/16-project-web-build/implementation.md | pending | queued |
 | 17    | project-android-build              | Add Android target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/17-project-android-build | .worktrees/17-project-android-build-orchestrator | docs/phases/17-project-android-build/implementation.md | pending | queued |
 | 18    | project-ios-build                  | Add iOS target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/18-project-ios-build | .worktrees/18-project-ios-build-orchestrator | docs/phases/18-project-ios-build/implementation.md | pending | queued |
@@ -174,26 +174,34 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 - validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
 - phase_closeout: complete (`docs/phases/14-project-build-foundation/closeout.md`)
 
-## Phase 15 Planning Note
+## Phase 15 Execution Note
 
-- objective: add the first functional `pycro project build --target desktop` flow
-- dependency: consume the shared project bundle and project contract from phase 14
-- v1_bias: choose one unambiguous desktop packaging contract and validate startup/import/assets behavior from the packaged output
+- objective: add the first functional `pycro project build --target desktop` flow with embedded project payload
+- startup_gate: requirements + design validated, implementation opened (2026-03-16)
+- orchestrator_mode: active and mandatory
+- refinement_status: loose `dist/desktop` packaging was rejected on 2026-03-17 because it does not scale to the planned web/Android/iOS embedding model
+- current_implementation_scope: phase 15 is now redefined around a source-assisted builder that compiles a desktop artifact with embedded Python payload, using a shared packaging architecture intended for future web/Android/iOS targets
+- implementation_slice_1: complete (`build.rs` embeds project payload; desktop build command compiles release artifact with `PYCRO_EMBED_PROJECT_ROOT`; runtime boots embedded payload by default when present)
+- implementation_slice_2: complete (`scripts/phase15_desktop_embedded_smoke.py` validates embedded startup + sidecar import + `assets` load from built artifact; scenario `examples/phase15_embedded_payload_lab.py` added)
+- desktop_output_contract: default artifact name is `dist/desktop/game` with optional override `--exe <name>`
+- validation_preflight: pass (`python3 scripts/phase15_desktop_embedded_smoke.py`, `python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
+- adr: `docs/adr/0016-embedded-project-payload-build-strategy.md`
+- phase_closeout: complete (`docs/phases/15-project-desktop-build/closeout.md`)
 
 ## Phase 16 Planning Note
 
 - objective: add `pycro project build --target web`
-- dependency: reuse the shared project bundle rather than creating a web-specific project contract
-- output_rule: document a web-servable output layout rather than promising single-binary packaging
+- dependency: reuse the shared embedded payload strategy from phase 15 rather than creating a web-specific project contract
+- output_rule: emit a web-servable runtime/output layout that still consumes packaged payload rather than loose project `.py` files
 
 ## Phase 17 Planning Note
 
 - objective: add `pycro project build --target android`
-- dependency: reuse the shared project bundle and target architecture from earlier phases
-- packaging_rule: document one concrete Android v1 output contract and explicit toolchain requirements
+- dependency: reuse the shared embedded payload strategy and target architecture from earlier phases
+- packaging_rule: document one concrete Android v1 output contract with embedded payload and explicit toolchain requirements
 
 ## Phase 18 Planning Note
 
 - objective: add `pycro project build --target ios`
-- dependency: reuse the shared project bundle and target architecture from earlier phases
-- packaging_rule: document one concrete iOS v1 output contract and explicit macOS/Xcode host requirements
+- dependency: reuse the shared embedded payload strategy and target architecture from earlier phases
+- packaging_rule: document one concrete iOS v1 output contract with embedded payload and explicit macOS/Xcode host requirements
