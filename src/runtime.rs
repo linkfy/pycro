@@ -445,6 +445,7 @@ impl RustPythonVm {
     pub fn new() -> Self {
         Self {
             interpreter: Interpreter::with_init(Self::interpreter_settings(), |vm| {
+                vm.add_frozen(rustpython_pylib::FROZEN_STDLIB);
                 vm.add_native_modules(rustpython_stdlib::get_module_inits());
             }),
             scope: None,
