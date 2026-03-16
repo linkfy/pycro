@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/linkfy/pycro/compare/pycro_cli-v0.4.1...pycro_cli-v0.4.2) (2026-03-16)
+
+
+### Bug Fixes
+
+* **runtime:** register frozen stdlib during vm init ([17edfa2](https://github.com/linkfy/pycro/commit/17edfa2a602e3bbe2b2363935254609763ddc45b))
+
 ## [0.4.1](https://github.com/linkfy/pycro/compare/pycro_cli-v0.4.0...pycro_cli-v0.4.1) (2026-03-16)
 
 
