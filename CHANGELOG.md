@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/linkfy/pycro/compare/pycro_cli-v0.4.0...pycro_cli-v0.4.1) (2026-03-16)
+
+
+### Bug Fixes
+
+* **runtime:** freeze stdlib and clarify init-first quickstart ([8bb64ab](https://github.com/linkfy/pycro/commit/8bb64abfce06c59774f177dff9fee101cc2103f2))
+
 ## [0.4.0](https://github.com/linkfy/pycro/compare/pycro_cli-v0.3.0...pycro_cli-v0.4.0) (2026-03-16)
 
 
