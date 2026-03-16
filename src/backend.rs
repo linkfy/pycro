@@ -3,9 +3,7 @@
 
 use macroquad::input::{KeyCode, MouseButton, is_quit_requested};
 #[cfg(not(test))]
-use macroquad::input::{
-    is_key_down, is_key_pressed, is_mouse_button_down, is_mouse_button_pressed,
-};
+use macroquad::input::{is_key_down, is_mouse_button_down};
 use macroquad::math::vec2;
 #[cfg(target_os = "macos")]
 use macroquad::miniquad::conf::AppleGfxApi;
@@ -217,8 +215,7 @@ impl DesktopFrameLoop {
     ) -> Result<DesktopLoopReport, String> {
         let mut frames_executed = 0usize;
         loop {
-            let dt =
-                normalized_frame_dt(self.config.fixed_dt_seconds.unwrap_or_else(get_frame_time));
+            let dt = self.config.fixed_dt_seconds.unwrap_or_else(get_frame_time);
             on_frame(dt)?;
             frames_executed += 1;
 
@@ -234,14 +231,6 @@ impl DesktopFrameLoop {
         }
 
         Ok(DesktopLoopReport { frames_executed })
-    }
-}
-
-fn normalized_frame_dt(dt: f32) -> f32 {
-    if dt.is_finite() && dt > 0.0 {
-        dt
-    } else {
-        1.0 / 60.0
     }
 }
 
@@ -489,6 +478,44 @@ impl MacroquadBackendContract {
 }
 
 fn key_code_from_name(key: &str) -> Option<KeyCode> {
+    if key.len() == 1 {
+        let letter = key
+            .as_bytes()
+            .first()
+            .copied()
+            .map(char::from)
+            .map(|value| value.to_ascii_uppercase());
+        return match letter {
+            Some('A') => Some(KeyCode::A),
+            Some('B') => Some(KeyCode::B),
+            Some('C') => Some(KeyCode::C),
+            Some('D') => Some(KeyCode::D),
+            Some('E') => Some(KeyCode::E),
+            Some('F') => Some(KeyCode::F),
+            Some('G') => Some(KeyCode::G),
+            Some('H') => Some(KeyCode::H),
+            Some('I') => Some(KeyCode::I),
+            Some('J') => Some(KeyCode::J),
+            Some('K') => Some(KeyCode::K),
+            Some('L') => Some(KeyCode::L),
+            Some('M') => Some(KeyCode::M),
+            Some('N') => Some(KeyCode::N),
+            Some('O') => Some(KeyCode::O),
+            Some('P') => Some(KeyCode::P),
+            Some('Q') => Some(KeyCode::Q),
+            Some('R') => Some(KeyCode::R),
+            Some('S') => Some(KeyCode::S),
+            Some('T') => Some(KeyCode::T),
+            Some('U') => Some(KeyCode::U),
+            Some('V') => Some(KeyCode::V),
+            Some('W') => Some(KeyCode::W),
+            Some('X') => Some(KeyCode::X),
+            Some('Y') => Some(KeyCode::Y),
+            Some('Z') => Some(KeyCode::Z),
+            _ => None,
+        };
+    }
+
     match key {
         "Space" | "space" => Some(KeyCode::Space),
         "Left" | "left" => Some(KeyCode::Left),
@@ -612,10 +639,9 @@ impl EngineBackend for MacroquadBackendContract {
         #[cfg(not(test))]
         {
             if let Some(button) = mouse_button_from_name(key) {
-                return is_mouse_button_down(button) || is_mouse_button_pressed(button);
+                return is_mouse_button_down(button);
             }
-            key_code_from_name(key)
-                .is_some_and(|mapped| is_key_down(mapped) || is_key_pressed(mapped))
+            key_code_from_name(key).is_some_and(is_key_down)
         }
     }
 
@@ -698,7 +724,7 @@ impl EngineBackend for MacroquadBackendContract {
 
 #[cfg(test)]
 mod tests {
-    use super::{key_code_from_name, mouse_button_from_name, normalized_frame_dt};
+    use super::{key_code_from_name, mouse_button_from_name};
 
     #[test]
     fn key_code_from_name_supports_expected_aliases() {
@@ -715,11 +741,18 @@ mod tests {
                 "expected known control mapping for {key}"
             );
         }
+
+        for key in ["A", "a", "B", "b", "Z", "z"] {
+            assert!(
+                key_code_from_name(key).is_some(),
+                "expected known letter mapping for {key}"
+            );
+        }
     }
 
     #[test]
     fn key_code_from_name_rejects_unknown_keys() {
-        for key in ["A", "Enter", "Tab", "Unknown", ""] {
+        for key in ["Enter", "Tab", "Unknown", ""] {
             assert!(
                 key_code_from_name(key).is_none(),
                 "unexpected mapping for unsupported key {key:?}"
@@ -745,19 +778,5 @@ mod tests {
                 "expected known mouse mapping for {key}"
             );
         }
-    }
-
-    #[test]
-    fn normalized_frame_dt_uses_fallback_for_non_positive_or_invalid_values() {
-        let fallback = 1.0 / 60.0;
-        assert_eq!(normalized_frame_dt(0.0), fallback);
-        assert_eq!(normalized_frame_dt(-0.01), fallback);
-        assert_eq!(normalized_frame_dt(f32::NAN), fallback);
-        assert_eq!(normalized_frame_dt(f32::INFINITY), fallback);
-    }
-
-    #[test]
-    fn normalized_frame_dt_keeps_positive_finite_values() {
-        assert_eq!(normalized_frame_dt(0.016), 0.016);
     }
 }
