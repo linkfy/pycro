@@ -22,7 +22,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 11    | docs/phases/11-develop-integration-artifacts | complete    | Develop-first flow + push artifacts for validation           | closed (2026-03-14)    |
 | 12    | docs/phases/12-vec2-color-float-coercion     | complete    | Vec2/Color numeric coercion + typed KEY enum input contract  | closed (2026-03-14)    |
 | 13    | docs/phases/13-cli-generate-stubs-command    | complete    | CLI subcommand `pycro generate_stubs` for `.pyi` regeneration| closed (2026-03-16)    |
-| 14    | docs/phases/14-project-build-foundation      | planned     | `pycro project` base contract + shared project bundle        | queued after phase 13  |
+| 14    | docs/phases/14-project-build-foundation      | complete    | `pycro project` base contract + shared project bundle        | closed (2026-03-16) |
 | 15    | docs/phases/15-project-desktop-build         | planned     | Desktop target for `pycro project build`                     | queued after phase 14  |
 | 16    | docs/phases/16-project-web-build             | planned     | Web target for `pycro project build`                         | queued after phase 15  |
 | 17    | docs/phases/17-project-android-build         | planned     | Android target for `pycro project build`                     | queued after phase 16  |
@@ -50,8 +50,8 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 10    | lifecycle-update-only              | Remove setup auto-dispatch; default to `main.py`; copy `pycro` binary on init | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/10-lifecycle-update-only       | /Users/linkfy/Code/pycro                               | docs/phases/10-update-only-lifecycle/implementation.md | pass | merged |
 | 11    | develop-ready-for-release-flow     | Default merges to `develop`, manual ready-for-release PR to `main`, artifacts on every `develop` push | architecture-orchestrator | docs-tracker, qa-reviewer, commit-steward | complete | codex/11-develop-default-release-flow | /Users/linkfy/Code/pycro | docs/phases/11-develop-integration-artifacts/implementation.md | pass | closed |
 | 12    | runtime-vec2-color-float-coercion  | Coerce Vec2/Color numerics and add typed `KEY` enum for `is_key_down` | architecture-orchestrator | runtime-worker, example-scenario-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/12-vec2-color-float-coercion | /Users/linkfy/Code/pycro | docs/phases/12-vec2-color-float-coercion/implementation.md | pass | closed |
-| 13    | cli-generate-stubs-subcommand      | Add `pycro generate_stubs` CLI path that regenerates `python/pycro/__init__.pyi` | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/13-cli-generate-stubs-subcommand | /Users/linkfy/Code/pycro | docs/phases/13-cli-generate-stubs-command/implementation.md | pass | closed |
-| 14    | project-build-foundation           | Add `pycro project` namespace, external project contract, and shared project bundle architecture | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/14-project-build-foundation | .worktrees/14-project-build-foundation-orchestrator | docs/phases/14-project-build-foundation/implementation.md | pending | queued |
+| 13    | cli-generate-stubs-subcommand      | Add `pycro generate_stubs` CLI path that regenerates project-local `pycro.pyi` | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/13-cli-generate-stubs-subcommand | /Users/linkfy/Code/pycro | docs/phases/13-cli-generate-stubs-command/implementation.md | pass | closed |
+| 14    | project-build-foundation           | Add `pycro project` namespace, external project contract, and shared project bundle architecture | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/14-project-build-foundation | .worktrees/14-project-build-foundation-orchestrator | docs/phases/14-project-build-foundation/implementation.md | pass | closed |
 | 15    | project-desktop-build              | Add desktop target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward, example-scenario-worker | planned | codex/15-project-desktop-build | .worktrees/15-project-desktop-build-orchestrator | docs/phases/15-project-desktop-build/implementation.md | pending | queued |
 | 16    | project-web-build                  | Add web target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward, example-scenario-worker | planned | codex/16-project-web-build | .worktrees/16-project-web-build-orchestrator | docs/phases/16-project-web-build/implementation.md | pending | queued |
 | 17    | project-android-build              | Add Android target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/17-project-android-build | .worktrees/17-project-android-build-orchestrator | docs/phases/17-project-android-build/implementation.md | pending | queued |
@@ -162,11 +162,17 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 - validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
 - phase_closeout: complete (`docs/phases/13-cli-generate-stubs-command/closeout.md`)
 
-## Phase 14 Planning Note
+## Phase 14 Execution Note
 
 - objective: introduce the `pycro project` CLI namespace and external project contract without breaking current run/init behavior
 - shared_contract: define canonical project structure (`main.py`, local `.py`, optional `assets/`, reserved `pycro-project.toml`) and shared project bundle architecture
 - compatibility_rule: direct script execution and normal Cargo builds remain valid and unchanged
+- startup_gate: requirements + design validated, implementation opened (2026-03-16)
+- orchestrator_mode: active and mandatory (runtime/api/docs-tracker delegation launched)
+- current_implementation_scope: `pycro project build [--project <path>|<path>] --target <desktop|web|android|ios>` parser + project contract validation + shared bundle model, plus alias `pycro build [--project <path>|<path>] [--target ...]` (default target `desktop`)
+- adr: `docs/adr/0015-project-build-foundation-contract.md`
+- validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
+- phase_closeout: complete (`docs/phases/14-project-build-foundation/closeout.md`)
 
 ## Phase 15 Planning Note
 

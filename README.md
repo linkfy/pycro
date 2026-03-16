@@ -66,6 +66,26 @@ Check stub drift without writing changes:
 
 Important: the command is `generate_stubs` (underscore), not `generate-stubs`.
 
+Project build foundation (phase 14):
+
+```bash
+./pycro project build . --target desktop
+```
+
+Short alias (defaults to `desktop` target when omitted):
+
+```bash
+./pycro build .
+```
+
+Equivalent alias with explicit target:
+
+```bash
+./pycro build . --target web
+```
+
+Note: phase 14 validates project contract and bundle inputs; target packaging is implemented in downstream phases.
+
 ## Run Playable Examples
 
 Use:

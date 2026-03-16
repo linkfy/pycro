@@ -2,7 +2,8 @@
 
 use macroquad::Window;
 use pycro_cli::{
-    DesktopFrameLoop, FrameLoopConfig, RuntimeConfig, RustPythonVm, ScriptRuntime, window_conf,
+    DesktopFrameLoop, FrameLoopConfig, ProjectBuildTarget, RuntimeConfig, RustPythonVm,
+    ScriptRuntime, build_project_bundle, window_conf,
 };
 use pycro_cli::{module_spec, registration_plan, render_stub};
 use std::fs;
@@ -42,6 +43,12 @@ fn main() {
                 std::process::exit(1);
             }
         }
+        CliCommand::Project(command) => {
+            if let Err(error) = run_project_command(command) {
+                eprintln!("{error}");
+                std::process::exit(1);
+            }
+        }
         CliCommand::RunScript(script_path) => {
             Window::from_config(window_conf(), async move {
                 if let Err(error) = run_script_contract(script_path.as_str()).await {
@@ -57,6 +64,7 @@ fn main() {
 enum CliCommand {
     GenerateStubs(GenerateStubsCommand),
     InitProject(String),
+    Project(ProjectCommand),
     RunScript(String),
 }
 
@@ -66,16 +74,31 @@ enum GenerateStubsCommand {
     Check(PathBuf),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum ProjectCommand {
+    Build(ProjectBuildCommand),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ProjectBuildCommand {
+    target: ProjectBuildTarget,
+    project_path: PathBuf,
+}
+
 fn parse_cli_command(args: Vec<String>) -> Result<CliCommand, String> {
     if args.is_empty() {
         return Ok(CliCommand::RunScript(MAIN_FILE_NAME.to_owned()));
     }
 
     match args[0].as_str() {
+        "build" => parse_build_alias_command(args[1..].to_vec())
+            .map(ProjectCommand::Build)
+            .map(CliCommand::Project),
         "generate_stubs" => {
             parse_generate_stubs_command(args[1..].to_vec()).map(CliCommand::GenerateStubs)
         }
         "init" => parse_init_command(args[1..].to_vec()),
+        "project" => parse_project_command(args[1..].to_vec()).map(CliCommand::Project),
         _ => Ok(CliCommand::RunScript(args[0].clone())),
     }
 }
@@ -108,12 +131,126 @@ fn generate_stubs_usage() -> String {
     "usage: pycro generate_stubs [--write|--check] [path]\nexample: pycro generate_stubs --check pycro.pyi".to_owned()
 }
 
+fn parse_project_command(args: Vec<String>) -> Result<ProjectCommand, String> {
+    match args.as_slice() {
+        [command, rest @ ..] if command == "build" => {
+            parse_project_build_command(rest.to_vec()).map(ProjectCommand::Build)
+        }
+        _ => Err(project_usage()),
+    }
+}
+
+fn parse_project_build_command(args: Vec<String>) -> Result<ProjectBuildCommand, String> {
+    let mut project_path: Option<PathBuf> = None;
+    let mut target: Option<ProjectBuildTarget> = None;
+
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--project" => {
+                let value = args.get(index + 1).ok_or_else(project_usage)?;
+                project_path = Some(PathBuf::from(value));
+                index += 2;
+            }
+            "--target" => {
+                let value = args.get(index + 1).ok_or_else(project_usage)?;
+                let parsed_target = ProjectBuildTarget::parse(value)
+                    .map_err(|error| format!("{error}\n\n{}", project_usage()))?;
+                target = Some(parsed_target);
+                index += 2;
+            }
+            value if value.starts_with("--") => return Err(project_usage()),
+            value => {
+                if project_path.is_some() {
+                    return Err(project_usage());
+                }
+                project_path = Some(PathBuf::from(value));
+                index += 1;
+            }
+        }
+    }
+
+    let project_path = project_path.ok_or_else(project_usage)?;
+    let target = target.ok_or_else(project_usage)?;
+
+    Ok(ProjectBuildCommand {
+        target,
+        project_path,
+    })
+}
+
+fn parse_build_alias_command(args: Vec<String>) -> Result<ProjectBuildCommand, String> {
+    let mut project_path: Option<PathBuf> = None;
+    let mut target: Option<ProjectBuildTarget> = None;
+
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--project" => {
+                let value = args.get(index + 1).ok_or_else(build_alias_usage)?;
+                project_path = Some(PathBuf::from(value));
+                index += 2;
+            }
+            "--target" => {
+                let value = args.get(index + 1).ok_or_else(build_alias_usage)?;
+                let parsed_target = ProjectBuildTarget::parse(value)
+                    .map_err(|error| format!("{error}\n\n{}", build_alias_usage()))?;
+                target = Some(parsed_target);
+                index += 2;
+            }
+            value if value.starts_with("--") => return Err(build_alias_usage()),
+            value => {
+                if project_path.is_some() {
+                    return Err(build_alias_usage());
+                }
+                project_path = Some(PathBuf::from(value));
+                index += 1;
+            }
+        }
+    }
+
+    let project_path = project_path.ok_or_else(build_alias_usage)?;
+    let target = target.unwrap_or(ProjectBuildTarget::Desktop);
+
+    Ok(ProjectBuildCommand {
+        target,
+        project_path,
+    })
+}
+
+fn project_usage() -> String {
+    "usage: pycro project build [--project <path>|<path>] --target <desktop|web|android|ios>\nexample: pycro project build . --target desktop".to_owned()
+}
+
+fn build_alias_usage() -> String {
+    "usage: pycro build [--project <path>|<path>] [--target <desktop|web|android|ios>]\nexample: pycro build .".to_owned()
+}
+
 fn run_generate_stubs_contract(command: GenerateStubsCommand) -> Result<(), String> {
     let rendered = render_stub(module_spec());
     match command {
         GenerateStubsCommand::Write(path) => write_stub(path.as_path(), rendered.as_str()),
         GenerateStubsCommand::Check(path) => check_stub(path.as_path(), rendered.as_str()),
     }
+}
+
+fn run_project_command(command: ProjectCommand) -> Result<(), String> {
+    match command {
+        ProjectCommand::Build(build_command) => run_project_build_contract(build_command),
+    }
+}
+
+fn run_project_build_contract(command: ProjectBuildCommand) -> Result<(), String> {
+    let bundle = build_project_bundle(command.project_path.as_path(), command.target)?;
+    println!("project contract validated");
+    println!("project root: {}", bundle.contract.root.display());
+    println!("target: {}", bundle.target.as_str());
+    println!("resource providers: {:?}", bundle.resource_provider_plan);
+    println!(
+        "phase 14 foundation only: packaging for target `{}` is not implemented yet",
+        bundle.target.as_str()
+    );
+    Ok(())
 }
 
 fn write_stub(path: &Path, rendered: &str) -> Result<(), String> {
@@ -348,8 +485,10 @@ impl PerfWindow {
 mod tests {
     use super::{
         CliCommand, DEFAULT_STUB_OUTPUT_PATH, GenerateStubsCommand, LOCAL_RUNNER_FILE_NAME,
-        MAIN_FILE_NAME, STUB_FILE_NAME, check_stub, create_project_scaffold, parse_cli_command,
-        render_main_py_template, run_generate_stubs_contract,
+        MAIN_FILE_NAME, ProjectBuildCommand, ProjectBuildTarget, ProjectCommand, STUB_FILE_NAME,
+        check_stub, create_project_scaffold, parse_build_alias_command, parse_cli_command,
+        parse_project_build_command, render_main_py_template, run_generate_stubs_contract,
+        run_project_build_contract,
     };
     use std::fs;
     use std::path::PathBuf;
@@ -443,6 +582,116 @@ mod tests {
         .expect_err("parse should fail");
         assert!(error.contains("usage: pycro generate_stubs"));
         assert!(error.contains("--check pycro.pyi"));
+    }
+
+    #[test]
+    fn parse_cli_supports_project_build_namespace() {
+        assert_eq!(
+            parse_cli_command(vec![
+                "project".to_owned(),
+                "build".to_owned(),
+                ".".to_owned(),
+                "--target".to_owned(),
+                "desktop".to_owned(),
+            ])
+            .expect("parse should succeed"),
+            CliCommand::Project(ProjectCommand::Build(ProjectBuildCommand {
+                target: ProjectBuildTarget::Desktop,
+                project_path: PathBuf::from("."),
+            }))
+        );
+    }
+
+    #[test]
+    fn parse_project_build_accepts_target_before_project() {
+        assert_eq!(
+            parse_project_build_command(vec![
+                "--target".to_owned(),
+                "web".to_owned(),
+                "--project".to_owned(),
+                "examples".to_owned(),
+            ])
+            .expect("parse should succeed"),
+            ProjectBuildCommand {
+                target: ProjectBuildTarget::Web,
+                project_path: PathBuf::from("examples"),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_project_build_accepts_explicit_project_flag() {
+        assert_eq!(
+            parse_project_build_command(vec![
+                "--project".to_owned(),
+                "examples".to_owned(),
+                "--target".to_owned(),
+                "desktop".to_owned(),
+            ])
+            .expect("parse should succeed"),
+            ProjectBuildCommand {
+                target: ProjectBuildTarget::Desktop,
+                project_path: PathBuf::from("examples"),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_cli_supports_build_alias_with_default_desktop_target() {
+        assert_eq!(
+            parse_cli_command(vec!["build".to_owned(), ".".to_owned()])
+                .expect("parse should succeed"),
+            CliCommand::Project(ProjectCommand::Build(ProjectBuildCommand {
+                target: ProjectBuildTarget::Desktop,
+                project_path: PathBuf::from("."),
+            }))
+        );
+    }
+
+    #[test]
+    fn parse_build_alias_accepts_explicit_target() {
+        assert_eq!(
+            parse_build_alias_command(vec![
+                ".".to_owned(),
+                "--target".to_owned(),
+                "web".to_owned(),
+            ])
+            .expect("parse should succeed"),
+            ProjectBuildCommand {
+                target: ProjectBuildTarget::Web,
+                project_path: PathBuf::from("."),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_cli_rejects_project_build_without_required_flags() {
+        let error = parse_cli_command(vec![
+            "project".to_owned(),
+            "build".to_owned(),
+            "--project".to_owned(),
+            "examples".to_owned(),
+        ])
+        .expect_err("missing target should fail");
+        assert!(error.contains("usage: pycro project build"));
+    }
+
+    #[test]
+    fn run_project_build_contract_validates_project_dir() {
+        let base_dir = temp_test_dir("project-build-contract");
+        fs::write(
+            base_dir.join(MAIN_FILE_NAME),
+            "def update(dt: float) -> None:\n    pass\n",
+        )
+        .expect("main.py should be writable");
+
+        run_project_build_contract(ProjectBuildCommand {
+            target: ProjectBuildTarget::Desktop,
+            project_path: base_dir.clone(),
+        })
+        .expect("phase 14 build foundation should validate project contract");
+
+        fs::remove_dir_all(base_dir).expect("cleanup should succeed");
     }
 
     #[test]

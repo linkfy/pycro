@@ -5,12 +5,13 @@ phase_objective: Establish a stable multiplatform `pycro project` foundation tha
 ## Acceptance Criteria
 
 - `pycro project ...` is defined as a new CLI namespace distinct from current implicit run and `init` behavior.
+- `pycro build ...` is supported as a root-level alias for `pycro project build ...`.
 - Existing behavior remains preserved by contract:
   - `pycro` without arguments still runs `main.py`
   - `pycro <script_path>` still runs an explicit script
   - `pycro init <project_name>` remains unchanged
   - `cargo build --release` remains a valid way to compile the runtime itself
-- Project builds must accept an explicit external project path rather than requiring a game folder inside the `pycro` source tree.
+- Project builds must accept an external project path (`--project <path>` or positional `<path>`) rather than requiring a game folder inside the `pycro` source tree.
 - A canonical project structure is defined for future target-specific phases:
   - required `main.py`
   - supported local `.py` modules

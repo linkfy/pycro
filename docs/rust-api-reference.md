@@ -176,6 +176,18 @@ Check stub drift from the main `pycro` CLI:
 cargo run --bin pycro -- generate_stubs --check pycro.pyi
 ```
 
+Validate external project contract and build bundle for a target:
+
+```bash
+cargo run --bin pycro -- project build . --target desktop
+```
+
+Short build alias (defaults to `desktop` target):
+
+```bash
+cargo run --bin pycro -- build .
+```
+
 Internal/dev equivalent using the helper binary:
 
 ```bash

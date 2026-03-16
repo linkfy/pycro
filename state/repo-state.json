@@ -2,20 +2,20 @@
   "schema_version": 2,
   "project": "pycro",
   "active_phase": {
-    "number": "13",
-    "id": "13-cli-generate-stubs-command",
-    "status": "complete",
-    "path": "docs/phases/13-cli-generate-stubs-command"
+    "number": "15",
+    "id": "15-project-desktop-build",
+    "status": "planned",
+    "path": "docs/phases/15-project-desktop-build"
   },
   "current_objective": {
-    "id": "cli-generate-stubs-subcommand",
-    "title": "Expose stub regeneration through `pycro generate_stubs`",
-    "status": "complete",
-    "phase_doc": "docs/phases/13-cli-generate-stubs-command/implementation.md",
+    "id": "project-desktop-build",
+    "title": "Add desktop target support for `pycro project build`",
+    "status": "planned",
+    "phase_doc": "docs/phases/15-project-desktop-build/implementation.md",
     "startup_gate": {
-      "requirements_validated": true,
-      "design_validated": true,
-      "kickoff_date": "2026-03-16"
+      "requirements_validated": false,
+      "design_validated": false,
+      "kickoff_date": null
     },
     "block_progress": {
       "phase_05": "complete",
@@ -69,11 +69,15 @@
       "phase_13_validation_preflight": "pass",
       "phase_13_closeout_doc": "docs/phases/13-cli-generate-stubs-command/closeout.md",
       "phase_13_qa": "pass",
-      "phase_14_project_build_foundation": "planned",
+      "phase_14_project_build_foundation": "complete",
       "phase_15_project_desktop_build": "planned",
       "phase_16_project_web_build": "planned",
       "phase_17_project_android_build": "planned",
-      "phase_18_project_ios_build": "planned"
+      "phase_18_project_ios_build": "planned",
+      "phase_14_validation_preflight": "pass",
+      "phase_14_closeout_doc": "docs/phases/14-project-build-foundation/closeout.md",
+      "phase_14_qa": "pass",
+      "phase_14_adr": "accepted"
     }
   },
   "orchestration": {
@@ -101,7 +105,7 @@
     },
     "manager_agent": "worktree-manager"
   },
-  "current_branch": "codex/13-cli-generate-stubs-subcommand",
+  "current_branch": "codex/14-project-build-foundation",
   "phase_sequence": [
     {
       "number": "00",
@@ -190,7 +194,7 @@
     {
       "number": "14",
       "id": "14-project-build-foundation",
-      "status": "planned",
+      "status": "complete",
       "path": "docs/phases/14-project-build-foundation"
     },
     {
@@ -393,11 +397,11 @@
       "id": "project-build-foundation",
       "phase": "14",
       "owner": "architecture-orchestrator",
-      "status": "planned",
+      "status": "complete",
       "branch": "codex/14-project-build-foundation",
       "worktree": ".worktrees/14-project-build-foundation-orchestrator",
       "phase_doc": "docs/phases/14-project-build-foundation/implementation.md",
-      "qa": "pending"
+      "qa": "pass"
     },
     {
       "id": "project-desktop-build",
