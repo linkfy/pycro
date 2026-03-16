@@ -23,7 +23,8 @@
       "summary": "phase 15 is executing the shared embedded payload strategy; desktop loose-file packaging remains rejected",
       "code_status": "embedded payload foundation is implemented via build-time generation + desktop release build orchestration + runtime embedded launch path",
       "next_slice": [
-        "phase-15 closeout recorded; next target is phase-16 web packaging"
+        "immediate workstream: stream-windows-input-fix (docs/streams/windows-input-fix.md) on branch codex/stream-windows-input-fix-plan",
+        "phase-15 closeout recorded; next sequential phase target remains phase-16 web packaging"
       ]
     },
     "block_progress": {
@@ -125,7 +126,7 @@
     },
     "manager_agent": "worktree-manager"
   },
-  "current_branch": "codex/15-project-desktop-build",
+  "current_branch": "codex/stream-windows-input-fix-plan",
   "phase_sequence": [
     {
       "number": "00",
@@ -482,6 +483,13 @@
       "status": "planned",
       "owner": "architecture-orchestrator",
       "doc": "docs/streams/backend-selection-policy.md"
+    },
+    {
+      "id": "stream-windows-input-fix",
+      "status": "in_progress",
+      "owner": "architecture-orchestrator",
+      "doc": "docs/streams/windows-input-fix.md",
+      "priority": "immediate"
     }
   ],
   "summary_contract": {
