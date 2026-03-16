@@ -47,16 +47,21 @@ def update(dt: float) -> None:
     pycro.draw_text("Texture sample", (24.0, 56.0), 28.0, (0.9, 0.95, 1.0, 1.0))
 ```
 
-Create your own project scaffold:
+Initialize a new project first:
 
 ```bash
-cargo run --bin pycro -- init my_game
+./pycro init my_game
 ```
 
-Then run it:
+Then enter the project folder:
 
 ```bash
 cd my_game
+```
+
+Run it:
+
+```bash
 ./pycro
 ```
 
@@ -141,6 +146,11 @@ Run the built artifact:
 ```bash
 ./dist/desktop/game
 ```
+
+Behavior contract:
+
+- `./pycro` (CLI binary) runs `main.py` from the current directory when no embedded payload is present.
+- `./dist/desktop/game` / `game.exe` (project build output) runs the embedded payload and does not require local `main.py`.
 
 Short alias (desktop default target):
 

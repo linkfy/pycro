@@ -13,7 +13,7 @@ path = "src/main.rs"
 
 [dependencies]
 macroquad = "0.4"
-rustpython-vm = { version = "0.4", features = ["importlib", "encodings"] }
+rustpython-vm = { version = "0.4", features = ["importlib", "encodings", "freeze-stdlib"] }
 mimalloc = "0.1"
 parking_lot = "0.12"
 rustpython-stdlib = "0.4"

@@ -431,7 +431,11 @@ impl RustPythonVm {
             .ok()
             .and_then(|value| value.parse::<u8>().ok())
             .unwrap_or(2);
-        settings.path_list = vec![rustpython_pylib::LIB_PATH.to_owned(), String::new()];
+        let mut path_list = vec![String::new()];
+        if Path::new(rustpython_pylib::LIB_PATH).is_dir() {
+            path_list.insert(0, rustpython_pylib::LIB_PATH.to_owned());
+        }
+        settings.path_list = path_list;
         settings
     }
 
