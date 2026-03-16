@@ -15,6 +15,7 @@
 - `0011`: Update-only lifecycle contract (`update(dt)` only, no framework `setup()` dispatch)
 - `0012`: Develop-first integration and manual release promotion to `main`
 - `0013`: Vec2/Color numeric coercion for Python runtime calls
+- `0014`: `pycro generate_stubs` default output path set to project-local `pycro.pyi`
 
 ## Process
 

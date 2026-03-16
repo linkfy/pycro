@@ -36,6 +36,36 @@ cargo run --bin pycro -- init my_game
 
 This creates `my_game/main.py` and `my_game/pycro.pyi`.
 
+## CLI Commands
+
+Create a new project scaffold:
+
+```bash
+./pycro init my_game
+```
+
+Equivalent from Cargo:
+
+```bash
+cargo run --bin pycro -- init my_game
+```
+
+Regenerate Python stubs from canonical Rust API metadata:
+
+```bash
+./pycro generate_stubs
+```
+
+By default this writes `pycro.pyi` in the current project directory (next to `main.py`).
+
+Check stub drift without writing changes:
+
+```bash
+./pycro generate_stubs --check pycro.pyi
+```
+
+Important: the command is `generate_stubs` (underscore), not `generate-stubs`.
+
 ## Run Playable Examples
 
 Use:

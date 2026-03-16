@@ -156,13 +156,33 @@ Run a deterministic short loop:
 PYCRO_FRAMES=2 PYCRO_FRAME_DT=0.016 cargo run -- examples/phase01_basic_main.py
 ```
 
-Regenerate Python stubs from Rust metadata:
+Initialize a new project scaffold:
+
+```bash
+cargo run --bin pycro -- init my_game
+```
+
+Regenerate Python stubs from the main `pycro` CLI:
+
+```bash
+cargo run --bin pycro -- generate_stubs
+```
+
+By default this writes `pycro.pyi` in the current project directory.
+
+Check stub drift from the main `pycro` CLI:
+
+```bash
+cargo run --bin pycro -- generate_stubs --check pycro.pyi
+```
+
+Internal/dev equivalent using the helper binary:
 
 ```bash
 cargo run --bin generate_stubs -- python/pycro/__init__.pyi
 ```
 
-Check stub drift only:
+Internal/dev drift check:
 
 ```bash
 cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi

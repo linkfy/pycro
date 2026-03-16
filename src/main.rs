@@ -4,13 +4,14 @@ use macroquad::Window;
 use pycro_cli::{
     DesktopFrameLoop, FrameLoopConfig, RuntimeConfig, RustPythonVm, ScriptRuntime, window_conf,
 };
-use pycro_cli::{module_spec, registration_plan};
+use pycro_cli::{module_spec, registration_plan, render_stub};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::time::{Duration, Instant};
 
 const MAIN_FILE_NAME: &str = "main.py";
 const STUB_FILE_NAME: &str = "pycro.pyi";
+const DEFAULT_STUB_OUTPUT_PATH: &str = "pycro.pyi";
 const PYTHON_STUB_TEMPLATE: &str = include_str!("../python/pycro/__init__.pyi");
 
 #[cfg(target_os = "windows")]
@@ -29,6 +30,12 @@ fn main() {
     };
 
     match command {
+        CliCommand::GenerateStubs(command) => {
+            if let Err(error) = run_generate_stubs_contract(command) {
+                eprintln!("{error}");
+                std::process::exit(1);
+            }
+        }
         CliCommand::InitProject(project_name) => {
             if let Err(error) = write_project_scaffold(project_name.as_str()) {
                 eprintln!("{error}");
@@ -48,8 +55,15 @@ fn main() {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum CliCommand {
+    GenerateStubs(GenerateStubsCommand),
     InitProject(String),
     RunScript(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum GenerateStubsCommand {
+    Write(PathBuf),
+    Check(PathBuf),
 }
 
 fn parse_cli_command(args: Vec<String>) -> Result<CliCommand, String> {
@@ -57,17 +71,74 @@ fn parse_cli_command(args: Vec<String>) -> Result<CliCommand, String> {
         return Ok(CliCommand::RunScript(MAIN_FILE_NAME.to_owned()));
     }
 
-    if args[0] != "init" {
-        return Ok(CliCommand::RunScript(args[0].clone()));
+    match args[0].as_str() {
+        "generate_stubs" => {
+            parse_generate_stubs_command(args[1..].to_vec()).map(CliCommand::GenerateStubs)
+        }
+        "init" => parse_init_command(args[1..].to_vec()),
+        _ => Ok(CliCommand::RunScript(args[0].clone())),
     }
+}
 
-    if args.len() != 2 {
+fn parse_init_command(args: Vec<String>) -> Result<CliCommand, String> {
+    if args.len() != 1 {
         return Err(
             "usage: pycro init <project_name>\nexample: pycro init my_game_project".to_owned(),
         );
     }
 
-    Ok(CliCommand::InitProject(args[1].clone()))
+    Ok(CliCommand::InitProject(args[0].clone()))
+}
+
+fn parse_generate_stubs_command(args: Vec<String>) -> Result<GenerateStubsCommand, String> {
+    let default_path = PathBuf::from(DEFAULT_STUB_OUTPUT_PATH);
+    match args.as_slice() {
+        [] => Ok(GenerateStubsCommand::Write(default_path)),
+        [path] if path == "--write" => Ok(GenerateStubsCommand::Write(default_path)),
+        [path] if path == "--check" => Ok(GenerateStubsCommand::Check(default_path)),
+        [path] if path.starts_with("--") => Err(generate_stubs_usage()),
+        [path] => Ok(GenerateStubsCommand::Write(PathBuf::from(path))),
+        [flag, path] if flag == "--write" => Ok(GenerateStubsCommand::Write(PathBuf::from(path))),
+        [flag, path] if flag == "--check" => Ok(GenerateStubsCommand::Check(PathBuf::from(path))),
+        _ => Err(generate_stubs_usage()),
+    }
+}
+
+fn generate_stubs_usage() -> String {
+    "usage: pycro generate_stubs [--write|--check] [path]\nexample: pycro generate_stubs --check pycro.pyi".to_owned()
+}
+
+fn run_generate_stubs_contract(command: GenerateStubsCommand) -> Result<(), String> {
+    let rendered = render_stub(module_spec());
+    match command {
+        GenerateStubsCommand::Write(path) => write_stub(path.as_path(), rendered.as_str()),
+        GenerateStubsCommand::Check(path) => check_stub(path.as_path(), rendered.as_str()),
+    }
+}
+
+fn write_stub(path: &Path, rendered: &str) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
+    }
+
+    fs::write(path, rendered)
+        .map_err(|error| format!("failed to write {}: {error}", path.display()))
+}
+
+fn check_stub(path: &Path, rendered: &str) -> Result<(), String> {
+    let current = fs::read_to_string(path)
+        .map_err(|error| format!("failed to read {}: {error}", path.display()))?;
+
+    if current == rendered {
+        Ok(())
+    } else {
+        Err(format!(
+            "stub drift detected for {}. Regenerate with `pycro generate_stubs {}`",
+            path.display(),
+            path.display()
+        ))
+    }
 }
 
 fn write_project_scaffold(project_name: &str) -> Result<(), String> {
@@ -276,8 +347,9 @@ impl PerfWindow {
 #[cfg(test)]
 mod tests {
     use super::{
-        CliCommand, LOCAL_RUNNER_FILE_NAME, MAIN_FILE_NAME, STUB_FILE_NAME,
-        create_project_scaffold, parse_cli_command, render_main_py_template,
+        CliCommand, DEFAULT_STUB_OUTPUT_PATH, GenerateStubsCommand, LOCAL_RUNNER_FILE_NAME,
+        MAIN_FILE_NAME, STUB_FILE_NAME, check_stub, create_project_scaffold, parse_cli_command,
+        render_main_py_template, run_generate_stubs_contract,
     };
     use std::fs;
     use std::path::PathBuf;
@@ -324,6 +396,53 @@ mod tests {
     fn parse_cli_rejects_invalid_init_usage() {
         let error = parse_cli_command(vec!["init".to_owned()]).expect_err("parse should fail");
         assert!(error.contains("usage: pycro init <project_name>"));
+    }
+
+    #[test]
+    fn parse_cli_supports_generate_stubs_default_mode() {
+        assert_eq!(
+            parse_cli_command(vec!["generate_stubs".to_owned()]).expect("parse should succeed"),
+            CliCommand::GenerateStubs(GenerateStubsCommand::Write(PathBuf::from(
+                DEFAULT_STUB_OUTPUT_PATH
+            )))
+        );
+    }
+
+    #[test]
+    fn parse_cli_supports_generate_stubs_check_mode() {
+        assert_eq!(
+            parse_cli_command(vec!["generate_stubs".to_owned(), "--check".to_owned()])
+                .expect("parse should succeed"),
+            CliCommand::GenerateStubs(GenerateStubsCommand::Check(PathBuf::from(
+                DEFAULT_STUB_OUTPUT_PATH
+            )))
+        );
+    }
+
+    #[test]
+    fn parse_cli_supports_generate_stubs_custom_path() {
+        assert_eq!(
+            parse_cli_command(vec![
+                "generate_stubs".to_owned(),
+                "python/custom_stub.pyi".to_owned()
+            ])
+            .expect("parse should succeed"),
+            CliCommand::GenerateStubs(GenerateStubsCommand::Write(PathBuf::from(
+                "python/custom_stub.pyi"
+            )))
+        );
+    }
+
+    #[test]
+    fn parse_cli_rejects_invalid_generate_stubs_usage() {
+        let error = parse_cli_command(vec![
+            "generate_stubs".to_owned(),
+            "--invalid".to_owned(),
+            "foo".to_owned(),
+        ])
+        .expect_err("parse should fail");
+        assert!(error.contains("usage: pycro generate_stubs"));
+        assert!(error.contains("--check pycro.pyi"));
     }
 
     #[test]
@@ -406,5 +525,46 @@ mod tests {
             parse_cli_command(vec!["custom_script.py".to_owned()]).expect("parse should succeed"),
             CliCommand::RunScript("custom_script.py".to_owned())
         );
+    }
+
+    #[test]
+    fn generate_stubs_command_writes_file() {
+        let base_dir = temp_test_dir("generate-stubs-command-writes-file");
+        let output = base_dir.join("pycro.pyi");
+
+        run_generate_stubs_contract(GenerateStubsCommand::Write(output.clone()))
+            .expect("stub generation should succeed");
+        let contents = fs::read_to_string(output).expect("stub file should exist");
+        assert!(contents.contains("__all__"));
+
+        fs::remove_dir_all(base_dir).expect("cleanup should succeed");
+    }
+
+    #[test]
+    fn generate_stubs_check_succeeds_for_matching_file() {
+        let base_dir = temp_test_dir("generate-stubs-check-success");
+        let output = base_dir.join("pycro.pyi");
+
+        run_generate_stubs_contract(GenerateStubsCommand::Write(output.clone()))
+            .expect("stub generation should succeed");
+        run_generate_stubs_contract(GenerateStubsCommand::Check(output))
+            .expect("stub check should pass");
+
+        fs::remove_dir_all(base_dir).expect("cleanup should succeed");
+    }
+
+    #[test]
+    fn generate_stubs_check_fails_for_drifted_file() {
+        let base_dir = temp_test_dir("generate-stubs-check-fail");
+        let output = base_dir.join("pycro.pyi");
+
+        run_generate_stubs_contract(GenerateStubsCommand::Write(output.clone()))
+            .expect("stub generation should succeed");
+        fs::write(output.as_path(), "drift").expect("drift write should succeed");
+
+        let err = check_stub(output.as_path(), "expected").expect_err("drift should fail");
+        assert!(err.contains("stub drift detected"));
+
+        fs::remove_dir_all(base_dir).expect("cleanup should succeed");
     }
 }
