@@ -1292,7 +1292,7 @@ checksum = "3804877ffeba468c806c2ad9057bbbae92e4b2c410c2f108baaa0042f241fa4c"
 
 [[package]]
 name = "pycro_cli"
-version = "0.4.2"
+version = "0.5.0"
 dependencies = [
  "macroquad",
  "mimalloc",
