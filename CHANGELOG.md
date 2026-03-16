@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.0](https://github.com/linkfy/pycro/compare/pycro_cli-v0.3.0...pycro_cli-v0.4.0) (2026-03-16)
+
+
+### Features
+
+* **ci:** adopt develop-first flow with per-push test artifacts ([e657327](https://github.com/linkfy/pycro/commit/e657327db2bdbc09fa80620cf8e15575f3596034))
+* **phase12:** close vec2/color coercion and key enum contract ([0cb6233](https://github.com/linkfy/pycro/commit/0cb6233d89953f87c1410028359a7a78afd8439a))
+* **project-build:** close phase 15 desktop embedded payload ([e3c9ef7](https://github.com/linkfy/pycro/commit/e3c9ef71acfd767e42aafe524186b142e99872d8))
+* **project:** close phase 14 build foundation and CLI contract ([961c4cd](https://github.com/linkfy/pycro/commit/961c4cdb40fdfca590d4b7400e7b4e6b6a78cdb4))
+
+
+### Bug Fixes
+
+* **cli:** default generate_stubs to project-local pycro.pyi ([a9106f2](https://github.com/linkfy/pycro/commit/a9106f2164bf4f67dfe0b373a4271f28ee268f0c))
+
 ## [0.3.0](https://github.com/linkfy/pycro/compare/pycro_cli-v0.2.0...pycro_cli-v0.3.0) (2026-03-13)
 
 
