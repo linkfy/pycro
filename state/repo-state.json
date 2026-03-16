@@ -4,18 +4,27 @@
   "active_phase": {
     "number": "15",
     "id": "15-project-desktop-build",
-    "status": "planned",
+    "status": "complete",
     "path": "docs/phases/15-project-desktop-build"
   },
   "current_objective": {
     "id": "project-desktop-build",
-    "title": "Add desktop target support for `pycro project build`",
-    "status": "planned",
+    "title": "Add desktop target support for `pycro project build` with embedded project payload",
+    "status": "complete",
     "phase_doc": "docs/phases/15-project-desktop-build/implementation.md",
     "startup_gate": {
-      "requirements_validated": false,
-      "design_validated": false,
-      "kickoff_date": null
+      "requirements_validated": true,
+      "design_validated": true,
+      "kickoff_date": "2026-03-16"
+    },
+    "resume_checkpoint": {
+      "branch": "codex/15-project-desktop-build",
+      "worktree": ".worktrees/15-project-desktop-build-orchestrator",
+      "summary": "phase 15 is executing the shared embedded payload strategy; desktop loose-file packaging remains rejected",
+      "code_status": "embedded payload foundation is implemented via build-time generation + desktop release build orchestration + runtime embedded launch path",
+      "next_slice": [
+        "phase-15 closeout recorded; next target is phase-16 web packaging"
+      ]
     },
     "block_progress": {
       "phase_05": "complete",
@@ -70,7 +79,18 @@
       "phase_13_closeout_doc": "docs/phases/13-cli-generate-stubs-command/closeout.md",
       "phase_13_qa": "pass",
       "phase_14_project_build_foundation": "complete",
-      "phase_15_project_desktop_build": "planned",
+      "phase_15_project_desktop_build": "complete",
+      "phase_15_kickoff": "complete",
+      "phase_15_scope_refinement_embedded_payload": "accepted",
+      "phase_15_dist_directory_packaging": "rejected",
+      "phase_15_replan_docs_sync": "complete",
+      "phase_15_adr": "accepted",
+      "phase_15_embedded_payload_foundation": "implemented",
+      "phase_15_desktop_embedded_smoke": "pass",
+      "phase_15_example_scenario": "implemented",
+      "phase_15_validation_preflight": "pass",
+      "phase_15_closeout_doc": "docs/phases/15-project-desktop-build/closeout.md",
+      "phase_15_qa": "pass",
       "phase_16_project_web_build": "planned",
       "phase_17_project_android_build": "planned",
       "phase_18_project_ios_build": "planned",
@@ -105,7 +125,7 @@
     },
     "manager_agent": "worktree-manager"
   },
-  "current_branch": "codex/14-project-build-foundation",
+  "current_branch": "codex/15-project-desktop-build",
   "phase_sequence": [
     {
       "number": "00",
@@ -200,7 +220,7 @@
     {
       "number": "15",
       "id": "15-project-desktop-build",
-      "status": "planned",
+      "status": "complete",
       "path": "docs/phases/15-project-desktop-build"
     },
     {
@@ -407,11 +427,11 @@
       "id": "project-desktop-build",
       "phase": "15",
       "owner": "architecture-orchestrator",
-      "status": "planned",
+      "status": "complete",
       "branch": "codex/15-project-desktop-build",
       "worktree": ".worktrees/15-project-desktop-build-orchestrator",
       "phase_doc": "docs/phases/15-project-desktop-build/implementation.md",
-      "qa": "pending"
+      "qa": "pass"
     },
     {
       "id": "project-web-build",

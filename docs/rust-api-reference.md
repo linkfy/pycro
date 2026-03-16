@@ -176,10 +176,32 @@ Check stub drift from the main `pycro` CLI:
 cargo run --bin pycro -- generate_stubs --check pycro.pyi
 ```
 
-Validate external project contract and build bundle for a target:
+Build desktop artifact from an external project:
 
 ```bash
 cargo run --bin pycro -- project build . --target desktop
+```
+
+Build desktop artifact with explicit output executable name:
+
+```bash
+cargo run --bin pycro -- project build . --target desktop --exe game
+```
+
+Desktop build contract:
+
+- default output artifact: `./dist/desktop/game` (or `game.exe` on Windows)
+- override executable name: `--exe <name>` (desktop target only)
+- payload model: compile-time embedded project payload generated from:
+  - `main.py` (required)
+  - root `*.py` sidecars (optional)
+  - `assets/**` (optional, recursive)
+  - `pycro-project.toml` (optional)
+
+Run built artifact:
+
+```bash
+./dist/desktop/game
 ```
 
 Short build alias (defaults to `desktop` target):

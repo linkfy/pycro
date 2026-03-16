@@ -3,11 +3,11 @@
 ## Implementation Approach
 
 - Implement the first concrete target adapter: `desktop`.
-- Reuse the shared project bundle generated from the phase 14 contract rather than inventing a desktop-only project format.
-- Treat desktop output as a packaged runtime plus bundle payload staged into `dist/`.
-- Keep the current runtime path intact for direct script execution and only activate packaged-project logic inside the `pycro project` path.
-- Use desktop-specific smoke tests to validate imports, assets, and startup behavior.
+- Reuse the shared project contract from phase 14, but pivot the downstream packaging model toward a canonical embedded project payload that future targets can also consume.
+- Treat desktop as the first proving ground for a source-assisted builder workflow: compile `pycro` with project payload embedded rather than copying loose `.py` sources beside the executable.
+- Keep the current runtime path intact for direct script execution and only activate embedded-payload logic inside the `pycro project` build path.
+- Define desktop validation around startup, embedded import resolution, and embedded/resource-backed asset access.
 
 ## ADR And Contract Alignment
 
-- If desktop packaging requires changing build outputs or release artifact policy, record the contract impact through ADR.
+- Desktop packaging now changes the broader build strategy, so the embedded-payload contract must be captured through ADR before implementation resumes.

@@ -1,10 +1,10 @@
 # Task Implementation
 
 ## Execution Steps
-1. Activate the iOS target phase after phases 14-17 stabilize the shared project and multi-target model.
+1. Activate the iOS target phase after phases 15-17 stabilize the shared embedded payload and multi-target model.
 2. Implement target parsing and build orchestration for `--target ios`.
-3. Generate the chosen iOS output format and package project scripts/assets into the target layout.
-4. Add smoke validation for generated-project startup assumptions and packaged bundle resources.
+3. Generate the chosen iOS output format and package project payload/assets into the target layout.
+4. Add smoke validation for generated-project startup assumptions and embedded bundle resources.
 5. Close the phase with synchronized tracker/state and validation evidence.
 
 ## Task Board

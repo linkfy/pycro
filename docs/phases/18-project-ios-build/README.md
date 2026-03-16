@@ -1,7 +1,7 @@
 # Phase 18-project-ios-build - Project iOS Build
 
 status: planned
-objective: Add iOS-target project builds on top of the shared `project` bundle and target orchestration contracts.
+objective: Add iOS-target project builds on top of the shared embedded project payload and target orchestration contracts.
 tracked_tasks: project-ios-build
 
 ## Links
