@@ -17,7 +17,7 @@ rustpython-vm = { version = "0.4", features = ["importlib", "encodings", "freeze
 mimalloc = "0.1"
 parking_lot = "0.12"
 rustpython-stdlib = "0.4"
-rustpython-pylib = "0.4"
+rustpython-pylib = { version = "0.4", features = ["freeze-stdlib"] }
 
 [lints.clippy]
 dbg_macro = "deny"
