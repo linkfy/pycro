@@ -16,3 +16,4 @@ No change is considered active until all four artifacts are synchronized.
 ## Renumbering Note
 
 - 2026-03-17: Web build phase shifted from 16 to 17 after inserting `16-spec-driven-agent-workflow-hardening`.
+- 2026-03-17: Phase 17 kickoff activated; requirements/design validated and implementation opened on `codex/17-project-web-build`.

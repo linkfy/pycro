@@ -2,30 +2,30 @@
   "schema_version": 2,
   "project": "pycro",
   "active_phase": {
-    "number": "16",
-    "id": "16-spec-driven-agent-workflow-hardening",
-    "status": "complete",
-    "path": "docs/phases/16-spec-driven-agent-workflow-hardening"
+    "number": "17",
+    "id": "17-project-web-build",
+    "status": "in_progress",
+    "path": "docs/phases/17-project-web-build"
   },
   "current_objective": {
-    "id": "spec-driven-agent-workflow-hardening",
-    "title": "Harden spec-driven workflow validation, kickoff automation, and operator ergonomics",
-    "status": "complete",
+    "id": "project-web-build",
+    "title": "Add web target support for `pycro project build` with embedded payload packaging",
+    "status": "in_progress",
     "execution_mode": "orchestrator_owned_phase_with_worker_handoffs",
-    "phase_doc": "docs/phases/16-spec-driven-agent-workflow-hardening/implementation.md",
+    "phase_doc": "docs/phases/17-project-web-build/implementation.md",
     "startup_gate": {
       "requirements_validated": true,
       "design_validated": true,
       "kickoff_date": "2026-03-17"
     },
     "resume_checkpoint": {
-      "branch": "codex/16-spec-driven-agent-workflow-hardening",
-      "worktree": ".worktrees/16-spec-driven-agent-workflow-hardening-orchestrator",
-      "summary": "phase 16 governance hardening implemented: strict phase/stream/state validation, CLI help ergonomics, and orchestrator ownership fallback contract",
-      "code_status": "phase 16 closeout artifacts are complete with QA pass and full preflight evidence",
+      "branch": "codex/17-project-web-build",
+      "worktree": ".worktrees/17-project-web-build-orchestrator",
+      "summary": "phase 17 kickoff opened after phase 16 closeout to deliver web target build packaging on embedded payload contract",
+      "code_status": "requirements and design validated; implementation opened for web target build flow",
       "next_slice": [
-        "merge branch into develop",
-        "start phase 17 execution after merge confirmation"
+        "implement web target build orchestration and output contract",
+        "add web startup smoke checks and synchronize tracker/state evidence"
       ]
     },
     "block_progress": {
@@ -104,7 +104,8 @@
       "phase_16_adr": "accepted",
       "phase_16_closeout_doc": "docs/phases/16-spec-driven-agent-workflow-hardening/closeout.md",
       "phase_16_qa": "pass",
-      "phase_17_project_web_build": "planned",
+      "phase_17_kickoff": "in_progress",
+      "phase_17_project_web_build": "in_progress",
       "phase_18_project_android_build": "planned",
       "phase_19_project_ios_build": "planned",
       "phase_14_validation_preflight": "pass",
@@ -145,7 +146,7 @@
     },
     "manager_agent": "worktree-manager"
   },
-  "current_branch": "codex/16-spec-driven-agent-workflow-hardening",
+  "current_branch": "codex/17-project-web-build",
   "phase_sequence": [
     {
       "number": "00",
@@ -252,7 +253,7 @@
     {
       "number": "17",
       "id": "17-project-web-build",
-      "status": "planned",
+      "status": "in_progress",
       "path": "docs/phases/17-project-web-build"
     },
     {
@@ -473,7 +474,7 @@
       "id": "project-web-build",
       "phase": "17",
       "owner": "architecture-orchestrator",
-      "status": "planned",
+      "status": "in_progress",
       "branch": "codex/17-project-web-build",
       "worktree": ".worktrees/17-project-web-build-orchestrator",
       "phase_doc": "docs/phases/17-project-web-build/implementation.md",
