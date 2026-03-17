@@ -52,3 +52,14 @@ Important: docs-only commits (`docs(...)`) usually do not create a new release. 
 ## Legacy History Bootstrap
 
 `release-please-config.json` includes `bootstrap-sha` to start parsing from a known-safe point and avoid legacy non-conventional commits in initial rollout.
+
+## Standard Release Notes Template
+
+Use `docs/release-notes-template.md` as the canonical format when editing published release notes.
+
+Template policy:
+
+- release summaries must be in English;
+- include cumulative improvements when requested (for example from `0.4.1` onward);
+- include explicit validation baseline;
+- if a previous release should lose visibility, mark it as `Pre-release` and add a `Superseded` note.
