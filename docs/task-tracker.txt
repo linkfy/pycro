@@ -9,7 +9,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 - status: `in_progress` (immediate kickoff priority)
 - branch: `codex/stream-windows-input-fix-plan`
 - start doc: `docs/streams/windows-input-fix.md`
-- first execution target: validate and test temporary `miniquad` patch path for Windows key polling reliability
+- first execution target: run Windows manual validation on patched `miniquad` path using `examples/windows_input_diagnostic.py`
 
 ## Phase Index
 
@@ -224,4 +224,9 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
   - `https://github.com/not-fl3/macroquad/issues/357`
   - `https://github.com/not-fl3/macroquad/issues/686`
 - current_strategy: evaluate temporary `[patch.crates-io]` override for `miniquad` + Windows diagnostic scenario before finalizing release path
+- implementation_slice_1: complete (2026-03-17)
+  - patch wired: `Cargo.toml` + `patches/miniquad-0.4.8-windows-rawinput-fix/src/native/windows.rs` (`hwndTarget = hwnd`)
+  - scenario added: `examples/windows_input_diagnostic.py`
+  - local gates: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
+- pending_manual_gate: Windows tester pass/fail evidence for diagnostic scenario + release artifact behavior
 - stream_doc: `docs/streams/windows-input-fix.md`

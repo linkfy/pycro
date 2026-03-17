@@ -94,6 +94,27 @@ Fallback path:
 3. `qa-reviewer`: verify with explicit Windows artifact run checklist.
 4. `docs-tracker`: sync tracker/state + release notes preparation.
 
+## Progress Update (2026-03-17)
+
+- slice_1_status: complete (local implementation + non-Windows validation)
+- applied temporary `[patch.crates-io]` override:
+  - `Cargo.toml` -> `miniquad = { path = "patches/miniquad-0.4.8-windows-rawinput-fix" }`
+  - patched file: `patches/miniquad-0.4.8-windows-rawinput-fix/src/native/windows.rs`
+  - change: `rawinputdevice.hwndTarget = hwnd` (from `NULL`)
+- added Windows diagnostic scenario:
+  - `examples/windows_input_diagnostic.py`
+  - displays real-time key-state HUD (`LEFT/RIGHT/UP/DOWN/SPACE/ESCAPE`) and movement cue
+- local validation (host): `governance`, `fmt`, `clippy -D warnings`, `test`, `stub --check`, `mypy`, `cargo doc`, and short runtime smoke (`PYCRO_FRAMES=2`).
+
+## Windows Tester Checklist (Pending Manual Gate)
+
+1. Build a Windows desktop artifact from a project using this branch.
+2. Run `pycro` with `examples/windows_input_diagnostic.py`.
+3. Click inside the window to force focus.
+4. Hold each key (`LEFT`, `RIGHT`, `UP`, `DOWN`, `SPACE`, `ESCAPE`) and confirm HUD switches to `True` immediately.
+5. Confirm arrow keys move the cyan dot continuously while held.
+6. Record pass/fail evidence in tracker/state before marking stream `complete`.
+
 ## Validation Checklist
 
 - `cargo fmt --all --check`
