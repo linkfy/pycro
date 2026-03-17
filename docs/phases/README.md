@@ -25,8 +25,8 @@ This directory stores the canonical sequential delivery phases.
 - `12-vec2-color-float-coercion` (complete)
 - `13-cli-generate-stubs-command` (complete)
 - `14-project-build-foundation` (complete)
-- `15-project-desktop-build` (planned)
-- `16-project-web-build` (planned)
+- `15-project-desktop-build` (complete)
+- `16-project-web-build` (in_progress)
 - `17-project-android-build` (planned)
 - `18-project-ios-build` (planned)
 
