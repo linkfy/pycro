@@ -33,6 +33,9 @@ fn main() {
     };
 
     match command {
+        CliCommand::Help => {
+            print!("{}", cli_help_text());
+        }
         CliCommand::GenerateStubs(command) => {
             if let Err(error) = run_generate_stubs_contract(command) {
                 eprintln!("{error}");
@@ -72,6 +75,7 @@ fn main() {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum CliCommand {
+    Help,
     GenerateStubs(GenerateStubsCommand),
     InitProject(String),
     Project(ProjectCommand),
@@ -103,16 +107,41 @@ fn parse_cli_command(args: Vec<String>) -> Result<CliCommand, String> {
     }
 
     match args[0].as_str() {
-        "build" => parse_build_alias_command(args[1..].to_vec())
-            .map(ProjectCommand::Build)
-            .map(CliCommand::Project),
+        "help" | "--help" | "-h" => Ok(CliCommand::Help),
+        "build" => {
+            if contains_help_flag(&args[1..]) {
+                return Ok(CliCommand::Help);
+            }
+            parse_build_alias_command(args[1..].to_vec())
+                .map(ProjectCommand::Build)
+                .map(CliCommand::Project)
+        }
         "generate_stubs" => {
+            if contains_help_flag(&args[1..]) {
+                return Ok(CliCommand::Help);
+            }
             parse_generate_stubs_command(args[1..].to_vec()).map(CliCommand::GenerateStubs)
         }
         "init" => parse_init_command(args[1..].to_vec()),
-        "project" => parse_project_command(args[1..].to_vec()).map(CliCommand::Project),
+        "project" => {
+            if args.len() >= 2 && is_help_flag(args[1].as_str()) {
+                return Ok(CliCommand::Help);
+            }
+            if args.len() >= 3 && args[1] == "build" && contains_help_flag(&args[2..]) {
+                return Ok(CliCommand::Help);
+            }
+            parse_project_command(args[1..].to_vec()).map(CliCommand::Project)
+        }
         _ => Ok(CliCommand::RunScript(args[0].clone())),
     }
+}
+
+fn is_help_flag(value: &str) -> bool {
+    value == "--help" || value == "-h"
+}
+
+fn contains_help_flag(values: &[String]) -> bool {
+    values.iter().any(|value| is_help_flag(value.as_str()))
 }
 
 fn default_no_args_command() -> CliCommand {
@@ -128,6 +157,10 @@ fn no_args_command_for_payload(has_embedded_payload: bool) -> CliCommand {
 }
 
 fn parse_init_command(args: Vec<String>) -> Result<CliCommand, String> {
+    if args.len() == 1 && is_help_flag(args[0].as_str()) {
+        return Ok(CliCommand::Help);
+    }
+
     if args.len() != 1 {
         return Err(
             "usage: pycro init <project_name>\nexample: pycro init my_game_project".to_owned(),
@@ -262,6 +295,25 @@ fn project_usage() -> String {
 
 fn build_alias_usage() -> String {
     "usage: pycro build [--project <path>|<path>] [--target <desktop|web|android|ios>] [--exe <name>]\nexample: pycro build . --exe game".to_owned()
+}
+
+fn cli_help_text() -> String {
+    format!(
+        concat!(
+            "pycro - Python-scriptable runtime with project build tooling\n\n",
+            "usage:\n",
+            "  pycro [script.py]\n",
+            "  pycro init <project_name>\n",
+            "  pycro generate_stubs [--write|--check] [path]\n",
+            "  pycro project build [--project <path>|<path>] --target <desktop|web|android|ios> [--exe <name>]\n",
+            "  pycro build [--project <path>|<path>] [--target <desktop|web|android|ios>] [--exe <name>]\n\n",
+            "notes:\n",
+            "  - no args defaults to `{main}` unless an embedded project payload is present.\n",
+            "  - artifact smoke expectations and validation gates: see `docs/validation-policy.md`.\n",
+            "  - governance/tracker sync check: `python3 scripts/validate_governance.py`.\n"
+        ),
+        main = MAIN_FILE_NAME
+    )
 }
 
 fn run_generate_stubs_contract(command: GenerateStubsCommand) -> Result<(), String> {
@@ -687,7 +739,7 @@ mod tests {
     use super::{
         CliCommand, DEFAULT_STUB_OUTPUT_PATH, GenerateStubsCommand, LOCAL_RUNNER_FILE_NAME,
         MAIN_FILE_NAME, ProjectBuildCommand, ProjectBuildTarget, ProjectCommand, STUB_FILE_NAME,
-        check_stub, create_project_scaffold, no_args_command_for_payload,
+        check_stub, cli_help_text, create_project_scaffold, no_args_command_for_payload,
         parse_build_alias_command, parse_cli_command, parse_project_build_command,
         render_main_py_template, run_generate_stubs_contract, run_project_build_contract,
     };
@@ -737,6 +789,77 @@ mod tests {
                 .expect("parse should succeed"),
             CliCommand::RunScript("examples/phase01_basic_main.py".to_owned())
         );
+    }
+
+    #[test]
+    fn parse_cli_supports_help_mode() {
+        assert_eq!(
+            parse_cli_command(vec!["help".to_owned()]).expect("parse should succeed"),
+            CliCommand::Help
+        );
+        assert_eq!(
+            parse_cli_command(vec!["--help".to_owned()]).expect("parse should succeed"),
+            CliCommand::Help
+        );
+        assert_eq!(
+            parse_cli_command(vec!["-h".to_owned()]).expect("parse should succeed"),
+            CliCommand::Help
+        );
+        assert_eq!(
+            parse_cli_command(vec!["generate_stubs".to_owned(), "--help".to_owned()])
+                .expect("parse should succeed"),
+            CliCommand::Help
+        );
+        assert_eq!(
+            parse_cli_command(vec!["init".to_owned(), "--help".to_owned()])
+                .expect("parse should succeed"),
+            CliCommand::Help
+        );
+        assert_eq!(
+            parse_cli_command(vec!["project".to_owned(), "--help".to_owned()])
+                .expect("parse should succeed"),
+            CliCommand::Help
+        );
+        assert_eq!(
+            parse_cli_command(vec![
+                "project".to_owned(),
+                "build".to_owned(),
+                "--help".to_owned()
+            ])
+            .expect("parse should succeed"),
+            CliCommand::Help
+        );
+        assert_eq!(
+            parse_cli_command(vec!["build".to_owned(), "--help".to_owned()])
+                .expect("parse should succeed"),
+            CliCommand::Help
+        );
+        assert_eq!(
+            parse_cli_command(vec![
+                "build".to_owned(),
+                ".".to_owned(),
+                "--help".to_owned()
+            ])
+            .expect("parse should succeed"),
+            CliCommand::Help
+        );
+        assert_eq!(
+            parse_cli_command(vec![
+                "project".to_owned(),
+                "build".to_owned(),
+                ".".to_owned(),
+                "--help".to_owned()
+            ])
+            .expect("parse should succeed"),
+            CliCommand::Help
+        );
+    }
+
+    #[test]
+    fn help_text_mentions_smoke_and_governance_checks() {
+        let help = cli_help_text();
+        assert!(help.contains("docs/validation-policy.md"));
+        assert!(help.contains("scripts/validate_governance.py"));
     }
 
     #[test]

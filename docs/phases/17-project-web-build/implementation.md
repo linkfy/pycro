@@ -11,7 +11,7 @@
 
 | Task ID | Owner | Parallel Team | Status | Branch | Worktree | Validation Gate |
 | --- | --- | --- | --- | --- | --- | --- |
-| project-web-build | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward, example-scenario-worker | planned | codex/16-project-web-build | .worktrees/16-project-web-build-orchestrator | web smoke + standard preflight |
+| project-web-build | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward, example-scenario-worker | planned | codex/17-project-web-build | .worktrees/17-project-web-build-orchestrator | web smoke + standard preflight |
 
 ## Reporting Contract
 

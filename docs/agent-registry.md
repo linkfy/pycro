@@ -4,7 +4,7 @@ This file defines ownership and boundaries. Skill activation rules live in `docs
 
 | Agent | Role | Owns | Inputs | Outputs |
 | --- | --- | --- | --- | --- |
-| architecture-orchestrator | orchestrator | phase selection, delegation, integration decisions, gate readiness | worker summaries, tracker state, ADR refs | integrated decisions, go/no-go, delegated execution plan |
+| architecture-orchestrator | orchestrator | phase ownership, startup gate, delegation, integration decisions, and final repository integration when workers are write-constrained | worker summaries, tracker state, ADR refs, worker handoff payloads | integrated decisions, go/no-go, delegated execution plan, final integrated change set |
 | phase-planner | planner | phase requirement/design decomposition before implementation starts | phase objective, constraints, prior phase docs | phase-local requirement/design updates |
 | runtime-worker | worker | RustPython embedding, lifecycle dispatch, runtime errors/reporting | architecture plan, runtime ADRs, task brief | runtime code changes, runtime tests, summary evidence |
 | platform-worker | worker | Macroquad loop, render/input/assets and platform capability boundaries | platform matrix, phase requirements | backend/platform changes and capability evidence |
@@ -28,6 +28,16 @@ All worker outputs to the orchestrator must use:
 - `follow_ups`
 - `adr_refs`
 - `tracker_refs`
+
+## Write-Constrained Worker Handoff Contract
+
+When a worker cannot write, the worker output must still use the summary contract and additionally include:
+
+- `target_files`
+- `proposed_edits`
+- `integration_notes`
+
+The orchestrator remains responsible for final repository edits.
 
 ## Model Policy
 

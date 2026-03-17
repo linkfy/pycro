@@ -1,4 +1,4 @@
-# Phase 16-project-web-build - Project Web Build
+# Phase 17-project-web-build - Project Web Build
 
 status: planned
 objective: Add `pycro project build --target web` on top of the shared embedded project payload and target architecture.
