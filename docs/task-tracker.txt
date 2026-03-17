@@ -230,5 +230,8 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
   - local gates: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
 - ci_artifact_followup: complete (2026-03-17)
   - fixed macOS artifact workflow deployment target drift by pinning `MACOSX_DEPLOYMENT_TARGET=13.0` in both develop/release artifact workflows
+- incident_log: `docs/streams/incident-resolutions.md#2026-03-17---windows-artifact-starts-but-does-not-run-cliscript`
+  - root_cause: Windows artifacts used MSVC dynamic CRT; startup failed before Rust `main()` on tester environments without matching VC++ runtime DLLs
+  - resolution: set `RUSTFLAGS=-C target-feature=+crt-static` for Windows artifact jobs
 - pending_manual_gate: Windows tester pass/fail evidence for diagnostic scenario + release artifact behavior
 - stream_doc: `docs/streams/windows-input-fix.md`

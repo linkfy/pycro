@@ -90,8 +90,17 @@ Worker report format is fixed:
 - `docs/task-tracker.txt`
 - `state/repo-state.json`
 - active phase docs under `docs/phases/<NN-slug>/`
+- `docs/streams/incident-resolutions.md` when a cross-stream incident/root-cause fix is discovered
 
 Synchronization is complete only when task status, phase status, ownership, branch/worktree, and validation checkpoints match.
+
+## Incident Resolution Log (Mandatory Usage)
+
+When a failure is diagnosed with a concrete root cause and fix path (especially CI/release/runtime startup failures), agents must:
+
+1. Record it in `docs/streams/incident-resolutions.md`.
+2. Link the incident entry from the active phase/stream doc.
+3. Include resolution evidence + rollback trigger.
 
 ## Manual Playtest Gate
 

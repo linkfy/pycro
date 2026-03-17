@@ -10,6 +10,10 @@ scope: non-sequential fix stream (does not change phase numbering)
 
 Deliver a deterministic and reproducible fix path for Windows keyboard input failures where `pycro.is_key_down(...)` reports `False` for all tested keys in release artifacts.
 
+Related incident log entry:
+
+- `docs/streams/incident-resolutions.md` -> `incident-2026-03-17-windows-artifact-startup-noop`
+
 ## Immediate Start (After Context Reset)
 
 Read and execute in this order:

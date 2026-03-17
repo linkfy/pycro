@@ -492,6 +492,7 @@
       "priority": "immediate",
       "implementation_slice_1": "complete",
       "ci_artifact_followup": "complete",
+      "incident_log": "docs/streams/incident-resolutions.md#incident-2026-03-17-windows-artifact-startup-noop",
       "pending_gate": "windows-manual-validation",
       "last_update": "2026-03-17"
     }
