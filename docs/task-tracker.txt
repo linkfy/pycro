@@ -3,6 +3,14 @@
 Single source for human-readable status.
 Keep synchronized with `state/repo-state.json` and active phase docs under `docs/phases/`.
 
+## Immediate Next Workstream
+
+- id: `stream-windows-input-fix`
+- status: `in_progress` (immediate kickoff priority)
+- branch: `codex/stream-windows-input-fix-plan`
+- start doc: `docs/streams/windows-input-fix.md`
+- first execution target: run Windows manual validation on patched `miniquad` path using `examples/windows_input_diagnostic.py`
+
 ## Phase Index
 
 +-------+----------------------------------------------+-------------+---------------------------------------------------------------+------------------------+
@@ -66,6 +74,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | stream-compare-benchmark       | complete    | example-scenario-worker   | docs/streams/compare-benchmark.md             | isolated benchmark stream closed             |
 | stream-performance-phase-03    | in_progress | architecture-orchestrator | docs/streams/performance/phase-03-plan.md     | optimization protocol and backlog            |
 | stream-backend-selection-policy| planned     | architecture-orchestrator | docs/streams/backend-selection-policy.md      | ADR-backed future policy work                |
+| stream-windows-input-fix       | in_progress | architecture-orchestrator | docs/streams/windows-input-fix.md             | Windows keyboard reliability + miniquad patch evaluation |
 +--------------------------------+-------------+---------------------------+-----------------------------------------------+----------------------------------------------+
 
 ## Phase 05 Execution Note
@@ -205,3 +214,24 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 - objective: add `pycro project build --target ios`
 - dependency: reuse the shared embedded payload strategy and target architecture from earlier phases
 - packaging_rule: document one concrete iOS v1 output contract with embedded payload and explicit macOS/Xcode host requirements
+
+## Windows Input Fix Stream Note
+
+- objective: isolate and fix Windows key polling failures reported in release artifacts (`is_key_down` always `False`)
+- evidence_sources:
+  - `https://github.com/not-fl3/miniquad/issues/430`
+  - `https://github.com/not-fl3/miniquad/issues/517`
+  - `https://github.com/not-fl3/macroquad/issues/357`
+  - `https://github.com/not-fl3/macroquad/issues/686`
+- current_strategy: evaluate temporary `[patch.crates-io]` override for `miniquad` + Windows diagnostic scenario before finalizing release path
+- implementation_slice_1: complete (2026-03-17)
+  - patch wired: `Cargo.toml` + `patches/miniquad-0.4.8-windows-rawinput-fix/src/native/windows.rs` (`hwndTarget = hwnd`)
+  - scenario added: `examples/windows_input_diagnostic.py`
+  - local gates: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
+- ci_artifact_followup: complete (2026-03-17)
+  - fixed macOS artifact workflow deployment target drift by pinning `MACOSX_DEPLOYMENT_TARGET=13.0` in both develop/release artifact workflows
+- incident_log: `docs/streams/incident-resolutions.md#2026-03-17---windows-artifact-starts-but-does-not-run-cliscript`
+  - root_cause: Windows artifacts used MSVC dynamic CRT; startup failed before Rust `main()` on tester environments without matching VC++ runtime DLLs
+  - resolution: set `RUSTFLAGS=-C target-feature=+crt-static` for Windows artifact jobs
+- pending_manual_gate: Windows tester pass/fail evidence for diagnostic scenario + release artifact behavior
+- stream_doc: `docs/streams/windows-input-fix.md`

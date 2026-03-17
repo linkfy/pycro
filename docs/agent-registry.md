@@ -10,7 +10,7 @@ This file defines ownership and boundaries. Skill activation rules live in `docs
 | platform-worker | worker | Macroquad loop, render/input/assets and platform capability boundaries | platform matrix, phase requirements | backend/platform changes and capability evidence |
 | api-worker | worker | `pycro` API metadata, registration contract, stub compatibility | architecture plan, API ADRs | API surface changes, stub evidence, typing evidence |
 | example-scenario-worker | worker | playable scenarios under `examples/*.py` for user-visible features | feature brief, existing examples, asset constraints | scenario scripts, run instructions, expected behavior checklist |
-| docs-tracker | worker | synchronized tracker/state updates and phase doc hygiene | worker summaries, review outcomes, phase updates | `docs/task-tracker.txt` + `state/repo-state.json` sync updates |
+| docs-tracker | worker | synchronized tracker/state updates, phase doc hygiene, and incident-resolution log upkeep | worker summaries, review outcomes, phase updates | `docs/task-tracker.txt` + `state/repo-state.json` sync updates + incident log references |
 | interactive-refinement-recorder | worker | requirement/task refinements inside phase docs and sync triggers | user feedback, orchestrator decisions | `interactive-refinement.md` updates + sync checklist |
 | flow-visualizer | worker | lifecycle/dispatch Mermaid diagrams | architecture plan, runtime/API changes | refreshed flow diagrams with concise notes |
 | qa-reviewer | reviewer | post-implementation review gate and waiver decisions | diffs, validation evidence, tracker links | findings list or explicit waiver |
