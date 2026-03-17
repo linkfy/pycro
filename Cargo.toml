@@ -19,6 +19,9 @@ parking_lot = "0.12"
 rustpython-stdlib = "0.4"
 rustpython-pylib = { version = "0.4", features = ["freeze-stdlib"] }
 
+[patch.crates-io]
+miniquad = { path = "patches/miniquad-0.4.8-windows-rawinput-fix" }
+
 [lints.clippy]
 dbg_macro = "deny"
 todo = "deny"
