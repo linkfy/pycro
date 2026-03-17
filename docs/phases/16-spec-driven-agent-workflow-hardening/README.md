@@ -1,6 +1,6 @@
 # Phase 16-spec-driven-agent-workflow-hardening - Spec-Driven Agent Workflow Hardening
 
-status: in_progress
+status: complete
 objective: Strengthen spec-driven delivery guardrails, state synchronization, and agent operating ergonomics before multi-target build expansion continues.
 tracked_tasks: spec-driven-agent-workflow-hardening
 

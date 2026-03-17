@@ -19,6 +19,7 @@ Implementation work is not commit-ready until all applicable checks pass and evi
 - Lifecycle changes require runtime tests.
 - Public API changes require stub drift checks and typing smoke.
 - Platform guarantee changes require a platform matrix update and an ADR.
+- Build/release ergonomics changes must include explicit operator-facing help or docs references to artifact smoke expectations.
 - User-visible interactive features require a playable `examples/` scenario per feature and explicit user feedback recorded in tracker evidence.
 - Parallel implementation slices must track branch/worktree assignment in tracker/state.
 

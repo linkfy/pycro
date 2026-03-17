@@ -6,7 +6,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 ## Immediate Next Workstream
 
 - id: `stream-windows-input-fix`
-- status: `in_progress` (parallel stream; phase 16 kickoff is now active)
+- status: `in_progress` (parallel stream; phase 16 closeout is complete and phase 17 remains queued)
 - branch: `codex/stream-windows-input-fix-plan`
 - start doc: `docs/streams/windows-input-fix.md`
 - first execution target: run Windows manual validation on patched `miniquad` path using `examples/windows_input_diagnostic.py`
@@ -21,18 +21,18 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 02    | docs/phases/02-api-direct-bridge             | closed      | Direct runtime API bridge with richer returns                 | complete               |
 | 03    | docs/phases/03-python-module-imports         | closed      | Entry-script sidecar import compatibility                     | complete               |
 | 04    | docs/phases/04-runtime-stdlib                | closed      | Stdlib import compatibility (math, os)                        | complete               |
-| 05    | docs/phases/05-platform-input-texture        | complete    | Input/texture/platform evidence expansion                     | closed + merged        |
+| 05    | docs/phases/05-platform-input-texture        | closed      | Input/texture/platform evidence expansion                     | closed + merged        |
 | 06    | docs/phases/06-ci-visual-payload             | complete    | CI visual/payload smoke assertions                            | closed (2026-03-14) |
 | 07    | docs/phases/07-manual-playtest-evidence      | complete    | Manual playtest evidence gate                                 | closed (2026-03-14)    |
 | 08    | docs/phases/08-git-cd-release-automation     | complete    | Git CD + Release Please + Python API readability             | complete + merged      |
-| 09    | docs/phases/09-project-init-quickstart       | complete    | CLI project bootstrap via `pycro init <project_name>`        | closed                  |
+| 09    | docs/phases/09-project-init-quickstart       | closed      | CLI project bootstrap via `pycro init <project_name>`        | closed                  |
 | 10    | docs/phases/10-update-only-lifecycle         | complete    | Update-only lifecycle + default `main.py` + init self-copy  | closed (2026-03-14)    |
 | 11    | docs/phases/11-develop-integration-artifacts | complete    | Develop-first flow + push artifacts for validation           | closed (2026-03-14)    |
 | 12    | docs/phases/12-vec2-color-float-coercion     | complete    | Vec2/Color numeric coercion + typed KEY enum input contract  | closed (2026-03-14)    |
 | 13    | docs/phases/13-cli-generate-stubs-command    | complete    | CLI subcommand `pycro generate_stubs` for `.pyi` regeneration| closed (2026-03-16)    |
 | 14    | docs/phases/14-project-build-foundation      | complete    | `pycro project` base contract + shared project bundle        | closed (2026-03-16) |
 | 15    | docs/phases/15-project-desktop-build         | complete    | Desktop target for `pycro project build` with embedded payload | closed (2026-03-17) |
-| 16    | docs/phases/16-spec-driven-agent-workflow-hardening | in_progress | Spec-driven workflow hardening for agents, tracker/state sync, and operator ergonomics | active (kickoff 2026-03-17) |
+| 16    | docs/phases/16-spec-driven-agent-workflow-hardening | complete    | Spec-driven workflow hardening for agents, tracker/state sync, and operator ergonomics | closed (2026-03-17) |
 | 17    | docs/phases/17-project-web-build             | planned     | Web target for `pycro project build` using shared embedded payload | queued after phase 16  |
 | 18    | docs/phases/18-project-android-build         | planned     | Android target for `pycro project build` using shared embedded payload | queued after phase 17  |
 | 19    | docs/phases/19-project-ios-build             | planned     | iOS target for `pycro project build` using shared embedded payload | queued after phase 18  |
@@ -62,7 +62,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 13    | cli-generate-stubs-subcommand      | Add `pycro generate_stubs` CLI path that regenerates project-local `pycro.pyi` | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/13-cli-generate-stubs-subcommand | /Users/linkfy/Code/pycro | docs/phases/13-cli-generate-stubs-command/implementation.md | pass | closed |
 | 14    | project-build-foundation           | Add `pycro project` namespace, external project contract, and shared project bundle architecture | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/14-project-build-foundation | .worktrees/14-project-build-foundation-orchestrator | docs/phases/14-project-build-foundation/implementation.md | pass | closed |
 | 15    | project-desktop-build              | Add desktop target support for `pycro project build` with embedded project payload | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward, example-scenario-worker | complete | codex/15-project-desktop-build | .worktrees/15-project-desktop-build-orchestrator | docs/phases/15-project-desktop-build/implementation.md | pass | closed |
-| 16    | spec-driven-agent-workflow-hardening | Harden spec-driven workflow validation, kickoff automation, and operator ergonomics | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | in_progress | codex/16-spec-driven-agent-workflow-hardening | .worktrees/16-spec-driven-agent-workflow-hardening-orchestrator | docs/phases/16-spec-driven-agent-workflow-hardening/implementation.md | pending | kickoff active |
+| 16    | spec-driven-agent-workflow-hardening | Harden spec-driven workflow validation, kickoff automation, and operator ergonomics | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/16-spec-driven-agent-workflow-hardening | .worktrees/16-spec-driven-agent-workflow-hardening-orchestrator | docs/phases/16-spec-driven-agent-workflow-hardening/implementation.md | pass | closed (closeout + validation complete) |
 | 17    | project-web-build                  | Add web target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward, example-scenario-worker | planned | codex/17-project-web-build | .worktrees/17-project-web-build-orchestrator | docs/phases/17-project-web-build/implementation.md | pending | queued |
 | 18    | project-android-build              | Add Android target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/18-project-android-build | .worktrees/18-project-android-build-orchestrator | docs/phases/18-project-android-build/implementation.md | pending | queued |
 | 19    | project-ios-build                  | Add iOS target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/19-project-ios-build | .worktrees/19-project-ios-build-orchestrator | docs/phases/19-project-ios-build/implementation.md | pending | queued |
@@ -209,6 +209,18 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
   - operator-facing ergonomics such as explicit CLI help and artifact smoke expectations
 - startup_gate: requirements + design validated, implementation opened (2026-03-17)
 - active_branch: `codex/16-spec-driven-agent-workflow-hardening`
+- phase_orchestration_contract: every active phase requires recorded `architecture-orchestrator` ownership from kickoff through closeout
+- write_constrained_worker_contract: workers without write capability provide summary/input handoff; orchestrator performs integration edits
+- implementation_scope:
+  - `scripts/validate_governance.py` now enforces phase-registry consistency across phase dirs + `docs/phases/README.md` + tracker phase index + state phase sequence/active phase
+  - active phase kickoff invariants enforced (`startup_gate`, `resume_checkpoint`, active task branch/worktree/doc coherence)
+  - stream synchronization checks enforced between tracker streams table, immediate next workstream section, and state stream registry
+  - CLI help ergonomics implemented (`pycro help|--help|-h` plus subcommand help aliases like `project --help`, `build --help`, `generate_stubs --help`, `init --help`)
+  - stream closeout checklist formalized in `docs/streams/README.md`
+- adr: `docs/adr/0017-phase-orchestrator-ownership-and-write-constrained-worker-handoff.md`
+- validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
+- phase_closeout: complete (`docs/phases/16-spec-driven-agent-workflow-hardening/closeout.md`)
+- phase_16_qa: pass
 
 ## Phase 17 Planning Note
 

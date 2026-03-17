@@ -4,13 +4,14 @@
   "active_phase": {
     "number": "16",
     "id": "16-spec-driven-agent-workflow-hardening",
-    "status": "in_progress",
+    "status": "complete",
     "path": "docs/phases/16-spec-driven-agent-workflow-hardening"
   },
   "current_objective": {
     "id": "spec-driven-agent-workflow-hardening",
     "title": "Harden spec-driven workflow validation, kickoff automation, and operator ergonomics",
-    "status": "in_progress",
+    "status": "complete",
+    "execution_mode": "orchestrator_owned_phase_with_worker_handoffs",
     "phase_doc": "docs/phases/16-spec-driven-agent-workflow-hardening/implementation.md",
     "startup_gate": {
       "requirements_validated": true,
@@ -20,11 +21,11 @@
     "resume_checkpoint": {
       "branch": "codex/16-spec-driven-agent-workflow-hardening",
       "worktree": ".worktrees/16-spec-driven-agent-workflow-hardening-orchestrator",
-      "summary": "phase 16 inserted before future packaging targets to harden spec-driven governance and agent workflow contracts",
-      "code_status": "requirements and design validated; implementation opened with renumbering and registry synchronization in progress",
+      "summary": "phase 16 governance hardening implemented: strict phase/stream/state validation, CLI help ergonomics, and orchestrator ownership fallback contract",
+      "code_status": "phase 16 closeout artifacts are complete with QA pass and full preflight evidence",
       "next_slice": [
-        "add consistency guardrails for phase/task/state synchronization",
-        "implement operator-facing workflow improvements before resuming web target delivery as phase 17"
+        "merge branch into develop",
+        "start phase 17 execution after merge confirmation"
       ]
     },
     "block_progress": {
@@ -92,8 +93,17 @@
       "phase_15_validation_preflight": "pass",
       "phase_15_closeout_doc": "docs/phases/15-project-desktop-build/closeout.md",
       "phase_15_qa": "pass",
-      "phase_16_kickoff": "in_progress",
-      "phase_16_spec_driven_agent_workflow_hardening": "in_progress",
+      "phase_16_kickoff": "complete",
+      "phase_16_spec_driven_agent_workflow_hardening": "complete",
+      "phase_16_orchestrator_phase_ownership_contract": "implemented",
+      "phase_16_write_constrained_worker_fallback_contract": "implemented",
+      "phase_16_phase_stream_registry_validation": "implemented",
+      "phase_16_cli_help_ergonomics": "implemented",
+      "phase_16_stream_closeout_checklist": "implemented",
+      "phase_16_validation_preflight": "pass",
+      "phase_16_adr": "accepted",
+      "phase_16_closeout_doc": "docs/phases/16-spec-driven-agent-workflow-hardening/closeout.md",
+      "phase_16_qa": "pass",
       "phase_17_project_web_build": "planned",
       "phase_18_project_android_build": "planned",
       "phase_19_project_ios_build": "planned",
@@ -108,6 +118,13 @@
     "delegation_required": true,
     "no_god_agent": true,
     "summary_only_reports": true,
+    "phase_owner_must_be_orchestrator": true,
+    "write_constrained_worker_fallback": {
+      "enabled": true,
+      "worker_delivers_summary_input": true,
+      "orchestrator_integrates_and_codes": true,
+      "state_label": "orchestrator_integration_from_worker_handoff"
+    },
     "mandatory_agents_for_impl": [
       "architecture-orchestrator",
       "docs-tracker",
@@ -229,7 +246,7 @@
     {
       "number": "16",
       "id": "16-spec-driven-agent-workflow-hardening",
-      "status": "in_progress",
+      "status": "complete",
       "path": "docs/phases/16-spec-driven-agent-workflow-hardening"
     },
     {
@@ -446,11 +463,11 @@
       "id": "spec-driven-agent-workflow-hardening",
       "phase": "16",
       "owner": "architecture-orchestrator",
-      "status": "in_progress",
+      "status": "complete",
       "branch": "codex/16-spec-driven-agent-workflow-hardening",
       "worktree": ".worktrees/16-spec-driven-agent-workflow-hardening-orchestrator",
       "phase_doc": "docs/phases/16-spec-driven-agent-workflow-hardening/implementation.md",
-      "qa": "pending"
+      "qa": "pass"
     },
     {
       "id": "project-web-build",

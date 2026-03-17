@@ -17,3 +17,5 @@ No change is considered active until all four artifacts are synchronized.
 
 - 2026-03-17: New phase inserted before web/android/ios target work to harden spec-driven and agent workflow contracts.
 - 2026-03-17: Future platform phases renumbered by +1 so web becomes phase 17, android phase 18, and ios phase 19.
+- 2026-03-17: Governance contract refined to require explicit orchestrator ownership for every planned/in-progress phase.
+- 2026-03-17: Write-constrained worker fallback formalized: worker delivers summary/input handoff, orchestrator integrates and edits repository changes.
