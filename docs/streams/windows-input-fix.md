@@ -105,6 +105,7 @@ Fallback path:
   - `examples/windows_input_diagnostic.py`
   - displays real-time key-state HUD (`LEFT/RIGHT/UP/DOWN/SPACE/ESCAPE`) and movement cue
 - local validation (host): `governance`, `fmt`, `clippy -D warnings`, `test`, `stub --check`, `mypy`, `cargo doc`, and short runtime smoke (`PYCRO_FRAMES=2`).
+- ci follow-up: pinned macOS artifact workflow deployment target to `13.0` in `.github/workflows/develop-artifacts.yml` and `.github/workflows/release-artifacts.yml` to avoid `libsqlite3-sys` compile failures from unstable `-mmacosx-version-min` values on hosted runners.
 
 ## Windows Tester Checklist (Pending Manual Gate)
 

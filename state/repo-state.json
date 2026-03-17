@@ -491,6 +491,7 @@
       "doc": "docs/streams/windows-input-fix.md",
       "priority": "immediate",
       "implementation_slice_1": "complete",
+      "ci_artifact_followup": "complete",
       "pending_gate": "windows-manual-validation",
       "last_update": "2026-03-17"
     }
