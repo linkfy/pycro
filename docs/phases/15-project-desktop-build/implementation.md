@@ -20,7 +20,7 @@
 - accepted_direction: desktop/web/Android/iOS must share one embedded project payload strategy; loose `dist/` packaging is rejected
 - code_status: embedded payload build foundation is now implemented (`build.rs` payload generation + desktop `cargo build --release` orchestration + embedded runtime staging path)
 - next_slice:
-  - phase closeout completed in `closeout.md`; next active build target is phase 16 (`project-web-build`)
+  - phase closeout completed in `closeout.md`; next direct build target now follows hardening phase 16 and resumes at phase 17 (`project-web-build`)
 
 ## Reporting Contract
 

@@ -13,7 +13,6 @@ When refinement changes phase scope or task ordering:
 
 No change is considered active until all four artifacts are synchronized.
 
-## Phase 16 Kickoff Log
+## Renumbering Note
 
-- 2026-03-17: Phase 16 formally activated on branch `codex/16-project-web-build`.
-- 2026-03-17: Startup gate validated (`requirements.md` -> `design.md` -> `implementation.md`) before execution.
+- 2026-03-17: Web build phase shifted from 16 to 17 after inserting `16-spec-driven-agent-workflow-hardening`.

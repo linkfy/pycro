@@ -1,7 +1,7 @@
 # Task Implementation
 
 ## Execution Steps
-1. Activate the iOS target phase after phases 15-17 stabilize the shared embedded payload and multi-target model.
+1. Activate the iOS target phase after phases 15-18 stabilize the shared embedded payload and multi-target model.
 2. Implement target parsing and build orchestration for `--target ios`.
 3. Generate the chosen iOS output format and package project payload/assets into the target layout.
 4. Add smoke validation for generated-project startup assumptions and embedded bundle resources.
@@ -11,7 +11,7 @@
 
 | Task ID | Owner | Parallel Team | Status | Branch | Worktree | Validation Gate |
 | --- | --- | --- | --- | --- | --- | --- |
-| project-ios-build | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/18-project-ios-build | .worktrees/18-project-ios-build-orchestrator | ios packaging smoke + standard preflight |
+| project-ios-build | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/19-project-ios-build | .worktrees/19-project-ios-build-orchestrator | ios packaging smoke + standard preflight |
 
 ## Reporting Contract
 

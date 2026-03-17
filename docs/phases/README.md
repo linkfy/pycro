@@ -26,9 +26,10 @@ This directory stores the canonical sequential delivery phases.
 - `13-cli-generate-stubs-command` (complete)
 - `14-project-build-foundation` (complete)
 - `15-project-desktop-build` (complete)
-- `16-project-web-build` (in_progress)
-- `17-project-android-build` (planned)
-- `18-project-ios-build` (planned)
+- `16-spec-driven-agent-workflow-hardening` (in_progress)
+- `17-project-web-build` (planned)
+- `18-project-android-build` (planned)
+- `19-project-ios-build` (planned)
 
 ## Required Files Per Phase
 
