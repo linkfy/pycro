@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.4](https://github.com/linkfy/pycro/compare/pycro_cli-v0.4.3...pycro_cli-v0.4.4) (2026-03-17)
+
+
+### Bug Fixes
+
+* **ci:** pin macos deployment target for artifact workflows ([f3cf77b](https://github.com/linkfy/pycro/commit/f3cf77b193dba632494d3870743e89ee7284eca3))
+* **ci:** use static crt for windows artifacts ([13c1b76](https://github.com/linkfy/pycro/commit/13c1b763aed22b8efc936927ce9eb93208232119))
+* **input:** map letter keys and drop ineffective polling fallback ([82f6ed4](https://github.com/linkfy/pycro/commit/82f6ed4959ee08e985d624a0aceaf002dc43d0b3))
+* **windows-input:** patch miniquad rawinput target and add diagnostic scenario ([d3893db](https://github.com/linkfy/pycro/commit/d3893db6a49a75da14544cf635d828eb3c80da39))
+
 ## [0.4.3](https://github.com/linkfy/pycro/compare/pycro_cli-v0.4.2...pycro_cli-v0.4.3) (2026-03-16)
 
 
