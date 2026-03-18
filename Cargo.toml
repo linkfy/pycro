@@ -5,6 +5,7 @@ edition = "2024"
 license = "MIT"
 rust-version = "1.91"
 default-run = "pycro"
+build = "build.rs"
 
 [[bin]]
 name = "pycro"
@@ -12,9 +13,26 @@ path = "src/main.rs"
 
 [dependencies]
 macroquad = "0.4"
-rustpython-vm = "0.4"
-mimalloc = "0.1"
+rustpython-vm = { version = "0.4", features = ["importlib", "encodings", "freeze-stdlib"] }
+ahash = "0.8"
 parking_lot = "0.12"
+rustpython-stdlib = "0.4"
+rustpython-pylib = { version = "0.4", features = ["freeze-stdlib"] }
+
+[target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))'.dependencies]
+mimalloc = "0.1"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.3.4", features = ["wasm_js"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+rustpython-vm = { version = "0.4", features = ["importlib", "encodings", "freeze-stdlib", "threading"] }
+
+[patch.crates-io]
+miniquad = { path = "patches/miniquad-0.4.8-windows-rawinput-fix" }
+ahash = { path = "patches/ahash-0.8.12-wasm-no-rng" }
+rand = { path = "patches/rand-0.8.5-wasm-no-rng" }
+rustpython-vm = { path = "patches/rustpython-vm-0.4.0-no-wasm-bindgen" }
 
 [lints.clippy]
 dbg_macro = "deny"
@@ -23,9 +41,22 @@ unwrap_used = "deny"
 
 [lints.rust]
 missing_docs = "deny"
-unsafe_code = "forbid"
+unsafe_code = "deny"
 
 [profile.release]
 lto = "fat"
 codegen-units = 1
 panic = "abort"
+
+[package.metadata.android]
+package_name = "com.pycro.cli"
+label = "pycro"
+android_version = 34
+target_sdk_version = 34
+min_sdk_version = 31
+build_targets = [
+  "aarch64-linux-android",
+]
+
+[package.metadata.android.activity_attributes]
+"android:exported" = "true"

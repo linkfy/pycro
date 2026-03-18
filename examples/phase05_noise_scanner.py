@@ -36,11 +36,11 @@ def update(dt: float) -> None:
         pycro.draw_texture(uv_texture, (690.0, 70.0), (280.0, 280.0))
 
     scanner_y += (pycro.frame_time() - 0.016) * 90.0
-    if pycro.is_key_down("Up"):
+    if pycro.is_key_down(pycro.KEY.UP):
         scanner_y -= 110.0 * dt
-    if pycro.is_key_down("Down"):
+    if pycro.is_key_down(pycro.KEY.DOWN):
         scanner_y += 110.0 * dt
-    if pycro.is_key_down("Space"):
+    if pycro.is_key_down(pycro.KEY.SPACE):
         scanner_y = 220.0
 
     pulse_radius = 12.0 + (pulse_seconds % 0.75) * 12.0

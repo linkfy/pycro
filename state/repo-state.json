@@ -2,22 +2,33 @@
   "schema_version": 2,
   "project": "pycro",
   "active_phase": {
-    "number": "10",
-    "id": "10-update-only-lifecycle",
+    "number": "18",
+    "id": "18-project-android-build",
     "status": "complete",
-    "path": "docs/phases/10-update-only-lifecycle"
+    "path": "docs/phases/18-project-android-build"
   },
   "current_objective": {
-    "id": "lifecycle-update-only",
-    "title": "Update-only lifecycle plus project-default main.py execution and init-time local pycro executable copy",
+    "id": "project-android-build",
+    "title": "Add Android target support for `pycro project build` with embedded payload packaging",
     "status": "complete",
-    "phase_doc": "docs/phases/10-update-only-lifecycle/implementation.md",
+    "execution_mode": "orchestrator_owned_phase_with_worker_handoffs",
+    "phase_doc": "docs/phases/18-project-android-build/implementation.md",
     "startup_gate": {
       "requirements_validated": true,
       "design_validated": true,
-      "kickoff_date": "2026-03-14"
+      "kickoff_date": "2026-03-18"
     },
-    "manual_validation_scenario": "n/a",
+    "resume_checkpoint": {
+      "branch": "codex/18-project-android-build",
+      "worktree": ".worktrees/18-project-android-build-orchestrator",
+      "summary": "phase 18 Android build contract implemented and formally closed out with QA pass",
+      "code_status": "android project build path, artifact copy contract, embedded payload runtime guard, smoke validation, and docs sync are complete",
+      "next_slice": [
+        "activate phase 19 startup gate (requirements + design) for ios target planning",
+        "scope iOS toolchain and packaging contract for `pycro project build --target ios`",
+        "prepare delegated slice plan for phase 19 implementation kickoff"
+      ]
+    },
     "block_progress": {
       "phase_05": "complete",
       "phase_05_closeout_doc": "docs/phases/05-platform-input-texture/closeout.md",
@@ -35,7 +46,92 @@
       "phase_10_init_self_copy": "implemented",
       "phase_10_validation_preflight": "pass",
       "phase_10_closeout_doc": "docs/phases/10-update-only-lifecycle/closeout.md",
-      "phase_10_qa": "pass"
+      "phase_10_qa": "pass",
+      "phase_06_kickoff": "in_progress",
+      "phase_06_visual_payload_fixtures": "implemented",
+      "phase_06_ci_visual_payload_gate": "implemented",
+      "phase_06_validation_preflight": "pass",
+      "phase_06_closeout_doc": "docs/phases/06-ci-visual-payload/closeout.md",
+      "phase_06_qa": "pass",
+      "phase_07_manual_playtest_gate": "complete",
+      "phase_07_closeout_doc": "docs/phases/07-manual-playtest-evidence/closeout.md",
+      "phase_07_qa": "pass",
+      "phase_11_kickoff": "complete",
+      "phase_11_develop_branch_bootstrap": "complete",
+      "phase_11_develop_artifacts_workflow": "implemented",
+      "phase_11_governance_docs_sync": "implemented",
+      "phase_11_validation_preflight": "pass",
+      "phase_11_local_artifact_smoke": "pass",
+      "phase_11_closeout_doc": "docs/phases/11-develop-integration-artifacts/closeout.md",
+      "phase_11_qa": "pass",
+      "phase_12_kickoff": "complete",
+      "phase_12_runtime_numeric_coercion": "implemented",
+      "phase_12_key_enum_contract": "implemented",
+      "phase_12_mouse_key_mapping": "implemented",
+      "phase_12_stdlib_enablement": "implemented",
+      "phase_12_regression_tests": "implemented",
+      "phase_12_example_scenario": "implemented",
+      "phase_12_adr": "accepted",
+      "phase_12_validation_preflight": "pass",
+      "phase_12_closeout_doc": "docs/phases/12-vec2-color-float-coercion/closeout.md",
+      "phase_12_qa": "pass",
+      "phase_13_kickoff": "complete",
+      "phase_13_cli_generate_stubs": "implemented",
+      "phase_13_adr": "accepted",
+      "phase_13_validation_preflight": "pass",
+      "phase_13_closeout_doc": "docs/phases/13-cli-generate-stubs-command/closeout.md",
+      "phase_13_qa": "pass",
+      "phase_14_project_build_foundation": "complete",
+      "phase_15_project_desktop_build": "complete",
+      "phase_15_kickoff": "complete",
+      "phase_15_scope_refinement_embedded_payload": "accepted",
+      "phase_15_dist_directory_packaging": "rejected",
+      "phase_15_replan_docs_sync": "complete",
+      "phase_15_adr": "accepted",
+      "phase_15_embedded_payload_foundation": "implemented",
+      "phase_15_desktop_embedded_smoke": "pass",
+      "phase_15_example_scenario": "implemented",
+      "phase_15_validation_preflight": "pass",
+      "phase_15_closeout_doc": "docs/phases/15-project-desktop-build/closeout.md",
+      "phase_15_qa": "pass",
+      "phase_16_kickoff": "complete",
+      "phase_16_spec_driven_agent_workflow_hardening": "complete",
+      "phase_16_orchestrator_phase_ownership_contract": "implemented",
+      "phase_16_write_constrained_worker_fallback_contract": "implemented",
+      "phase_16_phase_stream_registry_validation": "implemented",
+      "phase_16_cli_help_ergonomics": "implemented",
+      "phase_16_stream_closeout_checklist": "implemented",
+      "phase_16_validation_preflight": "pass",
+      "phase_16_adr": "accepted",
+      "phase_16_closeout_doc": "docs/phases/16-spec-driven-agent-workflow-hardening/closeout.md",
+      "phase_16_qa": "pass",
+      "phase_17_kickoff": "complete",
+      "phase_17_project_web_build": "complete",
+      "phase_17_web_build_orchestration": "implemented",
+      "phase_17_web_output_contract": "implemented",
+      "phase_17_web_wasm_toolchain_blockers": "resolved",
+      "phase_17_web_loader_wbindgen_compat_shim": "implemented",
+      "phase_17_web_smoke": "pass",
+      "phase_18_project_android_build": "complete",
+      "phase_18_planning_refinement_macroquad_review": "complete",
+      "phase_18_v1_output_contract_locked": "accepted",
+      "phase_18_delegated_slice_plan": "defined",
+      "phase_18_validation_preflight": "pass",
+      "phase_18_android_smoke": "pass",
+      "phase_18_closeout_doc": "docs/phases/18-project-android-build/closeout.md",
+      "phase_18_qa": "pass",
+      "phase_19_project_ios_build": "planned",
+      "phase_14_validation_preflight": "pass",
+      "phase_14_closeout_doc": "docs/phases/14-project-build-foundation/closeout.md",
+      "phase_14_qa": "pass",
+      "phase_14_adr": "accepted",
+      "phase_17_web_texture_payload_loading": "implemented",
+      "phase_17_web_wasm_poc_scope_documented": "implemented",
+      "phase_17_web_runtime_troubleshooting_docs": "implemented",
+      "phase_17_non_web_regression_guard": "pass",
+      "phase_17_validation_preflight": "pass",
+      "phase_17_closeout_doc": "docs/phases/17-project-web-build/closeout.md",
+      "phase_17_qa": "pass"
     }
   },
   "orchestration": {
@@ -43,6 +139,13 @@
     "delegation_required": true,
     "no_god_agent": true,
     "summary_only_reports": true,
+    "phase_owner_must_be_orchestrator": true,
+    "write_constrained_worker_fallback": {
+      "enabled": true,
+      "worker_delivers_summary_input": true,
+      "orchestrator_integrates_and_codes": true,
+      "state_label": "orchestrator_integration_from_worker_handoff"
+    },
     "mandatory_agents_for_impl": [
       "architecture-orchestrator",
       "docs-tracker",
@@ -63,7 +166,7 @@
     },
     "manager_agent": "worktree-manager"
   },
-  "current_branch": "codex/10-lifecycle-update-only",
+  "current_branch": "codex/18-project-android-build",
   "phase_sequence": [
     {
       "number": "00",
@@ -104,13 +207,13 @@
     {
       "number": "06",
       "id": "06-ci-visual-payload",
-      "status": "planned",
+      "status": "complete",
       "path": "docs/phases/06-ci-visual-payload"
     },
     {
       "number": "07",
       "id": "07-manual-playtest-evidence",
-      "status": "planned",
+      "status": "complete",
       "path": "docs/phases/07-manual-playtest-evidence"
     },
     {
@@ -130,6 +233,60 @@
       "id": "10-update-only-lifecycle",
       "status": "complete",
       "path": "docs/phases/10-update-only-lifecycle"
+    },
+    {
+      "number": "11",
+      "id": "11-develop-integration-artifacts",
+      "status": "complete",
+      "path": "docs/phases/11-develop-integration-artifacts"
+    },
+    {
+      "number": "12",
+      "id": "12-vec2-color-float-coercion",
+      "status": "complete",
+      "path": "docs/phases/12-vec2-color-float-coercion"
+    },
+    {
+      "number": "13",
+      "id": "13-cli-generate-stubs-command",
+      "status": "complete",
+      "path": "docs/phases/13-cli-generate-stubs-command"
+    },
+    {
+      "number": "14",
+      "id": "14-project-build-foundation",
+      "status": "complete",
+      "path": "docs/phases/14-project-build-foundation"
+    },
+    {
+      "number": "15",
+      "id": "15-project-desktop-build",
+      "status": "complete",
+      "path": "docs/phases/15-project-desktop-build"
+    },
+    {
+      "number": "16",
+      "id": "16-spec-driven-agent-workflow-hardening",
+      "status": "complete",
+      "path": "docs/phases/16-spec-driven-agent-workflow-hardening"
+    },
+    {
+      "number": "17",
+      "id": "17-project-web-build",
+      "status": "complete",
+      "path": "docs/phases/17-project-web-build"
+    },
+    {
+      "number": "18",
+      "id": "18-project-android-build",
+      "status": "complete",
+      "path": "docs/phases/18-project-android-build"
+    },
+    {
+      "number": "19",
+      "id": "19-project-ios-build",
+      "status": "planned",
+      "path": "docs/phases/19-project-ios-build"
     }
   ],
   "tasks": [
@@ -227,21 +384,21 @@
       "id": "ci-visual-payload-smoke",
       "phase": "06",
       "owner": "architecture-orchestrator",
-      "status": "planned",
+      "status": "complete",
       "branch": "codex/06-ci-visual-payload-smoke",
-      "worktree": ".worktrees/06-ci-visual-payload-orchestrator",
+      "worktree": "/Users/linkfy/Code/pycro",
       "phase_doc": "docs/phases/06-ci-visual-payload/implementation.md",
-      "qa": "pending"
+      "qa": "pass"
     },
     {
       "id": "manual-playtest-evidence-gate",
       "phase": "07",
       "owner": "example-scenario-worker",
-      "status": "planned",
+      "status": "complete",
       "branch": "codex/07-manual-playtest-evidence-gate",
       "worktree": ".worktrees/07-manual-playtest-example",
       "phase_doc": "docs/phases/07-manual-playtest-evidence/implementation.md",
-      "qa": "pending"
+      "qa": "pass"
     },
     {
       "id": "git-cd-release-automation",
@@ -272,6 +429,96 @@
       "worktree": "/Users/linkfy/Code/pycro",
       "phase_doc": "docs/phases/10-update-only-lifecycle/implementation.md",
       "qa": "pass"
+    },
+    {
+      "id": "develop-ready-for-release-flow",
+      "phase": "11",
+      "owner": "architecture-orchestrator",
+      "status": "complete",
+      "branch": "codex/11-develop-default-release-flow",
+      "worktree": "/Users/linkfy/Code/pycro",
+      "phase_doc": "docs/phases/11-develop-integration-artifacts/implementation.md",
+      "qa": "pass"
+    },
+    {
+      "id": "runtime-vec2-color-float-coercion",
+      "phase": "12",
+      "owner": "architecture-orchestrator",
+      "status": "complete",
+      "branch": "codex/12-vec2-color-float-coercion",
+      "worktree": "/Users/linkfy/Code/pycro",
+      "phase_doc": "docs/phases/12-vec2-color-float-coercion/implementation.md",
+      "qa": "pass"
+    },
+    {
+      "id": "cli-generate-stubs-subcommand",
+      "phase": "13",
+      "owner": "architecture-orchestrator",
+      "status": "complete",
+      "branch": "codex/13-cli-generate-stubs-subcommand",
+      "worktree": "/Users/linkfy/Code/pycro",
+      "phase_doc": "docs/phases/13-cli-generate-stubs-command/implementation.md",
+      "qa": "pass"
+    },
+    {
+      "id": "project-build-foundation",
+      "phase": "14",
+      "owner": "architecture-orchestrator",
+      "status": "complete",
+      "branch": "codex/14-project-build-foundation",
+      "worktree": ".worktrees/14-project-build-foundation-orchestrator",
+      "phase_doc": "docs/phases/14-project-build-foundation/implementation.md",
+      "qa": "pass"
+    },
+    {
+      "id": "project-desktop-build",
+      "phase": "15",
+      "owner": "architecture-orchestrator",
+      "status": "complete",
+      "branch": "codex/15-project-desktop-build",
+      "worktree": ".worktrees/15-project-desktop-build-orchestrator",
+      "phase_doc": "docs/phases/15-project-desktop-build/implementation.md",
+      "qa": "pass"
+    },
+    {
+      "id": "spec-driven-agent-workflow-hardening",
+      "phase": "16",
+      "owner": "architecture-orchestrator",
+      "status": "complete",
+      "branch": "codex/16-spec-driven-agent-workflow-hardening",
+      "worktree": ".worktrees/16-spec-driven-agent-workflow-hardening-orchestrator",
+      "phase_doc": "docs/phases/16-spec-driven-agent-workflow-hardening/implementation.md",
+      "qa": "pass"
+    },
+    {
+      "id": "project-web-build",
+      "phase": "17",
+      "owner": "architecture-orchestrator",
+      "status": "complete",
+      "branch": "codex/17-project-web-build",
+      "worktree": ".worktrees/17-project-web-build-orchestrator",
+      "phase_doc": "docs/phases/17-project-web-build/implementation.md",
+      "qa": "pass"
+    },
+    {
+      "id": "project-android-build",
+      "phase": "18",
+      "owner": "architecture-orchestrator",
+      "status": "complete",
+      "branch": "codex/18-project-android-build",
+      "worktree": ".worktrees/18-project-android-build-orchestrator",
+      "phase_doc": "docs/phases/18-project-android-build/implementation.md",
+      "qa": "pass"
+    },
+    {
+      "id": "project-ios-build",
+      "phase": "19",
+      "owner": "architecture-orchestrator",
+      "status": "planned",
+      "branch": "codex/19-project-ios-build",
+      "worktree": ".worktrees/19-project-ios-build-orchestrator",
+      "phase_doc": "docs/phases/19-project-ios-build/implementation.md",
+      "qa": "pending"
     }
   ],
   "streams": [
@@ -292,6 +539,18 @@
       "status": "planned",
       "owner": "architecture-orchestrator",
       "doc": "docs/streams/backend-selection-policy.md"
+    },
+    {
+      "id": "stream-windows-input-fix",
+      "status": "in_progress",
+      "owner": "architecture-orchestrator",
+      "doc": "docs/streams/windows-input-fix.md",
+      "priority": "immediate",
+      "implementation_slice_1": "complete",
+      "ci_artifact_followup": "complete",
+      "incident_log": "docs/streams/incident-resolutions.md#incident-2026-03-17-windows-artifact-startup-noop",
+      "pending_gate": "windows-manual-validation",
+      "last_update": "2026-03-17"
     }
   ],
   "summary_contract": {

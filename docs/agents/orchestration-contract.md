@@ -2,7 +2,7 @@
 
 ## Core Rule
 
-Every implementation task runs with an active orchestrator and delegated ownership.
+Every active phase runs under an explicit `architecture-orchestrator` owner with delegated execution.
 
 - No "god agent" execution for end-to-end implementation.
 - The orchestrator is integration-focused and context-thin.
@@ -60,6 +60,14 @@ When lifecycle/dispatch contract changes:
 
 - include `flow-visualizer`
 
+## Phase-Level Enforcement (Mandatory)
+
+For every phase marked `planned` or `in_progress`:
+
+- `architecture-orchestrator` must be the recorded phase owner in `implementation.md`, `docs/task-tracker.txt`, and `state/repo-state.json`.
+- delegated workers may own slices, but not the phase lifecycle.
+- no phase may move from kickoff to implementation without an active orchestrator record.
+
 ## Worktree Rule
 
 `worktree-manager` must allocate dedicated worktrees when:
@@ -78,6 +86,12 @@ Naming pattern:
 Workers report only summary payloads with the schema in `docs/agent-registry.md`.
 Raw logs are not sent to the orchestrator.
 
+## Write-Capability Constraint Rule (Mandatory)
+
+Worker write access is optional; orchestrator integration is mandatory.
+When a worker lacks write capability, the worker reports summary handoff input and the orchestrator performs repository edits/integration.
+Tracker/state must record this fallback execution mode when used.
+
 ## Local CI Preflight Rule (Mandatory)
 
 Before any push, merge request, or phase closeout checkpoint, run local CI-equivalent minimum checks:
@@ -87,3 +101,8 @@ Before any push, merge request, or phase closeout checkpoint, run local CI-equiv
 - `cargo test`
 
 No gate is considered green until these pass locally and evidence is recorded.
+
+## Develop Merge Gate (Mandatory)
+
+- The orchestrator must block merges into `develop` until the active phase is finalized (`closeout.md` recorded and tracker/state synchronized with `qa=pass` or explicit waiver).
+- The only valid exception is an explicit programmer request to bypass this gate.

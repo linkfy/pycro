@@ -14,11 +14,18 @@ Implementation work is not commit-ready until all applicable checks pass and evi
 - reviewer findings resolved or explicitly waived
 - Local CI-equivalent preflight evidence must be recorded before push/merge (`fmt` + `clippy -D warnings` + `test`).
 
+## Phase Status Source Of Truth (Mandatory)
+
+- Canonical phase/task status source is `state/repo-state.json`.
+- Mirrors in `docs/task-tracker.txt` (Phase Index + Task Table) and `docs/phases/README.md` must be synchronized to match `state/repo-state.json`.
+- During closeout, update `state/repo-state.json` first, then update mirrors in tracker/docs, then run `python3 scripts/validate_governance.py`.
+
 ## Additional Expectations
 
 - Lifecycle changes require runtime tests.
 - Public API changes require stub drift checks and typing smoke.
 - Platform guarantee changes require a platform matrix update and an ADR.
+- Build/release ergonomics changes must include explicit operator-facing help or docs references to artifact smoke expectations.
 - User-visible interactive features require a playable `examples/` scenario per feature and explicit user feedback recorded in tracker evidence.
 - Parallel implementation slices must track branch/worktree assignment in tracker/state.
 

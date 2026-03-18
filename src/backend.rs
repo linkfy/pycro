@@ -1,7 +1,13 @@
 //! Backend contract used by the API layer.
 //! The first backend owner is Macroquad, but the contract is backend-agnostic.
 
-use macroquad::input::{KeyCode, is_key_down, is_quit_requested};
+#[cfg(any(target_arch = "wasm32", target_os = "android"))]
+use crate::embedded_project_payload;
+#[cfg(not(target_os = "android"))]
+use macroquad::input::is_quit_requested;
+use macroquad::input::{KeyCode, MouseButton};
+#[cfg(not(test))]
+use macroquad::input::{is_key_down, is_mouse_button_down};
 use macroquad::math::vec2;
 #[cfg(target_os = "macos")]
 use macroquad::miniquad::conf::AppleGfxApi;
@@ -15,6 +21,7 @@ use macroquad::time::get_frame_time;
 use macroquad::window::{Conf, gl_set_drawcall_buffer_capacity, next_frame};
 use std::collections::HashMap;
 use std::env;
+#[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
 use std::path::Path;
 
 /// A two-dimensional vector.
@@ -223,13 +230,23 @@ impl DesktopFrameLoop {
                 .config
                 .frame_count
                 .is_some_and(|budget| frames_executed >= budget);
-            if reached_budget || is_quit_requested() {
+            if reached_budget || should_terminate_frame_loop() {
                 break;
             }
         }
 
         Ok(DesktopLoopReport { frames_executed })
     }
+}
+
+#[cfg(target_os = "android")]
+fn should_terminate_frame_loop() -> bool {
+    false
+}
+
+#[cfg(not(target_os = "android"))]
+fn should_terminate_frame_loop() -> bool {
+    is_quit_requested()
 }
 
 /// Window configuration used by the real Macroquad loop owner.
@@ -263,7 +280,7 @@ pub fn window_conf() -> Conf {
             conf.platform.apple_gfx_api = match selected.as_deref() {
                 Some("metal") => AppleGfxApi::Metal,
                 Some("opengl") | Some("gl") => AppleGfxApi::OpenGl,
-                _ => AppleGfxApi::OpenGl,
+                _ => AppleGfxApi::Metal,
             };
         }
         conf
@@ -476,6 +493,44 @@ impl MacroquadBackendContract {
 }
 
 fn key_code_from_name(key: &str) -> Option<KeyCode> {
+    if key.len() == 1 {
+        let letter = key
+            .as_bytes()
+            .first()
+            .copied()
+            .map(char::from)
+            .map(|value| value.to_ascii_uppercase());
+        return match letter {
+            Some('A') => Some(KeyCode::A),
+            Some('B') => Some(KeyCode::B),
+            Some('C') => Some(KeyCode::C),
+            Some('D') => Some(KeyCode::D),
+            Some('E') => Some(KeyCode::E),
+            Some('F') => Some(KeyCode::F),
+            Some('G') => Some(KeyCode::G),
+            Some('H') => Some(KeyCode::H),
+            Some('I') => Some(KeyCode::I),
+            Some('J') => Some(KeyCode::J),
+            Some('K') => Some(KeyCode::K),
+            Some('L') => Some(KeyCode::L),
+            Some('M') => Some(KeyCode::M),
+            Some('N') => Some(KeyCode::N),
+            Some('O') => Some(KeyCode::O),
+            Some('P') => Some(KeyCode::P),
+            Some('Q') => Some(KeyCode::Q),
+            Some('R') => Some(KeyCode::R),
+            Some('S') => Some(KeyCode::S),
+            Some('T') => Some(KeyCode::T),
+            Some('U') => Some(KeyCode::U),
+            Some('V') => Some(KeyCode::V),
+            Some('W') => Some(KeyCode::W),
+            Some('X') => Some(KeyCode::X),
+            Some('Y') => Some(KeyCode::Y),
+            Some('Z') => Some(KeyCode::Z),
+            _ => None,
+        };
+    }
+
     match key {
         "Space" | "space" => Some(KeyCode::Space),
         "Left" | "left" => Some(KeyCode::Left),
@@ -483,6 +538,15 @@ fn key_code_from_name(key: &str) -> Option<KeyCode> {
         "Up" | "up" => Some(KeyCode::Up),
         "Down" | "down" => Some(KeyCode::Down),
         "Escape" | "escape" => Some(KeyCode::Escape),
+        _ => None,
+    }
+}
+
+fn mouse_button_from_name(key: &str) -> Option<MouseButton> {
+    match key {
+        "MOUSE_LEFT" | "mouse_left" | "MouseLeft" => Some(MouseButton::Left),
+        "MOUSE_RIGHT" | "mouse_right" | "MouseRight" => Some(MouseButton::Right),
+        "MOUSE_MIDDLE" | "mouse_middle" | "MouseMiddle" => Some(MouseButton::Middle),
         _ => None,
     }
 }
@@ -583,7 +647,17 @@ impl EngineBackend for MacroquadBackendContract {
     }
 
     fn is_key_down(&self, key: &str) -> bool {
-        key_code_from_name(key).is_some_and(is_key_down)
+        #[cfg(test)]
+        {
+            mouse_button_from_name(key).is_some() || key_code_from_name(key).is_some()
+        }
+        #[cfg(not(test))]
+        {
+            if let Some(button) = mouse_button_from_name(key) {
+                return is_mouse_button_down(button);
+            }
+            key_code_from_name(key).is_some_and(is_key_down)
+        }
     }
 
     fn frame_time(&self) -> f32 {
@@ -597,10 +671,32 @@ impl EngineBackend for MacroquadBackendContract {
             .push(BackendDispatch::LoadTexture(path.to_owned()));
 
         let handle = TextureHandle(path.to_owned());
-        let resolved = Path::new(path);
-        if let Ok(bytes) = std::fs::read(resolved) {
-            let texture = Texture2D::from_file_with_format(&bytes, None);
-            self.textures.insert(handle.0.clone(), texture);
+        #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
+        {
+            let resolved = Path::new(path);
+            if let Ok(bytes) = std::fs::read(resolved) {
+                let texture = Texture2D::from_file_with_format(&bytes, None);
+                self.textures.insert(handle.0.clone(), texture);
+            }
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            let normalized = path.trim_start_matches("./");
+            if let Some(payload) = embedded_project_payload() {
+                if let Some(file) = payload
+                    .files
+                    .iter()
+                    .find(|file| file.relative_path == normalized)
+                {
+                    let texture = Texture2D::from_file_with_format(file.bytes, None);
+                    self.textures.insert(handle.0.clone(), texture);
+                }
+            }
+        }
+        #[cfg(target_os = "android")]
+        {
+            // Android: defer texture decoding until first draw to avoid startup crashes
+            // when user scripts load textures during module import.
         }
 
         Ok(handle)
@@ -614,6 +710,21 @@ impl EngineBackend for MacroquadBackendContract {
             position,
             size,
         });
+
+        #[cfg(target_os = "android")]
+        if !self.textures.contains_key(&texture.0) {
+            let normalized = texture.0.trim_start_matches("./");
+            if let Some(payload) = embedded_project_payload() {
+                if let Some(file) = payload
+                    .files
+                    .iter()
+                    .find(|file| file.relative_path == normalized)
+                {
+                    let native_texture = Texture2D::from_file_with_format(file.bytes, None);
+                    self.textures.insert(texture.0.clone(), native_texture);
+                }
+            }
+        }
 
         if let Some(native_texture) = self.textures.get(&texture.0) {
             draw_texture_ex(
@@ -665,7 +776,7 @@ impl EngineBackend for MacroquadBackendContract {
 
 #[cfg(test)]
 mod tests {
-    use super::key_code_from_name;
+    use super::{key_code_from_name, mouse_button_from_name};
 
     #[test]
     fn key_code_from_name_supports_expected_aliases() {
@@ -682,14 +793,41 @@ mod tests {
                 "expected known control mapping for {key}"
             );
         }
+
+        for key in ["A", "a", "B", "b", "Z", "z"] {
+            assert!(
+                key_code_from_name(key).is_some(),
+                "expected known letter mapping for {key}"
+            );
+        }
     }
 
     #[test]
     fn key_code_from_name_rejects_unknown_keys() {
-        for key in ["A", "Enter", "Tab", "Unknown", ""] {
+        for key in ["Enter", "Tab", "Unknown", ""] {
             assert!(
                 key_code_from_name(key).is_none(),
                 "unexpected mapping for unsupported key {key:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn mouse_button_from_name_supports_expected_aliases() {
+        for key in [
+            "MOUSE_LEFT",
+            "mouse_left",
+            "MouseLeft",
+            "MOUSE_RIGHT",
+            "mouse_right",
+            "MouseRight",
+            "MOUSE_MIDDLE",
+            "mouse_middle",
+            "MouseMiddle",
+        ] {
+            assert!(
+                mouse_button_from_name(key).is_some(),
+                "expected known mouse mapping for {key}"
             );
         }
     }

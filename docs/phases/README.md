@@ -5,7 +5,7 @@ This directory stores the canonical sequential delivery phases.
 ## Numbering Rule
 
 - Phase folders are strictly consecutive and zero-padded: `NN-<slug>`.
-- The active phase is tracked in both `docs/task-tracker.txt` and `state/repo-state.json`.
+- The canonical source of phase/task status is `state/repo-state.json`; `docs/task-tracker.txt` and this file are required mirrors.
 - Non-linear streams (benchmark studies, cross-cutting docs, incident tracks) live in `docs/streams/`.
 
 ## Phase Folders
@@ -16,11 +16,20 @@ This directory stores the canonical sequential delivery phases.
 - `03-python-module-imports` (closed)
 - `04-runtime-stdlib` (closed)
 - `05-platform-input-texture` (closed)
-- `06-ci-visual-payload` (planned)
-- `07-manual-playtest-evidence` (planned)
+- `06-ci-visual-payload` (complete)
+- `07-manual-playtest-evidence` (complete)
 - `08-git-cd-release-automation` (complete)
-- `09-project-init-quickstart` (complete)
+- `09-project-init-quickstart` (closed)
 - `10-update-only-lifecycle` (complete)
+- `11-develop-integration-artifacts` (complete)
+- `12-vec2-color-float-coercion` (complete)
+- `13-cli-generate-stubs-command` (complete)
+- `14-project-build-foundation` (complete)
+- `15-project-desktop-build` (complete)
+- `16-spec-driven-agent-workflow-hardening` (complete)
+- `17-project-web-build` (complete)
+- `18-project-android-build` (complete)
+- `19-project-ios-build` (planned)
 
 ## Required Files Per Phase
 

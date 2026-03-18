@@ -28,7 +28,7 @@ def update(dt: float) -> None:
         pycro.draw_circle((420.0, 240.0), 45.0, (0.95, 0.22, 0.22, 1.0))
         return
 
-    current_space = pycro.is_key_down("Space")
+    current_space = pycro.is_key_down(pycro.KEY.SPACE)
     if current_space and not previous_space:
         active_index = (active_index + 1) % len(gradients)
     previous_space = current_space

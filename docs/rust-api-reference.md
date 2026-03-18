@@ -42,6 +42,13 @@ Current lifecycle behavior (`ScriptRuntime`):
 4. Require `update(dt)`; fail with `RuntimeError::MissingUpdateFunction` if missing.
 5. On each frame, call `update(dt)`.
 
+Color contract note:
+
+- `Color` is a normalized RGBA tuple contract (`0..1` per channel), not byte-based `0..255`.
+- Examples:
+  - black: `(0, 0, 0, 1)`
+  - white: `(1, 1, 1, 1)`
+
 Phase-4 import compatibility behavior (`RustPythonVm::load_script`):
 
 - Adds entry-script directory to `sys.path`.
@@ -74,7 +81,7 @@ Public authored API functions (from `FUNCTIONS`):
 
 - `clear_background(color: Color) -> None`
 - `draw_circle(position: Vec2, radius: float, color: Color) -> None`
-- `is_key_down(key: str) -> bool`
+- `is_key_down(key: KEY) -> bool`
 - `frame_time() -> float`
 - `load_texture(path: str) -> TextureHandle`
 - `draw_texture(texture: TextureHandle, position: Vec2, size: Vec2) -> None`
@@ -89,6 +96,10 @@ Deterministic outputs:
 - `render_stub(spec)`: deterministic `python/pycro/__init__.pyi` content.
 
 Note: `parse_backend_dispatch_record` and `dispatch_backend_record` still exist for typed record parsing/dispatch utility and tests; runtime API execution path is direct-call bridge.
+
+Argument binding note:
+
+- `is_key_down` accepts `key` as positional or keyword argument (`is_key_down(KEY.ESCAPE)` and `is_key_down(key=KEY.ESCAPE)`).
 
 ## Backend Module (`src/backend.rs`)
 
@@ -145,13 +156,67 @@ Run a deterministic short loop:
 PYCRO_FRAMES=2 PYCRO_FRAME_DT=0.016 cargo run -- examples/phase01_basic_main.py
 ```
 
-Regenerate Python stubs from Rust metadata:
+Initialize a new project scaffold:
+
+```bash
+cargo run --bin pycro -- init my_game
+```
+
+Regenerate Python stubs from the main `pycro` CLI:
+
+```bash
+cargo run --bin pycro -- generate_stubs
+```
+
+By default this writes `pycro.pyi` in the current project directory.
+
+Check stub drift from the main `pycro` CLI:
+
+```bash
+cargo run --bin pycro -- generate_stubs --check pycro.pyi
+```
+
+Build desktop artifact from an external project:
+
+```bash
+cargo run --bin pycro -- project build . --target desktop
+```
+
+Build desktop artifact with explicit output executable name:
+
+```bash
+cargo run --bin pycro -- project build . --target desktop --exe game
+```
+
+Desktop build contract:
+
+- default output artifact: `./dist/desktop/game` (or `game.exe` on Windows)
+- override executable name: `--exe <name>` (desktop target only)
+- payload model: compile-time embedded project payload generated from:
+  - `main.py` (required)
+  - root `*.py` sidecars (optional)
+  - `assets/**` (optional, recursive)
+  - `pycro-project.toml` (optional)
+
+Run built artifact:
+
+```bash
+./dist/desktop/game
+```
+
+Short build alias (defaults to `desktop` target):
+
+```bash
+cargo run --bin pycro -- build .
+```
+
+Internal/dev equivalent using the helper binary:
 
 ```bash
 cargo run --bin generate_stubs -- python/pycro/__init__.pyi
 ```
 
-Check stub drift only:
+Internal/dev drift check:
 
 ```bash
 cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi

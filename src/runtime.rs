@@ -5,13 +5,15 @@ use crate::backend::{
     CircleDraw, Color, EngineBackend, MacroquadBackendContract, TextureHandle, Vec2,
     VectorRenderMode,
 };
+use crate::embedded_project_payload;
 use parking_lot::{Mutex, MutexGuard};
 use rustpython_vm::builtins::{PyBaseExceptionRef, PyDictRef, PyFloat, PyList, PyStr, PyTuple};
+use rustpython_vm::function::FuncArgs;
 use rustpython_vm::scope::Scope;
 use rustpython_vm::{AsObject, Interpreter, PyObjectRef, PyResult, Settings, VirtualMachine};
 use std::collections::HashSet;
 use std::fs;
-use std::path::Path;
+use std::path::{Component, Path};
 use std::sync::Arc;
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -404,6 +406,70 @@ impl Default for RustPythonVm {
 }
 
 impl RustPythonVm {
+    fn normalize_payload_relative_path(path: &Path) -> String {
+        path.to_string_lossy().replace('\\', "/")
+    }
+
+    fn embedded_lookup_candidates(path: &str) -> Vec<String> {
+        let normalized = path.trim_start_matches("./").to_owned();
+        let mut candidates = vec![normalized.clone()];
+        let path_ref = Path::new(path);
+        if path_ref.is_absolute() {
+            let segments = path_ref
+                .components()
+                .filter_map(|component| match component {
+                    Component::Normal(segment) => segment.to_str().map(str::to_owned),
+                    _ => None,
+                })
+                .collect::<Vec<_>>();
+            for start in 1..segments.len() {
+                let suffix = segments[start..].join("/");
+                if !suffix.is_empty() && !candidates.iter().any(|candidate| candidate == &suffix) {
+                    candidates.push(suffix);
+                }
+            }
+        }
+        candidates
+    }
+
+    fn read_embedded_python_source(relative_path: &str) -> Result<Option<String>, RuntimeError> {
+        let payload = match embedded_project_payload() {
+            Some(payload) => payload,
+            None => return Ok(None),
+        };
+        let candidates = Self::embedded_lookup_candidates(relative_path);
+        let file = payload.files.iter().find(|file| {
+            candidates
+                .iter()
+                .any(|candidate| file.relative_path == candidate)
+        });
+        let Some(file) = file else {
+            return Ok(None);
+        };
+        let source = std::str::from_utf8(file.bytes).map_err(|error| RuntimeError::ScriptLoad {
+            path: relative_path.to_owned(),
+            details: format!("embedded payload script is not utf-8: {error}"),
+        })?;
+        Ok(Some(source.to_owned()))
+    }
+
+    fn read_script_source(path: &str) -> Result<String, RuntimeError> {
+        match fs::read_to_string(path) {
+            Ok(source) => Ok(source),
+            Err(io_error) => {
+                let relative = Self::normalize_payload_relative_path(Path::new(path));
+                if let Some(source) = Self::read_embedded_python_source(relative.as_str())? {
+                    Ok(source)
+                } else {
+                    Err(RuntimeError::ScriptLoad {
+                        path: path.to_owned(),
+                        details: io_error.to_string(),
+                    })
+                }
+            }
+        }
+    }
+
     fn submit_render_noop_enabled() -> bool {
         static ENABLED: OnceLock<bool> = OnceLock::new();
         *ENABLED.get_or_init(|| {
@@ -430,6 +496,11 @@ impl RustPythonVm {
             .ok()
             .and_then(|value| value.parse::<u8>().ok())
             .unwrap_or(2);
+        let mut path_list = vec![String::new()];
+        if Path::new(rustpython_pylib::LIB_PATH).is_dir() {
+            path_list.insert(0, rustpython_pylib::LIB_PATH.to_owned());
+        }
+        settings.path_list = path_list;
         settings
     }
 
@@ -438,7 +509,10 @@ impl RustPythonVm {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            interpreter: Interpreter::without_stdlib(Self::interpreter_settings()),
+            interpreter: Interpreter::with_init(Self::interpreter_settings(), |vm| {
+                vm.add_frozen(rustpython_pylib::FROZEN_STDLIB);
+                vm.add_native_modules(rustpython_stdlib::get_module_inits());
+            }),
             scope: None,
             update_callable: None,
             backend: Arc::new(Mutex::new(MacroquadBackendContract::default())),
@@ -469,7 +543,21 @@ impl RustPythonVm {
     }
 
     fn module_bootstrap_source() -> &'static str {
-        "Color = tuple\nVec2 = tuple\nTextureHandle = str\n"
+        r#"Color = tuple
+Vec2 = tuple
+TextureHandle = str
+
+class KEY:
+    SPACE = "Space"
+    LEFT = "Left"
+    RIGHT = "Right"
+    UP = "Up"
+    DOWN = "Down"
+    ESCAPE = "Escape"
+    MOUSE_LEFT = "MOUSE_LEFT"
+    MOUSE_RIGHT = "MOUSE_RIGHT"
+    MOUSE_MIDDLE = "MOUSE_MIDDLE"
+"#
     }
 
     fn with_scope<T>(
@@ -585,10 +673,38 @@ impl RustPythonVm {
         if let Some(float) = item.payload_if_subclass::<PyFloat>(vm) {
             return Ok(float.to_f64() as f32);
         }
-        let value: f64 = item.clone().try_into_value(vm).map_err(|_| {
-            vm.new_value_error(format!("{context}: expected float at index {index}"))
+
+        let coerced = vm
+            .call_method(item.as_object(), "__float__", ())
+            .map_err(|_| {
+                vm.new_value_error(format!(
+                    "{context}: expected numeric value (int/float) at index {index}"
+                ))
+            })?;
+        let value = coerced.payload_if_subclass::<PyFloat>(vm).ok_or_else(|| {
+            vm.new_value_error(format!(
+                "{context}: expected numeric value (int/float) at index {index}"
+            ))
         })?;
-        Ok(value as f32)
+        Ok(value.to_f64() as f32)
+    }
+
+    fn parse_key_name_py(
+        vm: &VirtualMachine,
+        key: &PyObjectRef,
+        context: &str,
+    ) -> PyResult<String> {
+        if let Some(py_str) = key.payload_if_subclass::<PyStr>(vm) {
+            return Ok(py_str.as_str().to_owned());
+        }
+        if let Ok(value) = key.get_attr("value", vm)
+            && let Some(py_str) = value.payload_if_subclass::<PyStr>(vm)
+        {
+            return Ok(py_str.as_str().to_owned());
+        }
+        Err(vm.new_value_error(format!(
+            "{context}: expected KEY enum value (e.g. KEY.ESCAPE)"
+        )))
     }
 
     fn parse_color_py(vm: &VirtualMachine, object: &PyObjectRef, context: &str) -> PyResult<Color> {
@@ -1284,9 +1400,25 @@ impl RustPythonVm {
                 }
                 "is_key_down" => {
                     let backend = Arc::clone(&backend);
-                    vm.new_function("is_key_down", move |key: String, vm: &VirtualMachine| {
-                        Self::with_backend_py(vm, &backend, |backend| Ok(backend.is_key_down(&key)))
-                    })
+                    vm.new_function(
+                        "is_key_down",
+                        move |mut args: FuncArgs, vm: &VirtualMachine| {
+                            if let Some(key_kw) = args.take_keyword("key") {
+                                if !args.args.is_empty() {
+                                    return Err(vm.new_type_error(
+                                        "is_key_down got multiple values for argument 'key'"
+                                            .to_owned(),
+                                    ));
+                                }
+                                args.prepend_arg(key_kw);
+                            }
+                            let (key,): (PyObjectRef,) = args.bind(vm)?;
+                            let key = Self::parse_key_name_py(vm, &key, "is_key_down key")?;
+                            Self::with_backend_py(vm, &backend, |backend| {
+                                Ok(backend.is_key_down(&key))
+                            })
+                        },
+                    )
                     .into()
                 }
                 "frame_time" => {
@@ -1523,7 +1655,7 @@ impl RustPythonVm {
 
         let script_dir = Path::new(path).parent().unwrap_or_else(|| Path::new("."));
 
-        if !script_dir.join("math.py").exists() {
+        if !script_dir.join("math.py").exists() && vm.import("math", 0).is_err() {
             let math_attrs = vm.ctx.new_dict();
             math_attrs
                 .set_item("__name__", vm.ctx.new_str("math").into(), vm)
@@ -1579,7 +1711,7 @@ impl RustPythonVm {
                 })?;
         }
 
-        if !script_dir.join("os.py").exists() {
+        if !script_dir.join("os.py").exists() && vm.import("os", 0).is_err() {
             let os_attrs = vm.ctx.new_dict();
             os_attrs
                 .set_item("__name__", vm.ctx.new_str("os").into(), vm)
@@ -1757,20 +1889,18 @@ impl RustPythonVm {
                 return Ok(());
             }
             let module_path = script_dir.join(format!("{module_name}.py"));
-            if !module_path.exists() {
-                return Ok(());
-            }
-
             visiting.insert(module_name.to_owned());
-
-            let source =
-                fs::read_to_string(&module_path).map_err(|error| RuntimeError::ScriptLoad {
-                    path: path.to_owned(),
-                    details: format!(
-                        "failed to read sidecar module {}: {error}",
-                        module_path.display()
-                    ),
-                })?;
+            let source = match fs::read_to_string(&module_path) {
+                Ok(source) => source,
+                Err(_) => {
+                    let relative =
+                        RustPythonVm::normalize_payload_relative_path(module_path.as_path());
+                    match RustPythonVm::read_embedded_python_source(relative.as_str())? {
+                        Some(source) => source,
+                        None => return Ok(()),
+                    }
+                }
+            };
 
             for dependency in RustPythonVm::imported_sidecar_module_names(&source) {
                 preload_one_sidecar_module(
@@ -1991,10 +2121,7 @@ impl PythonVm for RustPythonVm {
     }
 
     fn load_script(&mut self, path: &str) -> Result<(), RuntimeError> {
-        let source = fs::read_to_string(path).map_err(|error| RuntimeError::ScriptLoad {
-            path: path.to_owned(),
-            details: error.to_string(),
-        })?;
+        let source = Self::read_script_source(path)?;
 
         let scope = self.scope.clone().ok_or(RuntimeError::NotLoaded)?;
         let update_callable = self.with_scope(scope, |vm, scope| {
@@ -2124,7 +2251,7 @@ mod tests {
     };
     use crate::backend::{BackendDispatch, Color, Vec2, VectorRenderMode};
     use std::fs;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     #[derive(Debug, Default)]
@@ -2222,6 +2349,37 @@ mod tests {
         runtime.vm().backend().dispatch_log().to_vec()
     }
 
+    fn repo_example_path(example_file: &str) -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("examples")
+            .join(example_file)
+    }
+
+    fn queued_payload_for_example(
+        example_file: &str,
+        dt: f32,
+    ) -> (Vec<QueuedDrawOp>, Vec<BackendDispatch>) {
+        let script_path = repo_example_path(example_file);
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime
+            .load_main()
+            .expect("example fixture should load in runtime smoke");
+        runtime
+            .update(dt)
+            .expect("example fixture update should succeed in runtime smoke");
+
+        (
+            runtime.vm().queued_draw_batch_snapshot(),
+            backend_dispatches(&runtime),
+        )
+    }
+
     #[test]
     fn load_main_does_not_dispatch_setup_and_update_runs_per_frame() {
         let vm = FakeVm {
@@ -2238,6 +2396,123 @@ mod tests {
         assert_eq!(
             runtime.vm().calls,
             vec!["update(0.016)".to_owned(), "update(0.032)".to_owned(),]
+        );
+    }
+
+    #[test]
+    fn visual_payload_smoke_timing_fixture_is_stable_and_actionable() {
+        let (first_payload, first_dispatches) =
+            queued_payload_for_example("phase05_timing_frame_pulse.py", 0.016);
+        let (second_payload, second_dispatches) =
+            queued_payload_for_example("phase05_timing_frame_pulse.py", 0.016);
+
+        assert_eq!(
+            first_dispatches,
+            Vec::<BackendDispatch>::new(),
+            "timing fixture should not emit direct backend dispatches in update-only mode"
+        );
+        assert_eq!(
+            second_dispatches, first_dispatches,
+            "direct dispatches should be deterministic across repeated timing fixture runs"
+        );
+        assert_eq!(
+            first_payload,
+            vec![
+                QueuedDrawOp::ClearBackground(Color {
+                    r: 0.03,
+                    g: 0.05,
+                    b: 0.1,
+                    a: 1.0
+                }),
+                QueuedDrawOp::DrawCircle {
+                    position: Vec2 { x: 420.0, y: 260.0 },
+                    radius: 21.12,
+                    color: Color {
+                        r: 0.2096,
+                        g: 0.45,
+                        b: 0.9936,
+                        a: 1.0
+                    },
+                    render_mode: VectorRenderMode::Default,
+                },
+                QueuedDrawOp::DrawCircle {
+                    position: Vec2 { x: 80.0, y: 80.0 },
+                    radius: 11.52,
+                    color: Color {
+                        r: 0.98,
+                        g: 0.78,
+                        b: 0.22,
+                        a: 1.0
+                    },
+                    render_mode: VectorRenderMode::Default,
+                }
+            ],
+            "timing fixture payload changed; expected deterministic clear + pulse circles sequence"
+        );
+        assert_eq!(
+            second_payload, first_payload,
+            "queued payload should be deterministic across repeated timing fixture runs"
+        );
+    }
+
+    #[test]
+    fn visual_payload_smoke_runtime_draw_flush_batch_fixture_shape() {
+        let (first_payload, first_dispatches) =
+            queued_payload_for_example("phase05_runtime_draw_flush_batch.py", 0.016);
+        let (second_payload, second_dispatches) =
+            queued_payload_for_example("phase05_runtime_draw_flush_batch.py", 0.016);
+
+        assert_eq!(
+            first_dispatches,
+            Vec::<BackendDispatch>::new(),
+            "runtime_draw_flush_batch fixture should not emit direct backend dispatches in update"
+        );
+        assert_eq!(
+            second_dispatches, first_dispatches,
+            "direct dispatches should remain deterministic across fixture runs"
+        );
+        assert_eq!(
+            first_payload.first(),
+            Some(&QueuedDrawOp::ClearBackground(Color {
+                r: 0.04,
+                g: 0.05,
+                b: 0.08,
+                a: 1.0
+            })),
+            "runtime_draw_flush_batch must start with clear_background"
+        );
+        let circle_count = first_payload
+            .iter()
+            .filter(|op| matches!(op, QueuedDrawOp::DrawCircle { .. }))
+            .count();
+        let text_values = first_payload
+            .iter()
+            .filter_map(|op| {
+                if let QueuedDrawOp::DrawText { text, .. } = op {
+                    Some(text.as_str())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            circle_count, 76,
+            "runtime_draw_flush_batch fixture expected 76 circle draws on frame 1"
+        );
+        assert_eq!(
+            text_values.len(),
+            2,
+            "runtime_draw_flush_batch fixture expected two HUD draw_text calls"
+        );
+        assert!(
+            text_values[1].contains("draw_calls=76"),
+            "runtime_draw_flush_batch HUD summary changed; got `{}`",
+            text_values[1]
+        );
+        assert_eq!(
+            second_payload, first_payload,
+            "runtime_draw_flush_batch payload should be deterministic across repeated runs"
         );
     }
 
@@ -2724,6 +2999,125 @@ def update(dt):
     }
 
     #[test]
+    fn draw_calls_accept_int_components_for_vec2_and_color() {
+        let script = r#"
+import pycro
+
+def update(dt):
+    pycro.draw_circle((10, 20), 5.0, (1, 2, 3, 4))
+    pycro.draw_text("ints", (30, 40), 18.0, (10, 20, 30, 255))
+    pycro.draw_texture("tex", (50, 60), (64, 48))
+"#;
+        let script_path = write_temp_script("int-components-coercion", script);
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime.load_main().expect("load_main should succeed");
+        runtime
+            .update(0.016)
+            .expect("update should accept int components for Vec2/Color");
+
+        assert_eq!(
+            runtime.vm().queued_draw_batch_snapshot(),
+            vec![
+                QueuedDrawOp::DrawCircle {
+                    position: Vec2 { x: 10.0, y: 20.0 },
+                    radius: 5.0,
+                    color: Color {
+                        r: 1.0,
+                        g: 2.0,
+                        b: 3.0,
+                        a: 4.0
+                    },
+                    render_mode: VectorRenderMode::Default,
+                },
+                QueuedDrawOp::DrawText {
+                    text: "ints".to_owned(),
+                    position: Vec2 { x: 30.0, y: 40.0 },
+                    font_size: 18.0,
+                    color: Color {
+                        r: 10.0,
+                        g: 20.0,
+                        b: 30.0,
+                        a: 255.0
+                    }
+                },
+                QueuedDrawOp::DrawTexture {
+                    texture: "tex".to_owned(),
+                    position: Vec2 { x: 50.0, y: 60.0 },
+                    size: Vec2 { x: 64.0, y: 48.0 }
+                },
+            ]
+        );
+
+        fs::remove_file(script_path).expect("temporary script should be removable");
+    }
+
+    #[test]
+    fn is_key_down_accepts_key_enum_values() {
+        let script = r#"
+import pycro
+
+def update(dt):
+    _ = dt
+    escape_down = pycro.is_key_down(pycro.KEY.ESCAPE)
+    mouse_down = pycro.is_key_down(pycro.KEY.MOUSE_LEFT)
+    if not isinstance(escape_down, bool):
+        raise RuntimeError("KEY.ESCAPE result is not bool")
+    if not isinstance(mouse_down, bool):
+        raise RuntimeError("KEY.MOUSE_LEFT result is not bool")
+"#;
+        let script_path = write_temp_script("key-enum-input", script);
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime.load_main().expect("load_main should succeed");
+        runtime
+            .update(0.016)
+            .expect("update should accept KEY enum values");
+
+        fs::remove_file(script_path).expect("temporary script should be removable");
+    }
+
+    #[test]
+    fn is_key_down_accepts_key_keyword_argument() {
+        let script = r#"
+import pycro
+
+def update(dt):
+    _ = dt
+    escape_down = pycro.is_key_down(key=pycro.KEY.ESCAPE)
+    mouse_down = pycro.is_key_down(key=pycro.KEY.MOUSE_LEFT)
+    if not isinstance(escape_down, bool):
+        raise RuntimeError("keyword KEY.ESCAPE result is not bool")
+    if not isinstance(mouse_down, bool):
+        raise RuntimeError("keyword KEY.MOUSE_LEFT result is not bool")
+"#;
+        let script_path = write_temp_script("key-enum-keyword-input", script);
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime.load_main().expect("load_main should succeed");
+        runtime
+            .update(0.016)
+            .expect("update should accept key keyword argument");
+
+        fs::remove_file(script_path).expect("temporary script should be removable");
+    }
+
+    #[test]
     fn load_main_supports_importing_sidecar_python_modules_from_script_directory() {
         let root = write_temp_project(
             "imports",
@@ -2823,6 +3217,42 @@ def update(dt):
     }
 
     #[test]
+    fn load_main_supports_stdlib_encodings_latin1() {
+        let script = r#"
+import codecs
+import re
+
+def update(dt):
+    latin1 = codecs.lookup("latin1")
+    if latin1 is None:
+        raise RuntimeError("codecs.lookup('latin1') returned None")
+    decoded = bytes([0xE9]).decode("latin1")
+    if ord(decoded) != 233:
+        raise RuntimeError("latin1 decode produced unexpected codepoint")
+    encoded = "caf\xe9".encode("latin1")
+    if encoded != b"caf\xe9":
+        raise RuntimeError("latin1 encode produced unexpected bytes")
+    _ = re.compile(br'^[ \t\f]*(?:[#\r\n]|$)', re.ASCII)
+"#;
+        let script_path = write_temp_script("stdlib-encodings-latin1", script);
+        let mut runtime = ScriptRuntime::new(
+            RustPythonVm::new(),
+            RuntimeConfig {
+                entry_script: script_path.to_string_lossy().into_owned(),
+            },
+        );
+
+        runtime
+            .load_main()
+            .expect("main with latin1 encoding usage should load");
+        runtime
+            .update(0.016)
+            .expect("update should succeed using latin1 encoding");
+
+        fs::remove_file(script_path).expect("temporary script should be removable");
+    }
+
+    #[test]
     fn load_main_prefers_sidecar_module_over_stdlib_module_name_collision() {
         let root = write_temp_project(
             "imports-sidecar-overrides-stdlib",
@@ -2913,5 +3343,26 @@ SOURCE = "sidecar-transitive"
             .expect("update should resolve transitive sidecar module first");
 
         fs::remove_dir_all(root).expect("temporary project should be removable");
+    }
+
+    #[test]
+    fn embedded_lookup_candidates_for_relative_path_keeps_single_candidate() {
+        let candidates = RustPythonVm::embedded_lookup_candidates("assets/pattern.png");
+        assert_eq!(candidates, vec!["assets/pattern.png".to_owned()]);
+    }
+
+    #[test]
+    fn embedded_lookup_candidates_for_absolute_path_includes_suffix_candidates() {
+        let absolute = Path::new("/tmp/pycro/stage/assets/pattern.png");
+        let candidates =
+            RustPythonVm::embedded_lookup_candidates(absolute.to_string_lossy().as_ref());
+        assert!(
+            candidates.contains(&"assets/pattern.png".to_owned()),
+            "absolute path candidates should include payload-relative suffix"
+        );
+        assert!(
+            candidates.contains(&"pattern.png".to_owned()),
+            "absolute path candidates should include file-only suffix"
+        );
     }
 }

@@ -12,3 +12,14 @@ When refinement changes phase scope or task ordering:
 4. Sync `state/repo-state.json`.
 
 No change is considered active until all four artifacts are synchronized.
+
+## Refinement Log
+
+- 2026-03-14: Manual playtest reported two regressions in `examples/phase05_input_texture_lab.py`:
+  - `Up`/`Down` did not visibly resize the fallback path.
+  - `Space` did not rotate texture source.
+- Root cause: scenario still relied on auto-dispatched `setup()` after phase-10 moved lifecycle to update-only dispatch.
+- Resolution:
+  - moved texture initialization to lazy update-time loading (`_ensure_assets_loaded()`),
+  - fallback draw path now scales with `sprite_scale`.
+- Manual revalidation outcome: pass (user confirmed controls now work).

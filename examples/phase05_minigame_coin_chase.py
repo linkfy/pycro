@@ -83,17 +83,17 @@ def setup() -> None:
 def update(dt: float) -> None:
     global player_x, player_y, active_coin_index, score, elapsed_seconds, round_finished
 
-    if pycro.is_key_down("Space"):
+    if pycro.is_key_down(pycro.KEY.SPACE):
         _reset_round()
 
     if not round_finished:
-        if pycro.is_key_down("Left"):
+        if pycro.is_key_down(pycro.KEY.LEFT):
             player_x -= PLAYER_SPEED * dt
-        if pycro.is_key_down("Right"):
+        if pycro.is_key_down(pycro.KEY.RIGHT):
             player_x += PLAYER_SPEED * dt
-        if pycro.is_key_down("Up"):
+        if pycro.is_key_down(pycro.KEY.UP):
             player_y -= PLAYER_SPEED * dt
-        if pycro.is_key_down("Down"):
+        if pycro.is_key_down(pycro.KEY.DOWN):
             player_y += PLAYER_SPEED * dt
 
         player_x = _clamp(player_x, 16.0, WORLD_WIDTH - PLAYER_SIZE[0] - 16.0)

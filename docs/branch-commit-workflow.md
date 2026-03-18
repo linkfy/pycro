@@ -4,10 +4,13 @@
 
 - Never implement directly on `main`.
 - Use `codex/<phase>-<task>` for implementation branches.
-- `main` remains the verified integration branch.
-- Merge to `main` only after validations, QA gate, and explicit user approval.
-- User approval is required per phase closeout. The orchestrator must ask before each merge and wait for a direct confirmation.
+- `develop` is the default integration branch for day-to-day delivery.
+- Merge implementation branches into `develop` only after validations, QA gate, and explicit user approval.
+- `main` is release-only and must be updated only through a manual ready-for-release pull request from `develop`.
+- Repository default branch should be configured as `develop` in Git hosting settings.
+- User approval is required per phase closeout and per merge target (`develop` or `main`). The orchestrator must ask before each merge and wait for a direct confirmation.
 - Merge/push after implementation is blocked until formal phase closeout is recorded (`docs/phases/<NN-slug>/closeout.md`) and tracker/state reflect `qa=pass` (or explicit waiver).
+- Default rule: do not merge into `develop` until the active phase is finalized (`closeout.md` + `qa=pass`/waiver + tracker/state sync). The only allowed bypass is an explicit programmer request.
 
 ## Worktree Policy
 
@@ -32,6 +35,10 @@ Commit subjects must follow Conventional Commits so release automation can parse
 
 - valid examples: `feat(runtime): add direct bridge cache`, `fix(ci): handle optional pygame import`, `chore(docs): sync phase tracker`
 - avoid non-conventional prefixes such as `phase05 closeout: ...` or free-form headers with spaces before the first `:`
+- commitlint-allowed `type` values are: `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, `test`, `merge`
+- before push/merge, validate new commit subjects against the allowed types:
+  - `git log --format=%s origin/develop..HEAD`
+  - every line must match `<type>(<optional-scope>): <subject>` or `<type>: <subject>` with allowed `type`
 
 After required validations pass, `commit-steward` creates a checkpoint commit immediately.
 Before any push or merge, local CI-equivalent preflight must pass at minimum:

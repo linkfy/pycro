@@ -9,7 +9,7 @@
 
 | Task ID | Owner | Parallel Team | Status | Branch | Worktree | Validation Gate |
 | --- | --- | --- | --- | --- | --- | --- |
-| ci-visual-payload-smoke | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/<phase>-<task> | .worktrees/<phase>-<task>-<agent> | per docs/validation-policy.md |
+| ci-visual-payload-smoke | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/06-ci-visual-payload-smoke | /Users/linkfy/Code/pycro | pass |
 
 ## Reporting Contract
 
