@@ -11,7 +11,17 @@
 
 | Task ID | Owner | Parallel Team | Status | Branch | Worktree | Validation Gate |
 | --- | --- | --- | --- | --- | --- | --- |
-| project-ios-build | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/19-project-ios-build | .worktrees/19-project-ios-build-orchestrator | ios packaging smoke + standard preflight |
+| project-ios-build | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | in_progress | codex/19-project-ios-build | .worktrees/19-project-ios-build-orchestrator | ios packaging smoke + standard preflight |
+
+## Resume Checkpoint
+
+- kickoff_date: 2026-03-19
+- active_branch: `codex/19-project-ios-build`
+- startup_gate: requirements + design validated, implementation opened
+- next_slice:
+  - define iOS v1 output contract and packaging target (`.app` vs `.ipa`) aligned with Macroquad tooling constraints
+  - implement CLI adapter `--target ios` orchestration path with embedded payload contract parity
+  - add phase 19 smoke harness and capture preflight evidence
 
 ## Reporting Contract
 

@@ -29,7 +29,7 @@ This directory stores the canonical sequential delivery phases.
 - `16-spec-driven-agent-workflow-hardening` (complete)
 - `17-project-web-build` (complete)
 - `18-project-android-build` (complete)
-- `19-project-ios-build` (planned)
+- `19-project-ios-build` (in_progress)
 
 ## Required Files Per Phase
 
