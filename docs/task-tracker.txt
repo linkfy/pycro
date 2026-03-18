@@ -34,7 +34,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 15    | docs/phases/15-project-desktop-build         | complete    | Desktop target for `pycro project build` with embedded payload | closed (2026-03-17) |
 | 16    | docs/phases/16-spec-driven-agent-workflow-hardening | complete    | Spec-driven workflow hardening for agents, tracker/state sync, and operator ergonomics | closed (2026-03-17) |
 | 17    | docs/phases/17-project-web-build             | complete    | Web target for `pycro project build` using shared embedded payload | closed (2026-03-18) |
-| 18    | docs/phases/18-project-android-build         | in_progress | Android target for `pycro project build` using shared embedded payload | kickoff 2026-03-18  |
+| 18    | docs/phases/18-project-android-build         | complete    | Android target for `pycro project build` using shared embedded payload | closed (2026-03-19) |
 | 19    | docs/phases/19-project-ios-build             | planned     | iOS target for `pycro project build` using shared embedded payload | queued after phase 18  |
 +-------+----------------------------------------------+-------------+---------------------------------------------------------------+------------------------+
 
@@ -64,7 +64,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 15    | project-desktop-build              | Add desktop target support for `pycro project build` with embedded project payload | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward, example-scenario-worker | complete | codex/15-project-desktop-build | .worktrees/15-project-desktop-build-orchestrator | docs/phases/15-project-desktop-build/implementation.md | pass | closed |
 | 16    | spec-driven-agent-workflow-hardening | Harden spec-driven workflow validation, kickoff automation, and operator ergonomics | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/16-spec-driven-agent-workflow-hardening | .worktrees/16-spec-driven-agent-workflow-hardening-orchestrator | docs/phases/16-spec-driven-agent-workflow-hardening/implementation.md | pass | closed (closeout + validation complete) |
 | 17    | project-web-build                  | Add web target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward, example-scenario-worker | complete | codex/17-project-web-build | .worktrees/17-project-web-build-orchestrator | docs/phases/17-project-web-build/implementation.md | pass | closed |
-| 18    | project-android-build              | Add Android target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | in_progress | codex/18-project-android-build | .worktrees/18-project-android-build-orchestrator | docs/phases/18-project-android-build/implementation.md | pending | active |
+| 18    | project-android-build              | Add Android target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/18-project-android-build | .worktrees/18-project-android-build-orchestrator | docs/phases/18-project-android-build/implementation.md | pass | closed |
 | 19    | project-ios-build                  | Add iOS target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/19-project-ios-build | .worktrees/19-project-ios-build-orchestrator | docs/phases/19-project-ios-build/implementation.md | pending | queued |
 +-------+------------------------------------+---------------------------------------------------------+---------------------------+--------------------------------------------------------------------------+---------------+-----------------------------------------+------------------------------------------------------+------------------------------------------------------+------------------+----------+
 
@@ -254,6 +254,15 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 - active_branch: `codex/18-project-android-build`
 - dependency: reuse the shared embedded payload strategy and target architecture from earlier phases
 - packaging_rule: document one concrete Android v1 output contract with embedded payload and explicit toolchain requirements
+- planning_refinement: complete (2026-03-18)
+  - macroquad_reference: reviewed (`https://macroquad.rs/articles/android/`) for `cargo quad-apk` flow, output path, and Android packaging caveats
+  - cargo_quad_apk_reference: reviewed (`https://github.com/not-fl3/cargo-quad-apk`) for supported `[package.metadata.android]` schema and environment assumptions
+  - v1_output_contract: lock output to `<project>/dist/android/apk/*.apk` copied from repository `target/android-artifacts/release/apk`
+  - orchestration_plan: implemented in phase docs with delegated slices (platform/runtime/api/docs/qa/commit-steward) and Android smoke gate (`scripts/phase18_android_embedded_smoke.py`)
+- validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
+- phase_18_android_smoke: pass (`ANDROID_HOME="$HOME/Library/Android/sdk" ANDROID_SDK_ROOT="$HOME/Library/Android/sdk" NDK_HOME="$HOME/Library/Android/sdk/ndk/21.4.7075529" CARGO="$(rustup which cargo)" python3 scripts/phase18_android_embedded_smoke.py`)
+- phase_closeout: complete (`docs/phases/18-project-android-build/closeout.md`)
+- phase_18_qa: pass
 
 ## Phase 19 Planning Note
 

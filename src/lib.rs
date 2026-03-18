@@ -1,7 +1,11 @@
 //! Single-project engine surface: CLI + runtime + API + backend contract.
 
 /// Global allocator tuned for allocation-heavy runtime workloads.
-#[cfg(all(not(target_env = "msvc"), not(target_arch = "wasm32")))]
+#[cfg(all(
+    not(target_env = "msvc"),
+    not(target_arch = "wasm32"),
+    not(target_os = "android")
+))]
 #[global_allocator]
 static GLOBAL_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
 

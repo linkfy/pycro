@@ -1,9 +1,11 @@
 //! Backend contract used by the API layer.
 //! The first backend owner is Macroquad, but the contract is backend-agnostic.
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", target_os = "android"))]
 use crate::embedded_project_payload;
-use macroquad::input::{KeyCode, MouseButton, is_quit_requested};
+#[cfg(not(target_os = "android"))]
+use macroquad::input::is_quit_requested;
+use macroquad::input::{KeyCode, MouseButton};
 #[cfg(not(test))]
 use macroquad::input::{is_key_down, is_mouse_button_down};
 use macroquad::math::vec2;
@@ -19,6 +21,7 @@ use macroquad::time::get_frame_time;
 use macroquad::window::{Conf, gl_set_drawcall_buffer_capacity, next_frame};
 use std::collections::HashMap;
 use std::env;
+#[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
 use std::path::Path;
 
 /// A two-dimensional vector.
@@ -227,13 +230,23 @@ impl DesktopFrameLoop {
                 .config
                 .frame_count
                 .is_some_and(|budget| frames_executed >= budget);
-            if reached_budget || is_quit_requested() {
+            if reached_budget || should_terminate_frame_loop() {
                 break;
             }
         }
 
         Ok(DesktopLoopReport { frames_executed })
     }
+}
+
+#[cfg(target_os = "android")]
+fn should_terminate_frame_loop() -> bool {
+    false
+}
+
+#[cfg(not(target_os = "android"))]
+fn should_terminate_frame_loop() -> bool {
+    is_quit_requested()
 }
 
 /// Window configuration used by the real Macroquad loop owner.
@@ -267,7 +280,7 @@ pub fn window_conf() -> Conf {
             conf.platform.apple_gfx_api = match selected.as_deref() {
                 Some("metal") => AppleGfxApi::Metal,
                 Some("opengl") | Some("gl") => AppleGfxApi::OpenGl,
-                _ => AppleGfxApi::OpenGl,
+                _ => AppleGfxApi::Metal,
             };
         }
         conf
@@ -658,7 +671,7 @@ impl EngineBackend for MacroquadBackendContract {
             .push(BackendDispatch::LoadTexture(path.to_owned()));
 
         let handle = TextureHandle(path.to_owned());
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
         {
             let resolved = Path::new(path);
             if let Ok(bytes) = std::fs::read(resolved) {
@@ -680,6 +693,11 @@ impl EngineBackend for MacroquadBackendContract {
                 }
             }
         }
+        #[cfg(target_os = "android")]
+        {
+            // Android: defer texture decoding until first draw to avoid startup crashes
+            // when user scripts load textures during module import.
+        }
 
         Ok(handle)
     }
@@ -692,6 +710,21 @@ impl EngineBackend for MacroquadBackendContract {
             position,
             size,
         });
+
+        #[cfg(target_os = "android")]
+        if !self.textures.contains_key(&texture.0) {
+            let normalized = texture.0.trim_start_matches("./");
+            if let Some(payload) = embedded_project_payload() {
+                if let Some(file) = payload
+                    .files
+                    .iter()
+                    .find(|file| file.relative_path == normalized)
+                {
+                    let native_texture = Texture2D::from_file_with_format(file.bytes, None);
+                    self.textures.insert(texture.0.clone(), native_texture);
+                }
+            }
+        }
 
         if let Some(native_texture) = self.textures.get(&texture.0) {
             draw_texture_ex(

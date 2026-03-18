@@ -301,11 +301,11 @@ def validate_phase_registry_consistency(state: dict[str, object]) -> list[str]:
         state_status = state_phase["status"]
         if readme_status and readme_status != state_status:
             errors.append(
-                f"status mismatch for phase {number} between README and state: readme={readme_status!r}, state={state_status!r}"
+                f"status mismatch for phase {number} between README and state (state is canonical): readme={readme_status!r}, state={state_status!r}"
             )
         if tracker_status and tracker_status != state_status:
             errors.append(
-                f"status mismatch for phase {number} between tracker and state: tracker={tracker_status!r}, state={state_status!r}"
+                f"status mismatch for phase {number} between tracker and state (state is canonical): tracker={tracker_status!r}, state={state_status!r}"
             )
 
     active_phase = state.get("active_phase", {})

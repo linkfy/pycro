@@ -4,13 +4,13 @@
   "active_phase": {
     "number": "18",
     "id": "18-project-android-build",
-    "status": "in_progress",
+    "status": "complete",
     "path": "docs/phases/18-project-android-build"
   },
   "current_objective": {
     "id": "project-android-build",
     "title": "Add Android target support for `pycro project build` with embedded payload packaging",
-    "status": "in_progress",
+    "status": "complete",
     "execution_mode": "orchestrator_owned_phase_with_worker_handoffs",
     "phase_doc": "docs/phases/18-project-android-build/implementation.md",
     "startup_gate": {
@@ -21,11 +21,12 @@
     "resume_checkpoint": {
       "branch": "codex/18-project-android-build",
       "worktree": ".worktrees/18-project-android-build-orchestrator",
-      "summary": "phase 18 activated after phase 17 release; android build implementation kickoff in progress",
-      "code_status": "phase 17 web POC is stable and released; android target implementation not started yet",
+      "summary": "phase 18 Android build contract implemented and formally closed out with QA pass",
+      "code_status": "android project build path, artifact copy contract, embedded payload runtime guard, smoke validation, and docs sync are complete",
       "next_slice": [
-        "implement --target android orchestration and output contract",
-        "preserve shared embedded payload contract across desktop/web/android"
+        "activate phase 19 startup gate (requirements + design) for ios target planning",
+        "scope iOS toolchain and packaging contract for `pycro project build --target ios`",
+        "prepare delegated slice plan for phase 19 implementation kickoff"
       ]
     },
     "block_progress": {
@@ -111,7 +112,14 @@
       "phase_17_web_wasm_toolchain_blockers": "resolved",
       "phase_17_web_loader_wbindgen_compat_shim": "implemented",
       "phase_17_web_smoke": "pass",
-      "phase_18_project_android_build": "in_progress",
+      "phase_18_project_android_build": "complete",
+      "phase_18_planning_refinement_macroquad_review": "complete",
+      "phase_18_v1_output_contract_locked": "accepted",
+      "phase_18_delegated_slice_plan": "defined",
+      "phase_18_validation_preflight": "pass",
+      "phase_18_android_smoke": "pass",
+      "phase_18_closeout_doc": "docs/phases/18-project-android-build/closeout.md",
+      "phase_18_qa": "pass",
       "phase_19_project_ios_build": "planned",
       "phase_14_validation_preflight": "pass",
       "phase_14_closeout_doc": "docs/phases/14-project-build-foundation/closeout.md",
@@ -271,7 +279,7 @@
     {
       "number": "18",
       "id": "18-project-android-build",
-      "status": "in_progress",
+      "status": "complete",
       "path": "docs/phases/18-project-android-build"
     },
     {
@@ -496,11 +504,11 @@
       "id": "project-android-build",
       "phase": "18",
       "owner": "architecture-orchestrator",
-      "status": "in_progress",
+      "status": "complete",
       "branch": "codex/18-project-android-build",
       "worktree": ".worktrees/18-project-android-build-orchestrator",
       "phase_doc": "docs/phases/18-project-android-build/implementation.md",
-      "qa": "pending"
+      "qa": "pass"
     },
     {
       "id": "project-ios-build",
