@@ -72,7 +72,7 @@ pub fn resolve_payload_relative_path(relative_path: &str) -> Result<PathBuf, Str
 
 #[cfg(test)]
 mod tests {
-    use super::resolve_payload_relative_path;
+    use super::{embedded_project_payload, resolve_payload_relative_path};
     use std::path::PathBuf;
 
     #[test]
@@ -97,5 +97,20 @@ mod tests {
     fn resolve_payload_relative_path_rejects_absolute_paths() {
         let err = resolve_payload_relative_path("/tmp/main.py").expect_err("must reject absolute");
         assert!(err.contains("must be relative"));
+    }
+
+    #[test]
+    fn embedded_payload_entry_script_is_present_when_payload_exists() {
+        if let Some(payload) = embedded_project_payload() {
+            let has_entry = payload
+                .files
+                .iter()
+                .any(|file| file.relative_path == payload.entry_script);
+            assert!(
+                has_entry,
+                "embedded payload must include declared entry script `{}`",
+                payload.entry_script
+            );
+        }
     }
 }

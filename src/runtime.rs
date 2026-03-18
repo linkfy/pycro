@@ -13,7 +13,7 @@ use rustpython_vm::scope::Scope;
 use rustpython_vm::{AsObject, Interpreter, PyObjectRef, PyResult, Settings, VirtualMachine};
 use std::collections::HashSet;
 use std::fs;
-use std::path::Path;
+use std::path::{Component, Path};
 use std::sync::Arc;
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -410,21 +410,44 @@ impl RustPythonVm {
         path.to_string_lossy().replace('\\', "/")
     }
 
+    fn embedded_lookup_candidates(path: &str) -> Vec<String> {
+        let normalized = path.trim_start_matches("./").to_owned();
+        let mut candidates = vec![normalized.clone()];
+        let path_ref = Path::new(path);
+        if path_ref.is_absolute() {
+            let segments = path_ref
+                .components()
+                .filter_map(|component| match component {
+                    Component::Normal(segment) => segment.to_str().map(str::to_owned),
+                    _ => None,
+                })
+                .collect::<Vec<_>>();
+            for start in 1..segments.len() {
+                let suffix = segments[start..].join("/");
+                if !suffix.is_empty() && !candidates.iter().any(|candidate| candidate == &suffix) {
+                    candidates.push(suffix);
+                }
+            }
+        }
+        candidates
+    }
+
     fn read_embedded_python_source(relative_path: &str) -> Result<Option<String>, RuntimeError> {
         let payload = match embedded_project_payload() {
             Some(payload) => payload,
             None => return Ok(None),
         };
-        let normalized = relative_path.trim_start_matches("./");
-        let file = payload
-            .files
-            .iter()
-            .find(|file| file.relative_path == normalized);
+        let candidates = Self::embedded_lookup_candidates(relative_path);
+        let file = payload.files.iter().find(|file| {
+            candidates
+                .iter()
+                .any(|candidate| file.relative_path == candidate)
+        });
         let Some(file) = file else {
             return Ok(None);
         };
         let source = std::str::from_utf8(file.bytes).map_err(|error| RuntimeError::ScriptLoad {
-            path: normalized.to_owned(),
+            path: relative_path.to_owned(),
             details: format!("embedded payload script is not utf-8: {error}"),
         })?;
         Ok(Some(source.to_owned()))
@@ -2228,7 +2251,7 @@ mod tests {
     };
     use crate::backend::{BackendDispatch, Color, Vec2, VectorRenderMode};
     use std::fs;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     #[derive(Debug, Default)]
@@ -3320,5 +3343,26 @@ SOURCE = "sidecar-transitive"
             .expect("update should resolve transitive sidecar module first");
 
         fs::remove_dir_all(root).expect("temporary project should be removable");
+    }
+
+    #[test]
+    fn embedded_lookup_candidates_for_relative_path_keeps_single_candidate() {
+        let candidates = RustPythonVm::embedded_lookup_candidates("assets/pattern.png");
+        assert_eq!(candidates, vec!["assets/pattern.png".to_owned()]);
+    }
+
+    #[test]
+    fn embedded_lookup_candidates_for_absolute_path_includes_suffix_candidates() {
+        let absolute = Path::new("/tmp/pycro/stage/assets/pattern.png");
+        let candidates =
+            RustPythonVm::embedded_lookup_candidates(absolute.to_string_lossy().as_ref());
+        assert!(
+            candidates.contains(&"assets/pattern.png".to_owned()),
+            "absolute path candidates should include payload-relative suffix"
+        );
+        assert!(
+            candidates.contains(&"pattern.png".to_owned()),
+            "absolute path candidates should include file-only suffix"
+        );
     }
 }
