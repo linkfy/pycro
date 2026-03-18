@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0](https://github.com/linkfy/pycro/compare/pycro_cli-v0.5.0...pycro_cli-v0.6.0) (2026-03-18)
+
+
+### Features
+
+* **android:** close out phase 18 project build flow ([54012d4](https://github.com/linkfy/pycro/commit/54012d454d26946a1ec956cf45287cf4236b4386))
+* **android:** phase 18 closeout and android project build contract ([6c4411e](https://github.com/linkfy/pycro/commit/6c4411e517bbbb920d2e248b41dc4354cfc27b44))
+
 ## [0.5.0](https://github.com/linkfy/pycro/compare/pycro_cli-v0.4.4...pycro_cli-v0.5.0) (2026-03-18)
 
 
