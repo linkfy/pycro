@@ -5,6 +5,12 @@
 The orchestrator consumes summaries, not raw logs.
 Every implementation task must be delegated; no end-to-end "god agent" execution.
 
+## Phase Ownership Rule (Mandatory)
+
+Every active phase must have one recorded `architecture-orchestrator` owner in phase docs, tracker, and state.
+The orchestrator owns kickoff-to-closeout execution, including startup gate validation, delegation plan, worker intake, integration, and final gate readiness.
+No phase marked `planned` or `in_progress` may proceed as ad hoc worker-led execution.
+
 ## Phase Startup Checklist (Mandatory)
 
 Before any phase implementation starts, the orchestrator must confirm:
@@ -71,6 +77,12 @@ Worker report format is fixed:
 - `follow_ups`
 - `adr_refs`
 - `tracker_refs`
+
+## Read-Only Worker Fallback (Mandatory)
+
+When a delegated worker cannot write in the current environment, the worker still executes analysis/review and hands off a summary payload to the orchestrator.
+The handoff must include target files, proposed edits, validation intent/evidence, and open risks/questions.
+The orchestrator performs the repository edits and records that execution used orchestrator integration from worker handoff.
 
 ## Review And Commit Gates
 

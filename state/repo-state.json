@@ -2,29 +2,30 @@
   "schema_version": 2,
   "project": "pycro",
   "active_phase": {
-    "number": "15",
-    "id": "15-project-desktop-build",
+    "number": "17",
+    "id": "17-project-web-build",
     "status": "complete",
-    "path": "docs/phases/15-project-desktop-build"
+    "path": "docs/phases/17-project-web-build"
   },
   "current_objective": {
-    "id": "project-desktop-build",
-    "title": "Add desktop target support for `pycro project build` with embedded project payload",
+    "id": "project-web-build",
+    "title": "Add web target support for `pycro project build` with embedded payload packaging",
     "status": "complete",
-    "phase_doc": "docs/phases/15-project-desktop-build/implementation.md",
+    "execution_mode": "orchestrator_owned_phase_with_worker_handoffs",
+    "phase_doc": "docs/phases/17-project-web-build/implementation.md",
     "startup_gate": {
       "requirements_validated": true,
       "design_validated": true,
-      "kickoff_date": "2026-03-16"
+      "kickoff_date": "2026-03-17"
     },
     "resume_checkpoint": {
-      "branch": "codex/15-project-desktop-build",
-      "worktree": ".worktrees/15-project-desktop-build-orchestrator",
-      "summary": "phase 15 is executing the shared embedded payload strategy; desktop loose-file packaging remains rejected",
-      "code_status": "embedded payload foundation is implemented via build-time generation + desktop release build orchestration + runtime embedded launch path",
+      "branch": "codex/17-project-web-build",
+      "worktree": ".worktrees/17-project-web-build-orchestrator",
+      "summary": "phase 17 closed with formal QA and preflight evidence; web build POC baseline stabilized",
+      "code_status": "web target POC stabilized: wasm build flow + compatibility shims + embedded asset loading validated; non-web desktop guard remains passing",
       "next_slice": [
-        "stream-windows-input-fix slice_1 complete locally (patch.crates-io miniquad override + windows_input_diagnostic scenario); awaiting Windows manual validation evidence",
-        "phase-15 closeout recorded; next sequential phase target remains phase-16 web packaging"
+        "kick off phase 18 (project-android-build) requirements/design gate",
+        "preserve phase-17 web POC contract while expanding platform targets"
       ]
     },
     "block_progress": {
@@ -92,13 +93,37 @@
       "phase_15_validation_preflight": "pass",
       "phase_15_closeout_doc": "docs/phases/15-project-desktop-build/closeout.md",
       "phase_15_qa": "pass",
-      "phase_16_project_web_build": "planned",
-      "phase_17_project_android_build": "planned",
-      "phase_18_project_ios_build": "planned",
+      "phase_16_kickoff": "complete",
+      "phase_16_spec_driven_agent_workflow_hardening": "complete",
+      "phase_16_orchestrator_phase_ownership_contract": "implemented",
+      "phase_16_write_constrained_worker_fallback_contract": "implemented",
+      "phase_16_phase_stream_registry_validation": "implemented",
+      "phase_16_cli_help_ergonomics": "implemented",
+      "phase_16_stream_closeout_checklist": "implemented",
+      "phase_16_validation_preflight": "pass",
+      "phase_16_adr": "accepted",
+      "phase_16_closeout_doc": "docs/phases/16-spec-driven-agent-workflow-hardening/closeout.md",
+      "phase_16_qa": "pass",
+      "phase_17_kickoff": "complete",
+      "phase_17_project_web_build": "complete",
+      "phase_17_web_build_orchestration": "implemented",
+      "phase_17_web_output_contract": "implemented",
+      "phase_17_web_wasm_toolchain_blockers": "resolved",
+      "phase_17_web_loader_wbindgen_compat_shim": "implemented",
+      "phase_17_web_smoke": "pass",
+      "phase_18_project_android_build": "planned",
+      "phase_19_project_ios_build": "planned",
       "phase_14_validation_preflight": "pass",
       "phase_14_closeout_doc": "docs/phases/14-project-build-foundation/closeout.md",
       "phase_14_qa": "pass",
-      "phase_14_adr": "accepted"
+      "phase_14_adr": "accepted",
+      "phase_17_web_texture_payload_loading": "implemented",
+      "phase_17_web_wasm_poc_scope_documented": "implemented",
+      "phase_17_web_runtime_troubleshooting_docs": "implemented",
+      "phase_17_non_web_regression_guard": "pass",
+      "phase_17_validation_preflight": "pass",
+      "phase_17_closeout_doc": "docs/phases/17-project-web-build/closeout.md",
+      "phase_17_qa": "pass"
     }
   },
   "orchestration": {
@@ -106,6 +131,13 @@
     "delegation_required": true,
     "no_god_agent": true,
     "summary_only_reports": true,
+    "phase_owner_must_be_orchestrator": true,
+    "write_constrained_worker_fallback": {
+      "enabled": true,
+      "worker_delivers_summary_input": true,
+      "orchestrator_integrates_and_codes": true,
+      "state_label": "orchestrator_integration_from_worker_handoff"
+    },
     "mandatory_agents_for_impl": [
       "architecture-orchestrator",
       "docs-tracker",
@@ -126,7 +158,7 @@
     },
     "manager_agent": "worktree-manager"
   },
-  "current_branch": "codex/stream-windows-input-fix-plan",
+  "current_branch": "codex/17-project-web-build",
   "phase_sequence": [
     {
       "number": "00",
@@ -226,21 +258,27 @@
     },
     {
       "number": "16",
-      "id": "16-project-web-build",
-      "status": "planned",
-      "path": "docs/phases/16-project-web-build"
+      "id": "16-spec-driven-agent-workflow-hardening",
+      "status": "complete",
+      "path": "docs/phases/16-spec-driven-agent-workflow-hardening"
     },
     {
       "number": "17",
-      "id": "17-project-android-build",
-      "status": "planned",
-      "path": "docs/phases/17-project-android-build"
+      "id": "17-project-web-build",
+      "status": "complete",
+      "path": "docs/phases/17-project-web-build"
     },
     {
       "number": "18",
-      "id": "18-project-ios-build",
+      "id": "18-project-android-build",
       "status": "planned",
-      "path": "docs/phases/18-project-ios-build"
+      "path": "docs/phases/18-project-android-build"
+    },
+    {
+      "number": "19",
+      "id": "19-project-ios-build",
+      "status": "planned",
+      "path": "docs/phases/19-project-ios-build"
     }
   ],
   "tasks": [
@@ -435,33 +473,43 @@
       "qa": "pass"
     },
     {
-      "id": "project-web-build",
+      "id": "spec-driven-agent-workflow-hardening",
       "phase": "16",
       "owner": "architecture-orchestrator",
-      "status": "planned",
-      "branch": "codex/16-project-web-build",
-      "worktree": ".worktrees/16-project-web-build-orchestrator",
-      "phase_doc": "docs/phases/16-project-web-build/implementation.md",
-      "qa": "pending"
+      "status": "complete",
+      "branch": "codex/16-spec-driven-agent-workflow-hardening",
+      "worktree": ".worktrees/16-spec-driven-agent-workflow-hardening-orchestrator",
+      "phase_doc": "docs/phases/16-spec-driven-agent-workflow-hardening/implementation.md",
+      "qa": "pass"
+    },
+    {
+      "id": "project-web-build",
+      "phase": "17",
+      "owner": "architecture-orchestrator",
+      "status": "complete",
+      "branch": "codex/17-project-web-build",
+      "worktree": ".worktrees/17-project-web-build-orchestrator",
+      "phase_doc": "docs/phases/17-project-web-build/implementation.md",
+      "qa": "pass"
     },
     {
       "id": "project-android-build",
-      "phase": "17",
+      "phase": "18",
       "owner": "architecture-orchestrator",
       "status": "planned",
-      "branch": "codex/17-project-android-build",
-      "worktree": ".worktrees/17-project-android-build-orchestrator",
-      "phase_doc": "docs/phases/17-project-android-build/implementation.md",
+      "branch": "codex/18-project-android-build",
+      "worktree": ".worktrees/18-project-android-build-orchestrator",
+      "phase_doc": "docs/phases/18-project-android-build/implementation.md",
       "qa": "pending"
     },
     {
       "id": "project-ios-build",
-      "phase": "18",
+      "phase": "19",
       "owner": "architecture-orchestrator",
       "status": "planned",
-      "branch": "codex/18-project-ios-build",
-      "worktree": ".worktrees/18-project-ios-build-orchestrator",
-      "phase_doc": "docs/phases/18-project-ios-build/implementation.md",
+      "branch": "codex/19-project-ios-build",
+      "worktree": ".worktrees/19-project-ios-build-orchestrator",
+      "phase_doc": "docs/phases/19-project-ios-build/implementation.md",
       "qa": "pending"
     }
   ],

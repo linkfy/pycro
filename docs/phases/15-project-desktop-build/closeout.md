@@ -31,4 +31,4 @@ Phase 15 objective is complete:
 
 ## Follow-up
 
-- Phase 16 implements `pycro project build --target web` on top of the shared embedded payload architecture.
+- Phase 16 is reserved for workflow/spec hardening; Phase 17 implements `pycro project build --target web` on top of the shared embedded payload architecture.

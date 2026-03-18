@@ -1509,16 +1509,220 @@ function miniquad_add_plugin(plugin) {
 // read module imports and create fake functions in import object
 // this is will allow to successfeully link wasm even with wrong version of gl.js
 // needed to workaround firefox bug with lost error on wasm linking errors
-function add_missing_functions_stabs(obj) {
-    var imports = WebAssembly.Module.imports(obj);
+var pycro_missing_import_warnings = {};
+var pycro_missing_import_notice_shown = false;
 
-    for (const i in imports) {
-        if (importObject["env"][imports[i].name] == undefined) {
-            console.warn("No " + imports[i].name + " function in gl.js");
-            importObject["env"][imports[i].name] = function () {
-                console.warn("Missed function: " + imports[i].name);
+function make_missing_import_stub(module_name, import_name) {
+    if (module_name == "__wbindgen_placeholder__") {
+        if (import_name.indexOf("__wbg_new_fd94ca5c9639abd2") === 0) {
+            return function () { return new Error(); };
+        }
+        if (import_name.indexOf("__wbindgen_object_drop_ref") === 0) {
+            return function () { };
+        }
+        if (import_name.indexOf("__wbg_getTimezoneOffset") === 0) {
+            return function (value) {
+                if (value != undefined && typeof value.getTimezoneOffset === "function") {
+                    return value.getTimezoneOffset();
+                }
+                return new Date().getTimezoneOffset();
             };
         }
+        if (import_name.indexOf("__wbg_getTime") === 0) {
+            return function (value) {
+                if (value != undefined && typeof value.getTime === "function") {
+                    return value.getTime();
+                }
+                return Date.now();
+            };
+        }
+        if (import_name.indexOf("__wbg_randomFillSync") === 0) {
+            return function (crypto_obj, value) {
+                var is_buffer_like = value != undefined && typeof value.length === "number";
+                if (!is_buffer_like) {
+                    return value;
+                }
+                if (crypto_obj != undefined && crypto_obj.randomFillSync != undefined) {
+                    try {
+                        return crypto_obj.randomFillSync(value);
+                    } catch (_) {
+                    }
+                }
+                if (typeof crypto !== "undefined" && crypto.getRandomValues != undefined) {
+                    try {
+                        return crypto.getRandomValues(value);
+                    } catch (_) {
+                    }
+                }
+                return value;
+            };
+        }
+        if (import_name.indexOf("__wbg_subarray") === 0) {
+            return function (value, start, end) {
+                if (value != undefined && typeof value.subarray === "function") {
+                    return value.subarray(start, end);
+                }
+                return new Uint8Array(0);
+            };
+        }
+        if (import_name.indexOf("__wbg_getRandomValues") === 0) {
+            return function (crypto_obj, value) {
+                var is_buffer_like = value != undefined && typeof value.length === "number";
+                if (!is_buffer_like) {
+                    return value;
+                }
+                if (crypto_obj != undefined && crypto_obj.getRandomValues != undefined) {
+                    try {
+                        return crypto_obj.getRandomValues(value);
+                    } catch (_) {
+                    }
+                }
+                if (typeof crypto !== "undefined" && crypto.getRandomValues != undefined) {
+                    try {
+                        return crypto.getRandomValues(value);
+                    } catch (_) {
+                    }
+                }
+                return value;
+            };
+        }
+        if (import_name.indexOf("__wbg_length") === 0) {
+            return function (value) { return value.length; };
+        }
+        if (import_name.indexOf("__wbg_prototypesetcall") === 0) {
+            return function (call_fn, this_arg, arg0) { return call_fn.call(this_arg, arg0); };
+        }
+        if (import_name.indexOf("__wbindgen_object_clone_ref") === 0) {
+            return function (value) { return value; };
+        }
+        if (import_name.indexOf("__wbg_crypto") === 0) {
+            return function (value) { return value.crypto; };
+        }
+        if (import_name.indexOf("__wbg___wbindgen_is_object") === 0) {
+            return function (value) {
+                return typeof value === "object" && value !== null;
+            };
+        }
+        if (import_name.indexOf("__wbg_process") === 0) {
+            return function (value) { return value.process; };
+        }
+        if (import_name.indexOf("__wbg_versions") === 0) {
+            return function (value) { return value.versions; };
+        }
+        if (import_name.indexOf("__wbg_node") === 0) {
+            return function (value) { return value.node; };
+        }
+        if (import_name.indexOf("__wbg___wbindgen_is_string") === 0) {
+            return function (value) { return typeof value === "string"; };
+        }
+        if (import_name.indexOf("__wbg_require") === 0) {
+            return function () { return typeof module !== "undefined" ? module.require : undefined; };
+        }
+        if (import_name.indexOf("__wbg___wbindgen_is_function") === 0) {
+            return function (value) { return typeof value === "function"; };
+        }
+        if (import_name.indexOf("__wbg_call") === 0) {
+            return function (value, this_arg) { return value.call(this_arg); };
+        }
+        if (import_name.indexOf("__wbg_msCrypto") === 0) {
+            return function (value) { return value.msCrypto; };
+        }
+        if (import_name.indexOf("__wbg_new_with_length") === 0) {
+            return function (length) { return new Uint8Array(length >>> 0); };
+        }
+        if (import_name.indexOf("__wbindgen_describe") === 0 ||
+            import_name.indexOf("__wbindgen_describe_cast") === 0) {
+            return function () { };
+        }
+        if (import_name.indexOf("__wbg___wbindgen_is_undefined") === 0) {
+            return function (value) { return value === undefined; };
+        }
+        if (import_name.indexOf("__wbg_static_accessor_GLOBAL_") === 0) {
+            return function () {
+                if (typeof global !== "undefined") return global;
+                return undefined;
+            };
+        }
+        if (import_name.indexOf("__wbg_static_accessor_GLOBAL_THIS_") === 0) {
+            return function () {
+                if (typeof globalThis !== "undefined") return globalThis;
+                return undefined;
+            };
+        }
+        if (import_name.indexOf("__wbg_static_accessor_WINDOW_") === 0) {
+            return function () {
+                if (typeof window !== "undefined") return window;
+                return undefined;
+            };
+        }
+        if (import_name.indexOf("__wbg_static_accessor_SELF_") === 0) {
+            return function () {
+                if (typeof self !== "undefined") return self;
+                return undefined;
+            };
+        }
+        if (import_name.indexOf("__wbg_error") === 0) {
+            return function (value) { console.error(value); };
+        }
+        if (import_name.indexOf("__wbg_new_0_") === 0) {
+            return function () { return new Date(); };
+        }
+        if (import_name.indexOf("__wbg___wbindgen_throw") === 0) {
+            return function (ptr, len) {
+                throw new Error(UTF8ToString(ptr, len));
+            };
+        }
+    }
+    if (module_name == "__wbindgen_externref_xform__") {
+        if (import_name.indexOf("__wbindgen_externref_table_set_null") === 0) {
+            return function (idx) {
+                if (wasm_exports != undefined && wasm_exports.__wbindgen_export_2 != undefined) {
+                    wasm_exports.__wbindgen_export_2.set(idx, undefined);
+                }
+            };
+        }
+        if (import_name.indexOf("__wbindgen_externref_table_grow") === 0) {
+            return function (delta) {
+                if (wasm_exports != undefined && wasm_exports.__wbindgen_export_2 != undefined) {
+                    var ret = wasm_exports.__wbindgen_export_2.grow(delta);
+                    wasm_exports.__wbindgen_export_2.set(0, undefined);
+                    return ret;
+                }
+                return 0;
+            };
+        }
+    }
+
+    return function () {
+        var key = module_name + ":" + import_name;
+        if (pycro_missing_import_warnings[key] == undefined) {
+            console.warn("Missed import stub called: " + key);
+            pycro_missing_import_warnings[key] = true;
+        }
+        return 0;
+    };
+}
+
+function add_missing_functions_stabs(obj) {
+    var imports = WebAssembly.Module.imports(obj);
+    var missing_count = 0;
+
+    for (const i in imports) {
+        var module_name = imports[i].module;
+        var import_name = imports[i].name;
+        if (importObject[module_name] == undefined) {
+            importObject[module_name] = {};
+            missing_count += 1;
+        }
+        if (importObject[module_name][import_name] == undefined) {
+            importObject[module_name][import_name] = make_missing_import_stub(module_name, import_name);
+            missing_count += 1;
+        }
+    }
+
+    if (missing_count > 0 && !pycro_missing_import_notice_shown) {
+        console.info("gl.js: applied compatibility stubs for missing WASM imports");
+        pycro_missing_import_notice_shown = true;
     }
 }
 

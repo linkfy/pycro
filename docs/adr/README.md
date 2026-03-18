@@ -18,6 +18,7 @@
 - `0014`: `pycro generate_stubs` default output path set to project-local `pycro.pyi`
 - `0015`: `pycro project build` CLI foundation and canonical external project contract
 - `0016`: Embedded project payload build strategy for multi-target packaging
+- `0017`: Phase orchestrator ownership and write-constrained worker handoff contract
 
 ## Process
 
