@@ -5,6 +5,7 @@ use crate::backend::{
     CircleDraw, Color, EngineBackend, MacroquadBackendContract, TextureHandle, Vec2,
     VectorRenderMode,
 };
+use crate::embedded_project_payload;
 use parking_lot::{Mutex, MutexGuard};
 use rustpython_vm::builtins::{PyBaseExceptionRef, PyDictRef, PyFloat, PyList, PyStr, PyTuple};
 use rustpython_vm::function::FuncArgs;
@@ -405,6 +406,47 @@ impl Default for RustPythonVm {
 }
 
 impl RustPythonVm {
+    fn normalize_payload_relative_path(path: &Path) -> String {
+        path.to_string_lossy().replace('\\', "/")
+    }
+
+    fn read_embedded_python_source(relative_path: &str) -> Result<Option<String>, RuntimeError> {
+        let payload = match embedded_project_payload() {
+            Some(payload) => payload,
+            None => return Ok(None),
+        };
+        let normalized = relative_path.trim_start_matches("./");
+        let file = payload
+            .files
+            .iter()
+            .find(|file| file.relative_path == normalized);
+        let Some(file) = file else {
+            return Ok(None);
+        };
+        let source = std::str::from_utf8(file.bytes).map_err(|error| RuntimeError::ScriptLoad {
+            path: normalized.to_owned(),
+            details: format!("embedded payload script is not utf-8: {error}"),
+        })?;
+        Ok(Some(source.to_owned()))
+    }
+
+    fn read_script_source(path: &str) -> Result<String, RuntimeError> {
+        match fs::read_to_string(path) {
+            Ok(source) => Ok(source),
+            Err(io_error) => {
+                let relative = Self::normalize_payload_relative_path(Path::new(path));
+                if let Some(source) = Self::read_embedded_python_source(relative.as_str())? {
+                    Ok(source)
+                } else {
+                    Err(RuntimeError::ScriptLoad {
+                        path: path.to_owned(),
+                        details: io_error.to_string(),
+                    })
+                }
+            }
+        }
+    }
+
     fn submit_render_noop_enabled() -> bool {
         static ENABLED: OnceLock<bool> = OnceLock::new();
         *ENABLED.get_or_init(|| {
@@ -1824,20 +1866,18 @@ class KEY:
                 return Ok(());
             }
             let module_path = script_dir.join(format!("{module_name}.py"));
-            if !module_path.exists() {
-                return Ok(());
-            }
-
             visiting.insert(module_name.to_owned());
-
-            let source =
-                fs::read_to_string(&module_path).map_err(|error| RuntimeError::ScriptLoad {
-                    path: path.to_owned(),
-                    details: format!(
-                        "failed to read sidecar module {}: {error}",
-                        module_path.display()
-                    ),
-                })?;
+            let source = match fs::read_to_string(&module_path) {
+                Ok(source) => source,
+                Err(_) => {
+                    let relative =
+                        RustPythonVm::normalize_payload_relative_path(module_path.as_path());
+                    match RustPythonVm::read_embedded_python_source(relative.as_str())? {
+                        Some(source) => source,
+                        None => return Ok(()),
+                    }
+                }
+            };
 
             for dependency in RustPythonVm::imported_sidecar_module_names(&source) {
                 preload_one_sidecar_module(
@@ -2058,10 +2098,7 @@ impl PythonVm for RustPythonVm {
     }
 
     fn load_script(&mut self, path: &str) -> Result<(), RuntimeError> {
-        let source = fs::read_to_string(path).map_err(|error| RuntimeError::ScriptLoad {
-            path: path.to_owned(),
-            details: error.to_string(),
-        })?;
+        let source = Self::read_script_source(path)?;
 
         let scope = self.scope.clone().ok_or(RuntimeError::NotLoaded)?;
         let update_callable = self.with_scope(scope, |vm, scope| {

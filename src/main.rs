@@ -10,12 +10,20 @@ use pycro_cli::{module_spec, registration_plan, render_stub};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
-use std::time::{Duration, Instant};
+#[cfg(target_arch = "wasm32")]
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Duration;
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::Instant;
 
 const MAIN_FILE_NAME: &str = "main.py";
 const STUB_FILE_NAME: &str = "pycro.pyi";
 const DEFAULT_STUB_OUTPUT_PATH: &str = "pycro.pyi";
 const PYTHON_STUB_TEMPLATE: &str = include_str!("../python/pycro/__init__.pyi");
+const WEB_DIST_DIR: &str = "dist/web";
+const WEB_WASM_FILE_NAME: &str = "pycro.wasm";
+const WEB_GL_JS_FILE_NAME: &str = "gl.js";
+const WEB_INDEX_FILE_NAME: &str = "index.html";
 
 #[cfg(target_os = "windows")]
 const LOCAL_RUNNER_FILE_NAME: &str = "pycro.exe";
@@ -23,12 +31,15 @@ const LOCAL_RUNNER_FILE_NAME: &str = "pycro.exe";
 const LOCAL_RUNNER_FILE_NAME: &str = "pycro";
 
 fn main() {
+    install_wasm_random_source();
+
     let cli_args: Vec<String> = std::env::args().skip(1).collect();
     let command = match parse_cli_command(cli_args) {
         Ok(command) => command,
         Err(error) => {
             eprintln!("{error}");
-            std::process::exit(1);
+            terminate_process(1);
+            return;
         }
     };
 
@@ -39,26 +50,27 @@ fn main() {
         CliCommand::GenerateStubs(command) => {
             if let Err(error) = run_generate_stubs_contract(command) {
                 eprintln!("{error}");
-                std::process::exit(1);
+                terminate_process(1);
             }
         }
         CliCommand::InitProject(project_name) => {
             if let Err(error) = write_project_scaffold(project_name.as_str()) {
                 eprintln!("{error}");
-                std::process::exit(1);
+                terminate_process(1);
             }
         }
         CliCommand::Project(command) => {
             if let Err(error) = run_project_command(command) {
                 eprintln!("{error}");
-                std::process::exit(1);
+                terminate_process(1);
             }
         }
         CliCommand::RunEmbeddedProject => {
             Window::from_config(window_conf(), async move {
                 if let Err(error) = run_embedded_project_contract().await {
                     eprintln!("{error}");
-                    std::process::exit(1);
+                    println!("pycro web runtime error: {error}");
+                    terminate_process(1);
                 }
             });
         }
@@ -66,12 +78,41 @@ fn main() {
             Window::from_config(window_conf(), async move {
                 if let Err(error) = run_script_contract(script_path.as_str()).await {
                     eprintln!("{error}");
-                    std::process::exit(1);
+                    println!("pycro web runtime error: {error}");
+                    terminate_process(1);
                 }
             });
         }
     }
 }
+
+#[cfg(target_arch = "wasm32")]
+fn terminate_process(_code: i32) {}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn terminate_process(code: i32) {
+    std::process::exit(code);
+}
+
+#[cfg(target_arch = "wasm32")]
+fn install_wasm_random_source() {
+    struct WasmDeterministicRandomSource {
+        counter: AtomicUsize,
+    }
+
+    impl ahash::random_state::RandomSource for WasmDeterministicRandomSource {
+        fn gen_hasher_seed(&self) -> usize {
+            self.counter.fetch_add(0x9e37_79b9, Ordering::Relaxed)
+        }
+    }
+
+    let _ = ahash::random_state::set_random_source(WasmDeterministicRandomSource {
+        counter: AtomicUsize::new(0x243f_6a88),
+    });
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn install_wasm_random_source() {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum CliCommand {
@@ -336,23 +377,203 @@ fn run_project_build_contract(command: ProjectBuildCommand) -> Result<(), String
     println!("project root: {}", bundle.contract.root.display());
     println!("target: {}", bundle.target.as_str());
     println!("resource providers: {:?}", bundle.resource_provider_plan);
-    if bundle.target == ProjectBuildTarget::Desktop {
-        run_desktop_project_build(
+    match bundle.target {
+        ProjectBuildTarget::Desktop => run_desktop_project_build(
             bundle.contract.root.as_path(),
             command.output_exe_name.as_deref(),
-        )
-    } else {
-        if command.output_exe_name.is_some() {
-            return Err("--exe is only supported when --target desktop".to_owned());
+        ),
+        ProjectBuildTarget::Web => {
+            if command.output_exe_name.is_some() {
+                return Err("--exe is only supported when --target desktop".to_owned());
+            }
+            run_web_project_build(bundle.contract.root.as_path())
         }
-        println!(
-            "phase 15 desktop-only implementation: packaging for target `{}` is not implemented yet",
-            bundle.target.as_str()
-        );
-        Ok(())
+        _ => {
+            if command.output_exe_name.is_some() {
+                return Err("--exe is only supported when --target desktop".to_owned());
+            }
+            println!(
+                "phase 15 desktop-only implementation: packaging for target `{}` is not implemented yet",
+                bundle.target.as_str()
+            );
+            Ok(())
+        }
     }
 }
 
+fn run_web_project_build(project_root: &Path) -> Result<(), String> {
+    let project_root = fs::canonicalize(project_root).map_err(|error| {
+        format!(
+            "failed to resolve project root {}: {error}",
+            project_root.display()
+        )
+    })?;
+    let source_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let cargo_binary = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_owned());
+    let mut command = Command::new(cargo_binary);
+    command
+        .current_dir(source_root.as_path())
+        .arg("build")
+        .arg("--config")
+        .arg("build.rustflags=[]")
+        .arg("--release")
+        .arg("--target")
+        .arg("wasm32-unknown-unknown")
+        .arg("--bin")
+        .arg("pycro")
+        .env("PYCRO_EMBED_PROJECT_ROOT", project_root.as_os_str());
+    // Avoid inheriting host-only flags (for example `-C target-cpu=apple-m1`)
+    // that are invalid for `wasm32-unknown-unknown`.
+    command.env_remove("RUSTFLAGS");
+    command.env_remove("CARGO_ENCODED_RUSTFLAGS");
+    command.env("CARGO_BUILD_RUSTFLAGS", "");
+    command.env("CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUSTFLAGS", "");
+
+    let status = command.status().map_err(|error| {
+        format!(
+            "failed to start web build command from {}: {error}",
+            source_root.display()
+        )
+    })?;
+
+    if !status.success() {
+        return Err(format!(
+            "web build command failed with status {status} (project: {})",
+            project_root.display()
+        ));
+    }
+
+    let source_wasm = source_root
+        .join("target/wasm32-unknown-unknown/release")
+        .join(WEB_WASM_FILE_NAME);
+    if !source_wasm.is_file() {
+        return Err(format!(
+            "web build finished but wasm artifact missing: {}",
+            source_wasm.display()
+        ));
+    }
+
+    let source_gl_js = source_root.join(format!(
+        "patches/miniquad-0.4.8-windows-rawinput-fix/js/{WEB_GL_JS_FILE_NAME}"
+    ));
+    if !source_gl_js.is_file() {
+        return Err(format!(
+            "web build runtime bootstrap js missing: {}",
+            source_gl_js.display()
+        ));
+    }
+
+    let dist_dir = project_root.join(WEB_DIST_DIR);
+    fs::create_dir_all(dist_dir.as_path())
+        .map_err(|error| format!("failed to create {}: {error}", dist_dir.display()))?;
+    let output_wasm = dist_dir.join(WEB_WASM_FILE_NAME);
+    fs::copy(source_wasm.as_path(), output_wasm.as_path()).map_err(|error| {
+        format!(
+            "failed to copy built wasm artifact {} -> {}: {error}",
+            source_wasm.display(),
+            output_wasm.display()
+        )
+    })?;
+    let wasm_bytes = fs::read(output_wasm.as_path()).map_err(|error| {
+        format!(
+            "failed to inspect wasm artifact {}: {error}",
+            output_wasm.display()
+        )
+    })?;
+    if wasm_bytes
+        .windows("__wbindgen_placeholder__".len())
+        .any(|window| window == "__wbindgen_placeholder__".as_bytes())
+    {
+        println!(
+            "warning: wasm artifact includes wasm-bindgen imports; relying on web import compatibility shims in gl.js"
+        );
+    }
+    let output_gl_js = dist_dir.join(WEB_GL_JS_FILE_NAME);
+    fs::copy(source_gl_js.as_path(), output_gl_js.as_path()).map_err(|error| {
+        format!(
+            "failed to copy web runtime js {} -> {}: {error}",
+            source_gl_js.display(),
+            output_gl_js.display()
+        )
+    })?;
+    let output_index = dist_dir.join(WEB_INDEX_FILE_NAME);
+    fs::write(output_index.as_path(), render_web_index_html()).map_err(|error| {
+        format!(
+            "failed to write web bootstrap html {}: {error}",
+            output_index.display()
+        )
+    })?;
+
+    println!("web project build complete");
+    println!("artifact wasm: {}", output_wasm.display());
+    println!("artifact js: {}", output_gl_js.display());
+    println!("artifact html: {}", output_index.display());
+    Ok(())
+}
+
+fn render_web_index_html() -> &'static str {
+    r#"<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>pycro web build</title>
+  <style>
+    html, body, canvas {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: #080b11;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="glcanvas" tabindex="1"></canvas>
+  <script src="gl.js"></script>
+  <script>load("pycro.wasm");</script>
+</body>
+</html>
+"#
+}
+
+fn resolve_output_binary_name(output_exe_name: Option<&str>) -> Result<String, String> {
+    let base = output_exe_name.unwrap_or("game").trim();
+    if base.is_empty() {
+        return Err("executable name must not be empty".to_owned());
+    }
+    if base.contains('/') || base.contains('\\') {
+        return Err("executable name must not contain path separators".to_owned());
+    }
+    #[cfg(target_os = "windows")]
+    {
+        if base.ends_with(".exe") {
+            Ok(base.to_owned())
+        } else {
+            Ok(format!("{base}.exe"))
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        Ok(base.to_owned())
+    }
+}
+
+fn validate_executable_name(value: &str) -> Result<String, String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return Err("executable name must not be empty".to_owned());
+    }
+    if trimmed.contains('/') || trimmed.contains('\\') {
+        return Err("executable name must not contain path separators".to_owned());
+    }
+    Ok(trimmed.to_owned())
+}
+
+#[derive(Debug)]
+struct EmbeddedRuntimeLaunch {
+    script_path: PathBuf,
+}
 fn run_desktop_project_build(
     project_root: &Path,
     output_exe_name: Option<&str>,
@@ -415,47 +636,16 @@ fn run_desktop_project_build(
     Ok(())
 }
 
-fn resolve_output_binary_name(output_exe_name: Option<&str>) -> Result<String, String> {
-    let base = output_exe_name.unwrap_or("game").trim();
-    if base.is_empty() {
-        return Err("executable name must not be empty".to_owned());
-    }
-    if base.contains('/') || base.contains('\\') {
-        return Err("executable name must not contain path separators".to_owned());
-    }
-    #[cfg(target_os = "windows")]
-    {
-        if base.ends_with(".exe") {
-            Ok(base.to_owned())
-        } else {
-            Ok(format!("{base}.exe"))
-        }
-    }
-    #[cfg(not(target_os = "windows"))]
-    {
-        Ok(base.to_owned())
-    }
-}
-
-fn validate_executable_name(value: &str) -> Result<String, String> {
-    let trimmed = value.trim();
-    if trimmed.is_empty() {
-        return Err("executable name must not be empty".to_owned());
-    }
-    if trimmed.contains('/') || trimmed.contains('\\') {
-        return Err("executable name must not contain path separators".to_owned());
-    }
-    Ok(trimmed.to_owned())
-}
-
-#[derive(Debug)]
-struct EmbeddedRuntimeLaunch {
-    script_path: PathBuf,
-}
-
 async fn run_embedded_project_contract() -> Result<(), String> {
+    #[cfg(target_arch = "wasm32")]
+    {
+        return run_script_contract("main.py").await;
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     let launch = materialize_embedded_project_runtime()?;
-    run_script_contract(launch.script_path.to_string_lossy().as_ref()).await
+    #[cfg(not(target_arch = "wasm32"))]
+    return run_script_contract(launch.script_path.to_string_lossy().as_ref()).await;
 }
 
 fn materialize_embedded_project_runtime() -> Result<EmbeddedRuntimeLaunch, String> {
@@ -605,8 +795,9 @@ def update(dt: float) -> None:
 }
 
 async fn run_script_contract(script_path: &str) -> Result<(), String> {
+    let script_path = resolve_runtime_entry_script_path(script_path)?;
     let config = RuntimeConfig {
-        entry_script: script_path.to_owned(),
+        entry_script: script_path,
     };
 
     println!("run contract");
@@ -624,24 +815,24 @@ async fn run_script_contract(script_path: &str) -> Result<(), String> {
     let loop_owner = DesktopFrameLoop::new(FrameLoopConfig::from_env());
     let report = loop_owner
         .run(|dt| {
-            let frame_start = Instant::now();
-            let update_start = Instant::now();
+            let frame_start = frame_timer_now();
+            let update_start = frame_timer_now();
             runtime
                 .update(dt)
                 .map_err(|error| format!("runtime update error: {error}"))?;
-            let update_elapsed = update_start.elapsed();
+            let update_elapsed = frame_timer_elapsed(update_start);
 
-            let flush_start = Instant::now();
+            let flush_start = frame_timer_now();
             runtime
                 .flush_draw_batch()
                 .map_err(|error| format!("runtime draw flush error: {error}"))?;
-            let flush_elapsed = flush_start.elapsed();
+            let flush_elapsed = frame_timer_elapsed(flush_start);
 
             if perf_enabled {
                 let total_dispatches = runtime.vm().backend().dispatch_count();
                 perf.record(
                     dt,
-                    frame_start.elapsed(),
+                    frame_timer_elapsed(frame_start),
                     update_elapsed,
                     flush_elapsed,
                     total_dispatches,
@@ -662,6 +853,62 @@ async fn run_script_contract(script_path: &str) -> Result<(), String> {
         runtime.vm().backend().dispatch_count()
     );
     Ok(())
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn resolve_runtime_entry_script_path(script_path: &str) -> Result<String, String> {
+    let requested = PathBuf::from(script_path);
+    if requested.is_absolute() || requested.is_file() {
+        return Ok(script_path.to_owned());
+    }
+
+    let executable = std::env::current_exe()
+        .map_err(|error| format!("failed to resolve current executable path: {error}"))?;
+    let Some(executable_dir) = executable.parent() else {
+        return Ok(script_path.to_owned());
+    };
+    let candidate = executable_dir.join(script_path);
+    if candidate.is_file() {
+        std::env::set_current_dir(executable_dir).map_err(|error| {
+            format!(
+                "failed to switch working directory to executable directory {}: {error}",
+                executable_dir.display()
+            )
+        })?;
+        return Ok(candidate.to_string_lossy().into_owned());
+    }
+
+    Ok(script_path.to_owned())
+}
+
+#[cfg(target_arch = "wasm32")]
+fn resolve_runtime_entry_script_path(script_path: &str) -> Result<String, String> {
+    Ok(script_path.to_owned())
+}
+
+#[cfg(target_arch = "wasm32")]
+type FrameTimerStamp = f64;
+#[cfg(not(target_arch = "wasm32"))]
+type FrameTimerStamp = Instant;
+
+#[cfg(target_arch = "wasm32")]
+fn frame_timer_now() -> FrameTimerStamp {
+    macroquad::time::get_time()
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn frame_timer_now() -> FrameTimerStamp {
+    Instant::now()
+}
+
+#[cfg(target_arch = "wasm32")]
+fn frame_timer_elapsed(start: FrameTimerStamp) -> Duration {
+    Duration::from_secs_f64((macroquad::time::get_time() - start).max(0.0))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn frame_timer_elapsed(start: FrameTimerStamp) -> Duration {
+    start.elapsed()
 }
 
 #[derive(Debug)]
@@ -741,7 +988,8 @@ mod tests {
         MAIN_FILE_NAME, ProjectBuildCommand, ProjectBuildTarget, ProjectCommand, STUB_FILE_NAME,
         check_stub, cli_help_text, create_project_scaffold, no_args_command_for_payload,
         parse_build_alias_command, parse_cli_command, parse_project_build_command,
-        render_main_py_template, run_generate_stubs_contract, run_project_build_contract,
+        render_main_py_template, render_web_index_html, run_generate_stubs_contract,
+        run_project_build_contract,
     };
     use std::fs;
     use std::path::PathBuf;
@@ -1051,7 +1299,7 @@ mod tests {
     }
 
     #[test]
-    fn run_project_build_contract_validates_project_dir() {
+    fn run_project_build_contract_validates_project_dir_for_placeholder_targets() {
         let base_dir = temp_test_dir("project-build-contract");
         fs::write(
             base_dir.join(MAIN_FILE_NAME),
@@ -1060,13 +1308,21 @@ mod tests {
         .expect("main.py should be writable");
 
         run_project_build_contract(ProjectBuildCommand {
-            target: ProjectBuildTarget::Web,
+            target: ProjectBuildTarget::Android,
             project_path: base_dir.clone(),
             output_exe_name: None,
         })
         .expect("phase 15 non-desktop target should validate project contract");
 
         fs::remove_dir_all(base_dir).expect("cleanup should succeed");
+    }
+
+    #[test]
+    fn web_index_template_references_runtime_assets() {
+        let html = render_web_index_html();
+        assert!(html.contains("gl.js"));
+        assert!(html.contains("pycro.wasm"));
+        assert!(html.contains("load(\"pycro.wasm\")"));
     }
 
     #[test]

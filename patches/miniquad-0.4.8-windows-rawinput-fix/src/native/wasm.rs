@@ -29,11 +29,15 @@ thread_local! {
     static EVENT_HANDLER: RefCell<Option<Box<dyn EventHandler>>> = RefCell::new(None);
     static REQUESTS: RefCell<Option<Receiver<Request>>> = const { RefCell::new(None) };
 }
-fn tl_event_handler<T, F: FnOnce(&mut dyn EventHandler) -> T>(f: F) -> T {
+fn tl_event_handler<F: FnOnce(&mut dyn EventHandler)>(f: F) {
     EVENT_HANDLER.with(|globals| {
-        let mut globals = globals.borrow_mut();
-        let globals: &mut Box<dyn EventHandler> = globals.as_mut().unwrap();
-        f(&mut **globals)
+        let mut globals = match globals.try_borrow_mut() {
+            Ok(value) => value,
+            Err(_) => return,
+        };
+        if let Some(handler) = globals.as_mut() {
+            f(&mut **handler);
+        }
     })
 }
 

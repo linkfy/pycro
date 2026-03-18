@@ -1,6 +1,8 @@
 //! Backend contract used by the API layer.
 //! The first backend owner is Macroquad, but the contract is backend-agnostic.
 
+#[cfg(target_arch = "wasm32")]
+use crate::embedded_project_payload;
 use macroquad::input::{KeyCode, MouseButton, is_quit_requested};
 #[cfg(not(test))]
 use macroquad::input::{is_key_down, is_mouse_button_down};
@@ -656,10 +658,27 @@ impl EngineBackend for MacroquadBackendContract {
             .push(BackendDispatch::LoadTexture(path.to_owned()));
 
         let handle = TextureHandle(path.to_owned());
-        let resolved = Path::new(path);
-        if let Ok(bytes) = std::fs::read(resolved) {
-            let texture = Texture2D::from_file_with_format(&bytes, None);
-            self.textures.insert(handle.0.clone(), texture);
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let resolved = Path::new(path);
+            if let Ok(bytes) = std::fs::read(resolved) {
+                let texture = Texture2D::from_file_with_format(&bytes, None);
+                self.textures.insert(handle.0.clone(), texture);
+            }
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            let normalized = path.trim_start_matches("./");
+            if let Some(payload) = embedded_project_payload() {
+                if let Some(file) = payload
+                    .files
+                    .iter()
+                    .find(|file| file.relative_path == normalized)
+                {
+                    let texture = Texture2D::from_file_with_format(file.bytes, None);
+                    self.textures.insert(handle.0.clone(), texture);
+                }
+            }
         }
 
         Ok(handle)

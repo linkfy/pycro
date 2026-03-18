@@ -4,13 +4,13 @@
   "active_phase": {
     "number": "17",
     "id": "17-project-web-build",
-    "status": "in_progress",
+    "status": "complete",
     "path": "docs/phases/17-project-web-build"
   },
   "current_objective": {
     "id": "project-web-build",
     "title": "Add web target support for `pycro project build` with embedded payload packaging",
-    "status": "in_progress",
+    "status": "complete",
     "execution_mode": "orchestrator_owned_phase_with_worker_handoffs",
     "phase_doc": "docs/phases/17-project-web-build/implementation.md",
     "startup_gate": {
@@ -21,11 +21,11 @@
     "resume_checkpoint": {
       "branch": "codex/17-project-web-build",
       "worktree": ".worktrees/17-project-web-build-orchestrator",
-      "summary": "phase 17 kickoff opened after phase 16 closeout to deliver web target build packaging on embedded payload contract",
-      "code_status": "requirements and design validated; implementation opened for web target build flow",
+      "summary": "phase 17 closed with formal QA and preflight evidence; web build POC baseline stabilized",
+      "code_status": "web target POC stabilized: wasm build flow + compatibility shims + embedded asset loading validated; non-web desktop guard remains passing",
       "next_slice": [
-        "implement web target build orchestration and output contract",
-        "add web startup smoke checks and synchronize tracker/state evidence"
+        "kick off phase 18 (project-android-build) requirements/design gate",
+        "preserve phase-17 web POC contract while expanding platform targets"
       ]
     },
     "block_progress": {
@@ -104,14 +104,26 @@
       "phase_16_adr": "accepted",
       "phase_16_closeout_doc": "docs/phases/16-spec-driven-agent-workflow-hardening/closeout.md",
       "phase_16_qa": "pass",
-      "phase_17_kickoff": "in_progress",
-      "phase_17_project_web_build": "in_progress",
+      "phase_17_kickoff": "complete",
+      "phase_17_project_web_build": "complete",
+      "phase_17_web_build_orchestration": "implemented",
+      "phase_17_web_output_contract": "implemented",
+      "phase_17_web_wasm_toolchain_blockers": "resolved",
+      "phase_17_web_loader_wbindgen_compat_shim": "implemented",
+      "phase_17_web_smoke": "pass",
       "phase_18_project_android_build": "planned",
       "phase_19_project_ios_build": "planned",
       "phase_14_validation_preflight": "pass",
       "phase_14_closeout_doc": "docs/phases/14-project-build-foundation/closeout.md",
       "phase_14_qa": "pass",
-      "phase_14_adr": "accepted"
+      "phase_14_adr": "accepted",
+      "phase_17_web_texture_payload_loading": "implemented",
+      "phase_17_web_wasm_poc_scope_documented": "implemented",
+      "phase_17_web_runtime_troubleshooting_docs": "implemented",
+      "phase_17_non_web_regression_guard": "pass",
+      "phase_17_validation_preflight": "pass",
+      "phase_17_closeout_doc": "docs/phases/17-project-web-build/closeout.md",
+      "phase_17_qa": "pass"
     }
   },
   "orchestration": {
@@ -253,7 +265,7 @@
     {
       "number": "17",
       "id": "17-project-web-build",
-      "status": "in_progress",
+      "status": "complete",
       "path": "docs/phases/17-project-web-build"
     },
     {
@@ -474,11 +486,11 @@
       "id": "project-web-build",
       "phase": "17",
       "owner": "architecture-orchestrator",
-      "status": "in_progress",
+      "status": "complete",
       "branch": "codex/17-project-web-build",
       "worktree": ".worktrees/17-project-web-build-orchestrator",
       "phase_doc": "docs/phases/17-project-web-build/implementation.md",
-      "qa": "pending"
+      "qa": "pass"
     },
     {
       "id": "project-android-build",
