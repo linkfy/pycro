@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/linkfy/pycro/compare/pycro_cli-v0.4.4...pycro_cli-v0.5.0) (2026-03-18)
+
+
+### Features
+
+* **governance:** close phase16 workflow hardening ([73d9b9b](https://github.com/linkfy/pycro/commit/73d9b9b0cd51336b4afac0d4dfcddd50544f5673))
+* **web:** close phase 17 wasm poc build and runtime stability ([a3c8abd](https://github.com/linkfy/pycro/commit/a3c8abd86e348da88cef863080ca51229376ed92))
+
 ## [0.4.4](https://github.com/linkfy/pycro/compare/pycro_cli-v0.4.3...pycro_cli-v0.4.4) (2026-03-17)
 
 
