@@ -2,30 +2,30 @@
   "schema_version": 2,
   "project": "pycro",
   "active_phase": {
-    "number": "17",
-    "id": "17-project-web-build",
-    "status": "complete",
-    "path": "docs/phases/17-project-web-build"
+    "number": "18",
+    "id": "18-project-android-build",
+    "status": "in_progress",
+    "path": "docs/phases/18-project-android-build"
   },
   "current_objective": {
-    "id": "project-web-build",
-    "title": "Add web target support for `pycro project build` with embedded payload packaging",
-    "status": "complete",
+    "id": "project-android-build",
+    "title": "Add Android target support for `pycro project build` with embedded payload packaging",
+    "status": "in_progress",
     "execution_mode": "orchestrator_owned_phase_with_worker_handoffs",
-    "phase_doc": "docs/phases/17-project-web-build/implementation.md",
+    "phase_doc": "docs/phases/18-project-android-build/implementation.md",
     "startup_gate": {
       "requirements_validated": true,
       "design_validated": true,
-      "kickoff_date": "2026-03-17"
+      "kickoff_date": "2026-03-18"
     },
     "resume_checkpoint": {
-      "branch": "codex/17-project-web-build",
-      "worktree": ".worktrees/17-project-web-build-orchestrator",
-      "summary": "phase 17 closed with formal QA and preflight evidence; web build POC baseline stabilized",
-      "code_status": "web target POC stabilized: wasm build flow + compatibility shims + embedded asset loading validated; non-web desktop guard remains passing",
+      "branch": "codex/18-project-android-build",
+      "worktree": ".worktrees/18-project-android-build-orchestrator",
+      "summary": "phase 18 activated after phase 17 release; android build implementation kickoff in progress",
+      "code_status": "phase 17 web POC is stable and released; android target implementation not started yet",
       "next_slice": [
-        "kick off phase 18 (project-android-build) requirements/design gate",
-        "preserve phase-17 web POC contract while expanding platform targets"
+        "implement --target android orchestration and output contract",
+        "preserve shared embedded payload contract across desktop/web/android"
       ]
     },
     "block_progress": {
@@ -111,7 +111,7 @@
       "phase_17_web_wasm_toolchain_blockers": "resolved",
       "phase_17_web_loader_wbindgen_compat_shim": "implemented",
       "phase_17_web_smoke": "pass",
-      "phase_18_project_android_build": "planned",
+      "phase_18_project_android_build": "in_progress",
       "phase_19_project_ios_build": "planned",
       "phase_14_validation_preflight": "pass",
       "phase_14_closeout_doc": "docs/phases/14-project-build-foundation/closeout.md",
@@ -158,7 +158,7 @@
     },
     "manager_agent": "worktree-manager"
   },
-  "current_branch": "codex/17-project-web-build",
+  "current_branch": "codex/18-project-android-build",
   "phase_sequence": [
     {
       "number": "00",
@@ -271,7 +271,7 @@
     {
       "number": "18",
       "id": "18-project-android-build",
-      "status": "planned",
+      "status": "in_progress",
       "path": "docs/phases/18-project-android-build"
     },
     {
@@ -496,7 +496,7 @@
       "id": "project-android-build",
       "phase": "18",
       "owner": "architecture-orchestrator",
-      "status": "planned",
+      "status": "in_progress",
       "branch": "codex/18-project-android-build",
       "worktree": ".worktrees/18-project-android-build-orchestrator",
       "phase_doc": "docs/phases/18-project-android-build/implementation.md",

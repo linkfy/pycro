@@ -11,7 +11,7 @@
 
 | Task ID | Owner | Parallel Team | Status | Branch | Worktree | Validation Gate |
 | --- | --- | --- | --- | --- | --- | --- |
-| project-android-build | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/18-project-android-build | .worktrees/18-project-android-build-orchestrator | android packaging smoke + standard preflight |
+| project-android-build | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | in_progress | codex/18-project-android-build | .worktrees/18-project-android-build-orchestrator | android packaging smoke + standard preflight |
 
 ## Reporting Contract
 
