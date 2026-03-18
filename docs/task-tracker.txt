@@ -6,7 +6,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 ## Immediate Next Workstream
 
 - id: `stream-windows-input-fix`
-- status: `in_progress` (parallel stream; phase 16 closeout is complete and phase 17 remains queued)
+- status: `in_progress` (parallel stream; phase 17 kickoff is now active)
 - branch: `codex/stream-windows-input-fix-plan`
 - start doc: `docs/streams/windows-input-fix.md`
 - first execution target: run Windows manual validation on patched `miniquad` path using `examples/windows_input_diagnostic.py`
@@ -33,7 +33,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 14    | docs/phases/14-project-build-foundation      | complete    | `pycro project` base contract + shared project bundle        | closed (2026-03-16) |
 | 15    | docs/phases/15-project-desktop-build         | complete    | Desktop target for `pycro project build` with embedded payload | closed (2026-03-17) |
 | 16    | docs/phases/16-spec-driven-agent-workflow-hardening | complete    | Spec-driven workflow hardening for agents, tracker/state sync, and operator ergonomics | closed (2026-03-17) |
-| 17    | docs/phases/17-project-web-build             | planned     | Web target for `pycro project build` using shared embedded payload | queued after phase 16  |
+| 17    | docs/phases/17-project-web-build             | complete    | Web target for `pycro project build` using shared embedded payload | closed (2026-03-18) |
 | 18    | docs/phases/18-project-android-build         | planned     | Android target for `pycro project build` using shared embedded payload | queued after phase 17  |
 | 19    | docs/phases/19-project-ios-build             | planned     | iOS target for `pycro project build` using shared embedded payload | queued after phase 18  |
 +-------+----------------------------------------------+-------------+---------------------------------------------------------------+------------------------+
@@ -63,7 +63,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 14    | project-build-foundation           | Add `pycro project` namespace, external project contract, and shared project bundle architecture | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/14-project-build-foundation | .worktrees/14-project-build-foundation-orchestrator | docs/phases/14-project-build-foundation/implementation.md | pass | closed |
 | 15    | project-desktop-build              | Add desktop target support for `pycro project build` with embedded project payload | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward, example-scenario-worker | complete | codex/15-project-desktop-build | .worktrees/15-project-desktop-build-orchestrator | docs/phases/15-project-desktop-build/implementation.md | pass | closed |
 | 16    | spec-driven-agent-workflow-hardening | Harden spec-driven workflow validation, kickoff automation, and operator ergonomics | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/16-spec-driven-agent-workflow-hardening | .worktrees/16-spec-driven-agent-workflow-hardening-orchestrator | docs/phases/16-spec-driven-agent-workflow-hardening/implementation.md | pass | closed (closeout + validation complete) |
-| 17    | project-web-build                  | Add web target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward, example-scenario-worker | planned | codex/17-project-web-build | .worktrees/17-project-web-build-orchestrator | docs/phases/17-project-web-build/implementation.md | pending | queued |
+| 17    | project-web-build                  | Add web target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward, example-scenario-worker | complete | codex/17-project-web-build | .worktrees/17-project-web-build-orchestrator | docs/phases/17-project-web-build/implementation.md | pass | closed |
 | 18    | project-android-build              | Add Android target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/18-project-android-build | .worktrees/18-project-android-build-orchestrator | docs/phases/18-project-android-build/implementation.md | pending | queued |
 | 19    | project-ios-build                  | Add iOS target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/19-project-ios-build | .worktrees/19-project-ios-build-orchestrator | docs/phases/19-project-ios-build/implementation.md | pending | queued |
 +-------+------------------------------------+---------------------------------------------------------+---------------------------+--------------------------------------------------------------------------+---------------+-----------------------------------------+------------------------------------------------------+------------------------------------------------------+------------------+----------+
@@ -222,11 +222,30 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 - phase_closeout: complete (`docs/phases/16-spec-driven-agent-workflow-hardening/closeout.md`)
 - phase_16_qa: pass
 
-## Phase 17 Planning Note
+## Phase 17 Execution Note
 
 - objective: add `pycro project build --target web`
 - dependency: reuse the shared embedded payload strategy from phase 15 after phase 16 hardening completes
 - output_rule: emit a web-servable runtime/output layout that still consumes packaged payload rather than loose project `.py` files
+- startup_gate: requirements + design validated, implementation opened (2026-03-17)
+- active_branch: `codex/17-project-web-build`
+- implementation_slice_1: complete (2026-03-18)
+  - implemented: `--target web` now builds wasm and emits `dist/web/{pycro.wasm,gl.js,index.html}`
+  - implemented: smoke harness `scripts/phase17_web_embedded_smoke.py` (artifact contract + embedded marker assertions)
+  - pass: `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`
+  - pass: `python3 scripts/phase17_web_embedded_smoke.py`
+  - blocker_resolution:
+    - align wasm `getrandom` support with current dependency graph (`wasm_js` path where required) while preserving miniquad loader compatibility shims
+    - scope `mimalloc` to non-wasm targets so web target builds on `wasm32-unknown-unknown`
+    - patch `patches/miniquad-0.4.8-windows-rawinput-fix/js/gl.js` to support missing non-`env` wasm import modules (including `__wbindgen_placeholder__`) with compatibility stubs
+  - refinement_updates (2026-03-18):
+    - hardened `gl.js` stubs for runtime `crypto/time/object` calls and reduced per-import warning noise so real errors surface first
+    - fixed wasm texture loading behavior by resolving `load_texture(\"assets/...\")` against embedded payload bytes
+    - documented phase-17 as a preliminary WASM POC with explicit build/run commands and known pitfalls from real project validation (`exit()` in web loop, `1/dt`, invalid f-string formatting)
+    - verified non-web path remains healthy (`python3 scripts/phase15_desktop_embedded_smoke.py`)
+- validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`)
+- phase_closeout: complete (`docs/phases/17-project-web-build/closeout.md`)
+- phase_17_qa: pass
 
 ## Phase 18 Planning Note
 
