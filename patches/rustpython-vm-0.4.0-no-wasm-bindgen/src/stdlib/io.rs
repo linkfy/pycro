@@ -3988,7 +3988,10 @@ mod fileio {
             {
                 match fd_fstat {
                     Ok(status) => {
-                        if (status.st_mode & libc::S_IFMT) == libc::S_IFDIR {
+                        let mode = status.st_mode as u32;
+                        let ifmt = libc::S_IFMT as u32;
+                        let ifdir = libc::S_IFDIR as u32;
+                        if (mode & ifmt) == ifdir {
                             let err = std::io::Error::from_raw_os_error(libc::EISDIR);
                             return Err(IOErrorBuilder::with_filename(&err, filename, vm));
                         }

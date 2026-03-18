@@ -5,7 +5,7 @@ This directory stores the canonical sequential delivery phases.
 ## Numbering Rule
 
 - Phase folders are strictly consecutive and zero-padded: `NN-<slug>`.
-- The active phase is tracked in both `docs/task-tracker.txt` and `state/repo-state.json`.
+- The canonical source of phase/task status is `state/repo-state.json`; `docs/task-tracker.txt` and this file are required mirrors.
 - Non-linear streams (benchmark studies, cross-cutting docs, incident tracks) live in `docs/streams/`.
 
 ## Phase Folders
@@ -28,7 +28,7 @@ This directory stores the canonical sequential delivery phases.
 - `15-project-desktop-build` (complete)
 - `16-spec-driven-agent-workflow-hardening` (complete)
 - `17-project-web-build` (complete)
-- `18-project-android-build` (planned)
+- `18-project-android-build` (complete)
 - `19-project-ios-build` (planned)
 
 ## Required Files Per Phase

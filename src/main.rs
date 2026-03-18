@@ -8,6 +8,7 @@ use pycro_cli::{
 };
 use pycro_cli::{module_spec, registration_plan, render_stub};
 use std::fs;
+use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 #[cfg(target_arch = "wasm32")]
@@ -24,6 +25,9 @@ const WEB_DIST_DIR: &str = "dist/web";
 const WEB_WASM_FILE_NAME: &str = "pycro.wasm";
 const WEB_GL_JS_FILE_NAME: &str = "gl.js";
 const WEB_INDEX_FILE_NAME: &str = "index.html";
+const ANDROID_SOURCE_APK_DIR: &str = "target/android-artifacts/release/apk";
+const ANDROID_DIST_APK_DIR: &str = "dist/android/apk";
+const ANDROID_QUAD_APK_RUSTFLAGS: &str = "-Aunsafe-code -Aunsafe-attr-outside-unsafe";
 
 #[cfg(target_os = "windows")]
 const LOCAL_RUNNER_FILE_NAME: &str = "pycro.exe";
@@ -388,17 +392,175 @@ fn run_project_build_contract(command: ProjectBuildCommand) -> Result<(), String
             }
             run_web_project_build(bundle.contract.root.as_path())
         }
-        _ => {
+        ProjectBuildTarget::Android => {
+            if command.output_exe_name.is_some() {
+                return Err("--exe is only supported when --target desktop".to_owned());
+            }
+            run_android_project_build(bundle.contract.root.as_path())
+        }
+        ProjectBuildTarget::Ios => {
             if command.output_exe_name.is_some() {
                 return Err("--exe is only supported when --target desktop".to_owned());
             }
             println!(
-                "phase 15 desktop-only implementation: packaging for target `{}` is not implemented yet",
+                "project build target `{}` is not implemented yet",
                 bundle.target.as_str()
             );
             Ok(())
         }
     }
+}
+
+fn run_android_project_build(project_root: &Path) -> Result<(), String> {
+    let project_root = fs::canonicalize(project_root).map_err(|error| {
+        format!(
+            "failed to resolve project root {}: {error}",
+            project_root.display()
+        )
+    })?;
+    let source_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let cargo_binary = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_owned());
+    println!("android build mode: local (cargo-quad-apk)");
+    println!(
+        "android artifact source: {}",
+        source_root.join(ANDROID_SOURCE_APK_DIR).display()
+    );
+    println!(
+        "android artifact destination: {}",
+        project_root.join(ANDROID_DIST_APK_DIR).display()
+    );
+
+    let mut command = Command::new(cargo_binary);
+    let rustflags = std::env::var("RUSTFLAGS")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .map_or_else(
+            || ANDROID_QUAD_APK_RUSTFLAGS.to_owned(),
+            |value| format!("{value} {ANDROID_QUAD_APK_RUSTFLAGS}"),
+        );
+    command
+        .current_dir(source_root.as_path())
+        .arg("quad-apk")
+        .arg("build")
+        .arg("--release")
+        .arg("--bin")
+        .arg("pycro")
+        .env("RUSTFLAGS", rustflags)
+        .env("PYCRO_EMBED_PROJECT_ROOT", project_root.as_os_str());
+
+    let status = command.status().map_err(|error| {
+        if error.kind() == std::io::ErrorKind::NotFound {
+            "failed to start android build command: cargo could not run `quad-apk`.\ninstall with `cargo install cargo-quad-apk` or use Docker image `notfl3/cargo-apk`."
+                .to_owned()
+        } else {
+            format!(
+                "failed to start android build command from {}: {error}",
+                source_root.display()
+            )
+        }
+    })?;
+
+    if !status.success() {
+        return Err(format!(
+            "android build command failed with status {status} (project: {}).\nverify Android toolchain setup (`cargo-quad-apk`, `ANDROID_HOME`, `NDK_HOME`) or use Docker image `notfl3/cargo-apk`.",
+            project_root.display()
+        ));
+    }
+
+    let source_apk_dir = source_root.join(ANDROID_SOURCE_APK_DIR);
+    if !source_apk_dir.is_dir() {
+        return Err(format!(
+            "android build finished but apk directory missing: {}",
+            source_apk_dir.display()
+        ));
+    }
+
+    let dist_apk_dir = project_root.join(ANDROID_DIST_APK_DIR);
+    fs::create_dir_all(dist_apk_dir.as_path())
+        .map_err(|error| format!("failed to create {}: {error}", dist_apk_dir.display()))?;
+
+    for entry in fs::read_dir(dist_apk_dir.as_path())
+        .map_err(|error| format!("failed to read {}: {error}", dist_apk_dir.display()))?
+    {
+        let entry = entry.map_err(|error| {
+            format!(
+                "failed to inspect output artifact directory {}: {error}",
+                dist_apk_dir.display()
+            )
+        })?;
+        let path = entry.path();
+        if path.is_file() && is_valid_apk_file(path.as_path()) {
+            fs::remove_file(path.as_path())
+                .map_err(|error| format!("failed to clean {}: {error}", path.display()))?;
+        }
+    }
+
+    let mut source_apks = Vec::new();
+    for entry in fs::read_dir(source_apk_dir.as_path())
+        .map_err(|error| format!("failed to read {}: {error}", source_apk_dir.display()))?
+    {
+        let entry = entry.map_err(|error| {
+            format!(
+                "failed to inspect android artifact directory {}: {error}",
+                source_apk_dir.display()
+            )
+        })?;
+        let path = entry.path();
+        if path.is_file() && is_valid_apk_file(path.as_path()) {
+            source_apks.push(path);
+        }
+    }
+    source_apks.sort();
+
+    if source_apks.is_empty() {
+        return Err(format!(
+            "android build finished but no apk artifacts were found in {}",
+            source_apk_dir.display()
+        ));
+    }
+
+    for source_apk in source_apks {
+        let file_name = source_apk.file_name().ok_or_else(|| {
+            format!(
+                "android artifact path has no file name: {}",
+                source_apk.display()
+            )
+        })?;
+        let output_apk = dist_apk_dir.join(file_name);
+        fs::copy(source_apk.as_path(), output_apk.as_path()).map_err(|error| {
+            format!(
+                "failed to copy built android artifact {} -> {}: {error}",
+                source_apk.display(),
+                output_apk.display()
+            )
+        })?;
+        println!("artifact apk: {}", output_apk.display());
+    }
+
+    println!("android project build complete");
+    Ok(())
+}
+
+fn is_valid_apk_file(path: &Path) -> bool {
+    let is_apk_extension = path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("apk"));
+    if !is_apk_extension {
+        return false;
+    }
+
+    let mut file = match fs::File::open(path) {
+        Ok(file) => file,
+        Err(_) => return false,
+    };
+    let mut magic = [0_u8; 4];
+    if file.read_exact(&mut magic).is_err() {
+        return false;
+    }
+
+    // APK is a ZIP container and should start with "PK\003\004".
+    magic == [0x50, 0x4b, 0x03, 0x04]
 }
 
 fn run_web_project_build(project_root: &Path) -> Result<(), String> {
@@ -1308,11 +1470,11 @@ mod tests {
         .expect("main.py should be writable");
 
         run_project_build_contract(ProjectBuildCommand {
-            target: ProjectBuildTarget::Android,
+            target: ProjectBuildTarget::Ios,
             project_path: base_dir.clone(),
             output_exe_name: None,
         })
-        .expect("phase 15 non-desktop target should validate project contract");
+        .expect("placeholder target should validate project contract");
 
         fs::remove_dir_all(base_dir).expect("cleanup should succeed");
     }
