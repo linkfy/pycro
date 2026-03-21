@@ -1,11 +1,10 @@
+# Rust
 target/
-__pycache__/
-.mypy_cache/
-.pytest_cache/
-.venv/
-dist/
-build/
-*.pyc
-.DS_Store
+**/*.rs.bk
 
-.worktrees/
+# cargo-mobile2
+.cargo/
+/gen
+
+# macOS
+.DS_Store
