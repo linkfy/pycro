@@ -3,7 +3,7 @@ set -euo pipefail
 
 if [[ "${1:-}" == "" ]]; then
   echo "usage: scripts/android_build_project.sh <project_path>"
-  echo "example: scripts/android_build_project.sh /Users/linkfy/Downloads/pycrotest/example"
+  echo "example: scripts/android_build_project.sh /path/to/project"
   exit 2
 fi
 

@@ -182,6 +182,12 @@ Build desktop artifact from an external project:
 cargo run --bin pycro -- project build . --target desktop
 ```
 
+Build iOS Xcode project from an external project:
+
+```bash
+cargo run --bin pycro -- project build . --target ios
+```
+
 Build desktop artifact with explicit output executable name:
 
 ```bash
@@ -192,6 +198,17 @@ Desktop build contract:
 
 - default output artifact: `./dist/desktop/game` (or `game.exe` on Windows)
 - override executable name: `--exe <name>` (desktop target only)
+- payload model: compile-time embedded project payload generated from:
+  - `main.py` (required)
+  - root `*.py` sidecars (optional)
+  - `assets/**` (optional, recursive)
+  - `pycro-project.toml` (optional)
+
+iOS build contract:
+
+- output path: `./dist/ios/xcode/`
+- generated artifact: Xcode project for macOS/Xcode follow-up builds
+- host requirements: macOS + Xcode + `cargo apple` (cargo-mobile2)
 - payload model: compile-time embedded project payload generated from:
   - `main.py` (required)
   - root `*.py` sidecars (optional)

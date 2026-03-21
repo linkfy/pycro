@@ -1,15 +1,25 @@
 [package]
-name = "pycro_cli"
-version = "0.6.0"
+name = "pycro"
+version = "0.2.0"
 edition = "2024"
 license = "MIT"
 rust-version = "1.91"
 default-run = "pycro"
 build = "build.rs"
 
+[package.metadata.cargo-apple.ios]
+frameworks = ["AudioToolbox"]
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
+
 [[bin]]
 name = "pycro"
 path = "src/main.rs"
+
+[[bin]]
+name = "pycro-desktop"
+path = "gen/bin/desktop.rs"
 
 [dependencies]
 macroquad = "0.4"
@@ -33,6 +43,7 @@ miniquad = { path = "patches/miniquad-0.4.8-windows-rawinput-fix" }
 ahash = { path = "patches/ahash-0.8.12-wasm-no-rng" }
 rand = { path = "patches/rand-0.8.5-wasm-no-rng" }
 rustpython-vm = { path = "patches/rustpython-vm-0.4.0-no-wasm-bindgen" }
+tracing-oslog = { path = "third_party/tracing-oslog" }
 
 [lints.clippy]
 dbg_macro = "deny"
