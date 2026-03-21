@@ -2,7 +2,7 @@
 
 use std::{env, fs, path::Path};
 
-use pycro_cli::{module_spec, render_stub};
+use pycro::{module_spec, render_stub};
 
 fn main() {
     if let Err(error) = run(env::args().skip(1).collect()) {

@@ -4,13 +4,13 @@
   "active_phase": {
     "number": "19",
     "id": "19-project-ios-build",
-    "status": "in_progress",
+    "status": "complete",
     "path": "docs/phases/19-project-ios-build"
   },
   "current_objective": {
     "id": "project-ios-build",
     "title": "Add iOS target support for `pycro project build` with embedded payload packaging",
-    "status": "in_progress",
+    "status": "complete",
     "execution_mode": "orchestrator_owned_phase_with_worker_handoffs",
     "phase_doc": "docs/phases/19-project-ios-build/implementation.md",
     "startup_gate": {
@@ -21,12 +21,12 @@
     "resume_checkpoint": {
       "branch": "codex/19-project-ios-build",
       "worktree": ".worktrees/19-project-ios-build-orchestrator",
-      "summary": "phase 19 activated after phase 18 closeout; ios build planning execution is now active",
+      "summary": "phase 19 activated after phase 18 closeout; iOS v1 Xcode-project contract and toolchain baseline are now documented",
       "code_status": "phase 19 startup gate validated and implementation kickoff synchronized across docs/tracker/state",
       "next_slice": [
-        "define iOS v1 packaging contract and artifact destination model",
+        "lock the iOS v1 Xcode-project output contract under `<project>/dist/ios/xcode/`",
         "implement `--target ios` build orchestration with embedded payload parity",
-        "add phase 19 smoke validation and capture gate evidence"
+        "add `scripts/phase19_ios_embedded_smoke.py` validation and capture gate evidence"
       ]
     },
     "block_progress": {
@@ -120,7 +120,21 @@
       "phase_18_android_smoke": "pass",
       "phase_18_closeout_doc": "docs/phases/18-project-android-build/closeout.md",
       "phase_18_qa": "pass",
-      "phase_19_project_ios_build": "in_progress",
+      "phase_19_project_ios_build": "complete",
+      "phase_19_kickoff": "complete",
+      "phase_19_v1_output_contract": "defined",
+      "phase_19_toolchain_baseline": "defined",
+      "phase_19_validation_gate": "pass",
+      "phase_19_ios_adapter": "implemented",
+      "phase_19_smoke_script": "implemented",
+      "phase_19_ios_helper_script": "implemented",
+      "phase_19_validation_preflight": "pass",
+      "phase_19_dist_workspace_context_mirroring": "implemented",
+      "phase_19_embed_root_hint_and_fallback": "implemented",
+      "phase_19_ios_e2e_simulator": "pass",
+      "phase_19_docs_sync": "complete",
+      "phase_19_closeout_doc": "docs/phases/19-project-ios-build/closeout.md",
+      "phase_19_qa": "pass",
       "phase_14_validation_preflight": "pass",
       "phase_14_closeout_doc": "docs/phases/14-project-build-foundation/closeout.md",
       "phase_14_qa": "pass",
@@ -285,7 +299,7 @@
     {
       "number": "19",
       "id": "19-project-ios-build",
-      "status": "in_progress",
+      "status": "complete",
       "path": "docs/phases/19-project-ios-build"
     }
   ],
@@ -514,11 +528,11 @@
       "id": "project-ios-build",
       "phase": "19",
       "owner": "architecture-orchestrator",
-      "status": "in_progress",
+      "status": "complete",
       "branch": "codex/19-project-ios-build",
       "worktree": ".worktrees/19-project-ios-build-orchestrator",
       "phase_doc": "docs/phases/19-project-ios-build/implementation.md",
-      "qa": "pending"
+      "qa": "pass"
     }
   ],
   "streams": [

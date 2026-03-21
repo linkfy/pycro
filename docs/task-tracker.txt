@@ -35,7 +35,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 16    | docs/phases/16-spec-driven-agent-workflow-hardening | complete    | Spec-driven workflow hardening for agents, tracker/state sync, and operator ergonomics | closed (2026-03-17) |
 | 17    | docs/phases/17-project-web-build             | complete    | Web target for `pycro project build` using shared embedded payload | closed (2026-03-18) |
 | 18    | docs/phases/18-project-android-build         | complete    | Android target for `pycro project build` using shared embedded payload | closed (2026-03-19) |
-| 19    | docs/phases/19-project-ios-build             | in_progress | iOS target for `pycro project build` using shared embedded payload | kickoff 2026-03-19     |
+| 19    | docs/phases/19-project-ios-build             | complete    | iOS target for `pycro project build` using shared embedded payload | closed (2026-03-21)    |
 +-------+----------------------------------------------+-------------+---------------------------------------------------------------+------------------------+
 
 ## Task Table
@@ -65,7 +65,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 16    | spec-driven-agent-workflow-hardening | Harden spec-driven workflow validation, kickoff automation, and operator ergonomics | architecture-orchestrator | runtime-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/16-spec-driven-agent-workflow-hardening | .worktrees/16-spec-driven-agent-workflow-hardening-orchestrator | docs/phases/16-spec-driven-agent-workflow-hardening/implementation.md | pass | closed (closeout + validation complete) |
 | 17    | project-web-build                  | Add web target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward, example-scenario-worker | complete | codex/17-project-web-build | .worktrees/17-project-web-build-orchestrator | docs/phases/17-project-web-build/implementation.md | pass | closed |
 | 18    | project-android-build              | Add Android target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/18-project-android-build | .worktrees/18-project-android-build-orchestrator | docs/phases/18-project-android-build/implementation.md | pass | closed |
-| 19    | project-ios-build                  | Add iOS target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | in_progress | codex/19-project-ios-build | .worktrees/19-project-ios-build-orchestrator | docs/phases/19-project-ios-build/implementation.md | pending | active |
+| 19    | project-ios-build                  | Add iOS target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/19-project-ios-build | .worktrees/19-project-ios-build-orchestrator | docs/phases/19-project-ios-build/implementation.md | pass | closed |
 +-------+------------------------------------+---------------------------------------------------------+---------------------------+--------------------------------------------------------------------------+---------------+-----------------------------------------+------------------------------------------------------+------------------------------------------------------+------------------+----------+
 
 ## Streams (Non-Sequential)
@@ -270,7 +270,25 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 - startup_gate: requirements + design validated, implementation opened (2026-03-19)
 - active_branch: `codex/19-project-ios-build`
 - dependency: reuse the shared embedded payload strategy and target architecture from earlier phases
-- packaging_rule: document one concrete iOS v1 output contract with embedded payload and explicit macOS/Xcode host requirements
+- packaging_rule: document one concrete iOS v1 output contract with embedded payload and explicit macOS/Xcode/`cargo apple` (cargo-mobile2) host requirements
+- v1_output_contract: `<project>/dist/ios/xcode/`
+- validation_gate: `python3 scripts/phase19_ios_embedded_smoke.py`
+- implementation_status: in_progress (adapter/runtime/docs hardened; end-to-end simulator execution confirmed)
+- key_compatibility_fixes:
+  - dist workspace context mirroring to avoid `workspace root not found` in Xcode-launched script phases
+  - optional shell var guard for `GCC_PREPROCESSOR_DEFINITIONS` to avoid null/unset script aborts
+  - embed-root hint propagation and deterministic build path via `PYCRO_EMBED_PROJECT_ROOT=<project>`
+  - generic operator scripts with path-agnostic usage (`scripts/ios_e2e_project.sh`, `scripts/ios_build_project.sh`, `scripts/android_build_project.sh`)
+- validation_preflight: pass (`python3 scripts/validate_governance.py`, `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo run --bin generate_stubs -- --check python/pycro/__init__.pyi`, `python3 -m mypy --config-file pyproject.toml`, `cargo doc --no-deps`, `bash -n scripts/ios_build_project.sh`, `bash -n scripts/ios_e2e_project.sh`, `python3 -m py_compile scripts/phase19_ios_embedded_smoke.py`)
+- phase_19_ios_e2e: pass (simulator launch renders embedded project content after dist-workspace clean build with explicit embed root)
+- known_incidents_and_resolution:
+  - payload-missing black screen resolved by deterministic dist-workspace clean build path
+  - accidental cargo-mobile2 template/bootstrap behavior (Bevy logo symptom) prevented by enforcing dist workspace Rust context
+  - intermittent CoreSimulator instability mitigated by explicit simulator boot sequencing
+- next_slice:
+  - complete (phase closeout recorded)
+- phase_closeout: complete (`docs/phases/19-project-ios-build/closeout.md`)
+- phase_19_qa: pass
 
 ## Windows Input Fix Stream Note
 
