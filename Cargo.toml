@@ -19,7 +19,7 @@ path = "src/main.rs"
 
 [[bin]]
 name = "pycro-desktop"
-path = "gen/bin/desktop.rs"
+path = "src/bin/desktop.rs"
 
 [dependencies]
 macroquad = "0.4"
