@@ -138,6 +138,15 @@ pub enum BackendDispatch {
         /// Text color.
         color: Color,
     },
+    /// draw_rectangle(position, size, color)
+    DrawRectangle {
+        /// Top-left position.
+        position: Vec2,
+        /// Rectangle size.
+        size: Vec2,
+        /// Fill color.
+        color: Color,
+    },
 }
 
 /// Engine backend contract consumed by `api`.
@@ -175,6 +184,10 @@ pub trait EngineBackend {
     fn set_camera_target(&mut self, target: Vec2);
     /// Draws text on screen.
     fn draw_text(&mut self, text: &str, position: Vec2, font_size: f32, color: Color);
+    /// Returns current window size in pixels.
+    fn get_window_size(&self) -> Vec2;
+    /// Draws a filled rectangle.
+    fn draw_rectangle(&mut self, position: Vec2, size: Vec2, color: Color);
 }
 
 /// Desktop loop owner config for frame dispatch.
@@ -921,6 +934,34 @@ impl EngineBackend for MacroquadBackendContract {
             color,
         });
         draw_text(text, position.x, position.y, font_size, color.into());
+    }
+
+    fn get_window_size(&self) -> Vec2 {
+        #[cfg(test)]
+        {
+            Vec2 {
+                x: 1280.0,
+                y: 720.0,
+            }
+        }
+        #[cfg(not(test))]
+        {
+            Vec2 {
+                x: screen_width(),
+                y: screen_height(),
+            }
+        }
+    }
+
+    fn draw_rectangle(&mut self, position: Vec2, size: Vec2, color: Color) {
+        self.record_dispatch();
+        #[cfg(test)]
+        self.dispatch_log.push(BackendDispatch::DrawRectangle {
+            position,
+            size,
+            color,
+        });
+        draw_rectangle(position.x, position.y, size.x, size.y, color.into());
     }
 }
 

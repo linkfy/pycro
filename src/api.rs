@@ -176,6 +176,17 @@ pub enum BackendDispatchCommand {
         /// Text color.
         color: Color,
     },
+    /// `draw_rectangle(position, size, color)`
+    DrawRectangle {
+        /// Top-left rectangle position.
+        position: Vec2,
+        /// Rectangle size.
+        size: Vec2,
+        /// Fill color.
+        color: Color,
+    },
+    /// `get_window_size()`
+    GetWindowSize,
 }
 
 /// Parses a runtime dispatch record into a typed backend command.
@@ -237,6 +248,25 @@ pub fn parse_backend_dispatch_record(record: &str) -> Result<BackendDispatchComm
                 a: parse_f32(a)?,
             },
         }),
+        ["draw_rectangle", x, y, width, height, r, g, b, a] => {
+            Ok(BackendDispatchCommand::DrawRectangle {
+                position: Vec2 {
+                    x: parse_f32(x)?,
+                    y: parse_f32(y)?,
+                },
+                size: Vec2 {
+                    x: parse_f32(width)?,
+                    y: parse_f32(height)?,
+                },
+                color: Color {
+                    r: parse_f32(r)?,
+                    g: parse_f32(g)?,
+                    b: parse_f32(b)?,
+                    a: parse_f32(a)?,
+                },
+            })
+        }
+        ["get_window_size"] => Ok(BackendDispatchCommand::GetWindowSize),
         _ => Err(format!("unsupported dispatch record: {record}")),
     }
 }
@@ -268,6 +298,14 @@ pub fn dispatch_backend_record(
             font_size,
             color,
         } => backend.draw_text(text.as_str(), position, font_size, color),
+        BackendDispatchCommand::DrawRectangle {
+            position,
+            size,
+            color,
+        } => backend.draw_rectangle(position, size, color),
+        BackendDispatchCommand::GetWindowSize => {
+            let _ = backend.get_window_size();
+        }
     }
     Ok(())
 }
@@ -373,6 +411,36 @@ const DRAW_TEXT_ARGS: [PythonArg; 4] = [
     },
 ];
 
+const GET_WINDOW_SIZE_ARGS: [PythonArg; 0] = [];
+
+const DRAW_RECTANGLE_ARGS: [PythonArg; 5] = [
+    PythonArg {
+        name: "x",
+        type_hint: "float",
+        summary: "Rectangle top-left x in screen space.",
+    },
+    PythonArg {
+        name: "y",
+        type_hint: "float",
+        summary: "Rectangle top-left y in screen space.",
+    },
+    PythonArg {
+        name: "width",
+        type_hint: "float",
+        summary: "Rectangle width in pixels.",
+    },
+    PythonArg {
+        name: "height",
+        type_hint: "float",
+        summary: "Rectangle height in pixels.",
+    },
+    PythonArg {
+        name: "color",
+        type_hint: "Color",
+        summary: "Fill color for the rectangle.",
+    },
+];
+
 const SUBMIT_RENDER_ARGS: [PythonArg; 1] = [PythonArg {
     name: "commands",
     type_hint: "list[tuple[object, ...]]",
@@ -397,7 +465,7 @@ const SUBMIT_CIRCLE_BATCH_ARGS: [PythonArg; 3] = [
     },
 ];
 
-const FUNCTIONS: [PythonFunction; 10] = [
+const FUNCTIONS: [PythonFunction; 12] = [
     PythonFunction {
         name: "clear_background",
         family: ApiFamily::Render,
@@ -459,6 +527,22 @@ const FUNCTIONS: [PythonFunction; 10] = [
         family: ApiFamily::Render,
         summary: "Draw text in screen space using a baseline anchor.",
         args: &DRAW_TEXT_ARGS,
+        return_type: "None",
+        platforms: PlatformMatrix::cross_platform_safe(),
+    },
+    PythonFunction {
+        name: "get_window_size",
+        family: ApiFamily::Render,
+        summary: "Return the current window width and height in pixels.",
+        args: &GET_WINDOW_SIZE_ARGS,
+        return_type: "Vec2",
+        platforms: PlatformMatrix::cross_platform_safe(),
+    },
+    PythonFunction {
+        name: "draw_rectangle",
+        family: ApiFamily::Render,
+        summary: "Draw a filled rectangle in screen space.",
+        args: &DRAW_RECTANGLE_ARGS,
         return_type: "None",
         platforms: PlatformMatrix::cross_platform_safe(),
     },
@@ -671,6 +755,24 @@ mod tests {
             .expect("load_texture metadata should exist");
         assert_eq!(load_texture.return_type, "TextureHandle");
         assert!(stub.contains("def load_texture(path: str) -> TextureHandle:"));
+
+        let get_window_size = plan
+            .iter()
+            .find(|entry| entry.function_name == "get_window_size")
+            .expect("get_window_size metadata should exist");
+        assert_eq!(get_window_size.return_type, "Vec2");
+        assert!(stub.contains("def get_window_size() -> Vec2:"));
+
+        let draw_rectangle = plan
+            .iter()
+            .find(|entry| entry.function_name == "draw_rectangle")
+            .expect("draw_rectangle metadata should exist");
+        assert_eq!(draw_rectangle.return_type, "None");
+        assert!(
+            stub.contains(
+                "def draw_rectangle(x: float, y: float, width: float, height: float, color: Color) -> None:"
+            )
+        );
     }
 
     #[test]
@@ -704,6 +806,13 @@ mod tests {
             fn draw_texture(&mut self, _texture: &TextureHandle, _position: Vec2, _size: Vec2) {}
             fn set_camera_target(&mut self, _target: Vec2) {}
             fn draw_text(&mut self, _text: &str, _position: Vec2, _font_size: f32, _color: Color) {}
+            fn get_window_size(&self) -> Vec2 {
+                Vec2 {
+                    x: 1280.0,
+                    y: 720.0,
+                }
+            }
+            fn draw_rectangle(&mut self, _position: Vec2, _size: Vec2, _color: Color) {}
         }
 
         let command = parse_backend_dispatch_record("clear_background|0.1|0.2|0.3|1.0")
@@ -772,6 +881,13 @@ mod tests {
             fn draw_texture(&mut self, _texture: &TextureHandle, _position: Vec2, _size: Vec2) {}
             fn set_camera_target(&mut self, _target: Vec2) {}
             fn draw_text(&mut self, _text: &str, _position: Vec2, _font_size: f32, _color: Color) {}
+            fn get_window_size(&self) -> Vec2 {
+                Vec2 {
+                    x: 1280.0,
+                    y: 720.0,
+                }
+            }
+            fn draw_rectangle(&mut self, _position: Vec2, _size: Vec2, _color: Color) {}
         }
 
         let mut backend = NoopBackend;

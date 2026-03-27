@@ -37,6 +37,7 @@ Available scenarios:
 - `phase05_minigame_target_burst.py`: burst moving targets with a timer/score HUD.
 - `phase08_api_surface_readability.py`: non-interactive stub readability probe for `python/pycro/__init__.pyi`.
 - `phase15_embedded_payload_lab.py`: sidecar import + texture load scenario used for desktop embedded-payload validation.
+- `phase21_window_size_rectangle_lab.py`: window-size introspection + animated rectangle rendering validation.
 
 Shared asset packs:
 
@@ -84,7 +85,8 @@ Kenney pack assets used by pack-focused scenarios:
 19. `phase05_minigame_target_burst.py`: Move cursor with arrows, press Space to hit targets and confirm score/timer changes.
 20. `phase08_api_surface_readability.py`: Run with `python3` and confirm symbol/line summary prints without errors.
 21. `phase15_embedded_payload_lab.py`: confirm sidecar text renders (`phase15_embedded_payload_support.py`) and `examples/assets/pattern.png` draws.
-22. Press Escape to close interactive runs.
+22. `phase21_window_size_rectangle_lab.py`: confirm HUD prints live window dimensions and the centered rectangle animates size without runtime errors.
+23. Press Escape to close interactive runs.
 
 ## Key Mapping Notes
 

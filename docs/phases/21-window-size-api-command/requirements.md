@@ -1,17 +1,20 @@
 # Requirements
 
-phase_objective: Expose current runtime window dimensions through a stable pycro API surface using `get_window_size()`.
+phase_objective: Expose current runtime window dimensions and rectangle rendering through stable pycro API surface additions using `get_window_size()` and `draw_rectangle()`.
 
 ## Acceptance Criteria
 
 - New API entrypoint `pycro.get_window_size()` is available to Python scripts.
+- New API entrypoint `pycro.draw_rectangle()` is available to Python scripts.
 - Return contract is deterministic and documented (tuple/vector with width and height as numeric values).
+- Rectangle argument contract is deterministic and documented (position/size numeric fields + color type consistent with existing draw APIs).
 - API registration metadata, runtime dispatch, and generated stubs remain synchronized.
-- At least one example script demonstrates usage and verifies values are usable in frame logic.
+- At least one example script demonstrates both APIs and verifies they are usable in frame logic.
 - API behavior is validated across the desktop runtime path and does not regress existing API contracts.
 
 ## Constraints
 
 - Keep naming exactly `get_window_size()` (snake_case).
+- Keep naming exactly `draw_rectangle()` (snake_case).
 - Do not change existing API signatures unless required and documented.
 - If return type choices require API-wide consistency decisions, record via ADR before implementation closeout.
