@@ -11,6 +11,8 @@ use macroquad::input::{is_key_down, is_mouse_button_down};
 use macroquad::math::vec2;
 #[cfg(target_os = "macos")]
 use macroquad::miniquad::conf::AppleGfxApi;
+#[cfg(not(test))]
+use macroquad::models::{Mesh, Vertex, draw_mesh};
 use macroquad::prelude::{
     Camera2D, Color as MqColor, DrawTextureParams, Rect, Texture2D, WHITE, clear_background,
     draw_circle, draw_rectangle, draw_text, draw_texture_ex, screen_height, screen_width,
@@ -72,6 +74,15 @@ pub struct CircleDraw {
     pub color: Color,
     /// Per-command render mode override.
     pub render_mode: VectorRenderMode,
+}
+
+/// Packed textured quad payload.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct TextureDraw {
+    /// Top-left position.
+    pub position: Vec2,
+    /// Draw size.
+    pub size: Vec2,
 }
 
 /// Optional per-command vector rendering mode.
@@ -180,6 +191,8 @@ pub trait EngineBackend {
     fn load_texture(&mut self, path: &str) -> Result<TextureHandle, String>;
     /// Draws a texture.
     fn draw_texture(&mut self, texture: &TextureHandle, position: Vec2, size: Vec2);
+    /// Flushes deferred rendering work for the current frame.
+    fn finish_frame(&mut self) {}
     /// Moves the active camera target.
     fn set_camera_target(&mut self, target: Vec2);
     /// Draws text on screen.
@@ -464,6 +477,8 @@ pub struct MacroquadBackendContract {
     #[cfg(test)]
     dispatch_log: Vec<BackendDispatch>,
     textures: HashMap<String, Texture2D>,
+    pending_texture: Option<TextureHandle>,
+    pending_texture_draws: Vec<TextureDraw>,
     circle_sprite: Option<Texture2D>,
     circle_sprite_size: u16,
     circle_sprite_filter_linear: bool,
@@ -493,6 +508,8 @@ impl Default for MacroquadBackendContract {
             #[cfg(test)]
             dispatch_log: Vec::new(),
             textures: HashMap::new(),
+            pending_texture: None,
+            pending_texture_draws: Vec::new(),
             circle_sprite: None,
             circle_sprite_size: {
                 #[cfg(test)]
@@ -653,6 +670,125 @@ impl MacroquadBackendContract {
             VectorRenderMode::ForceSprite => true,
         }
     }
+
+    fn max_sprites_per_texture_geometry_batch(&self) -> usize {
+        let max_vertices = self.drawcall_max_vertices.unwrap_or(10_000);
+        let max_indices = self.drawcall_max_indices.unwrap_or(5_000);
+        let by_vertices = max_vertices / 4;
+        let by_indices = max_indices / 6;
+        by_vertices
+            .min(by_indices)
+            .max(1)
+            .min(usize::from(u16::MAX) / 4)
+    }
+
+    fn queue_texture_draw(&mut self, texture: &TextureHandle, position: Vec2, size: Vec2) {
+        if self
+            .pending_texture
+            .as_ref()
+            .is_some_and(|pending| pending == texture)
+        {
+            self.pending_texture_draws
+                .push(TextureDraw { position, size });
+            return;
+        }
+        self.flush_pending_texture_batch();
+        self.pending_texture = Some(texture.clone());
+        self.pending_texture_draws
+            .push(TextureDraw { position, size });
+    }
+
+    fn draw_texture_geometry_chunk(&self, native_texture: &Texture2D, draws: &[TextureDraw]) {
+        #[cfg(not(test))]
+        {
+            let mut vertices = Vec::with_capacity(draws.len() * 4);
+            let mut indices = Vec::with_capacity(draws.len() * 6);
+            for (draw_index, draw) in draws.iter().enumerate() {
+                let base = u16::try_from(draw_index * 4).expect("texture batch index must fit u16");
+                let x = draw.position.x;
+                let y = draw.position.y;
+                let w = draw.size.x;
+                let h = draw.size.y;
+                vertices.push(Vertex::new(x, y, 0.0, 0.0, 0.0, WHITE));
+                vertices.push(Vertex::new(x + w, y, 0.0, 1.0, 0.0, WHITE));
+                vertices.push(Vertex::new(x + w, y + h, 0.0, 1.0, 1.0, WHITE));
+                vertices.push(Vertex::new(x, y + h, 0.0, 0.0, 1.0, WHITE));
+                indices.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
+            }
+            let mesh = Mesh {
+                vertices,
+                indices,
+                texture: Some(native_texture.clone()),
+            };
+            draw_mesh(&mesh);
+        }
+        #[cfg(test)]
+        {
+            let _ = (native_texture, draws);
+        }
+    }
+
+    fn draw_texture_batch_native(&self, native_texture: &Texture2D, draws: &[TextureDraw]) {
+        let chunk_size = self.max_sprites_per_texture_geometry_batch();
+        for chunk in draws.chunks(chunk_size) {
+            if chunk.len() == 1 {
+                let draw = chunk[0];
+                draw_texture_ex(
+                    native_texture,
+                    draw.position.x,
+                    draw.position.y,
+                    WHITE,
+                    DrawTextureParams {
+                        dest_size: Some(vec2(draw.size.x, draw.size.y)),
+                        ..DrawTextureParams::default()
+                    },
+                );
+            } else {
+                self.draw_texture_geometry_chunk(native_texture, chunk);
+            }
+        }
+    }
+
+    fn flush_pending_texture_batch(&mut self) {
+        let Some(texture) = self.pending_texture.take() else {
+            return;
+        };
+        let draws = std::mem::take(&mut self.pending_texture_draws);
+        if draws.is_empty() {
+            return;
+        }
+
+        #[cfg(target_os = "android")]
+        if !self.textures.contains_key(&texture.0) {
+            let normalized = texture.0.trim_start_matches("./");
+            if let Some(payload) = embedded_project_payload() {
+                if let Some(file) = payload
+                    .files
+                    .iter()
+                    .find(|file| file.relative_path == normalized)
+                {
+                    let native_texture = Texture2D::from_file_with_format(file.bytes, None);
+                    self.textures.insert(texture.0.clone(), native_texture);
+                }
+            }
+        }
+
+        if let Some(native_texture) = self.textures.get(&texture.0) {
+            self.draw_texture_batch_native(native_texture, &draws);
+            return;
+        }
+
+        // Fallback marker when texture file cannot be loaded.
+        for draw in draws {
+            draw_rectangle(
+                draw.position.x,
+                draw.position.y,
+                draw.size.x,
+                draw.size.y,
+                WHITE,
+            );
+        }
+    }
 }
 
 fn key_code_from_name(key: &str) -> Option<KeyCode> {
@@ -716,6 +852,7 @@ fn mouse_button_from_name(key: &str) -> Option<MouseButton> {
 
 impl EngineBackend for MacroquadBackendContract {
     fn clear_background(&mut self, color: Color) {
+        self.flush_pending_texture_batch();
         self.apply_drawcall_capacity_once();
         self.record_dispatch();
         #[cfg(test)]
@@ -731,6 +868,7 @@ impl EngineBackend for MacroquadBackendContract {
         color: Color,
         render_mode: VectorRenderMode,
     ) {
+        self.flush_pending_texture_batch();
         self.record_dispatch();
         #[cfg(test)]
         self.dispatch_log.push(BackendDispatch::DrawCircle {
@@ -759,6 +897,7 @@ impl EngineBackend for MacroquadBackendContract {
     }
 
     fn draw_circle_batch(&mut self, circles: &[CircleDraw]) {
+        self.flush_pending_texture_batch();
         if self.count_dispatches {
             self.dispatch_count += circles.len();
         }
@@ -866,6 +1005,7 @@ impl EngineBackend for MacroquadBackendContract {
     }
 
     fn draw_texture(&mut self, texture: &TextureHandle, position: Vec2, size: Vec2) {
+        self.apply_drawcall_capacity_once();
         self.record_dispatch();
         #[cfg(test)]
         self.dispatch_log.push(BackendDispatch::DrawTexture {
@@ -873,41 +1013,15 @@ impl EngineBackend for MacroquadBackendContract {
             position,
             size,
         });
+        self.queue_texture_draw(texture, position, size);
+    }
 
-        #[cfg(target_os = "android")]
-        if !self.textures.contains_key(&texture.0) {
-            let normalized = texture.0.trim_start_matches("./");
-            if let Some(payload) = embedded_project_payload() {
-                if let Some(file) = payload
-                    .files
-                    .iter()
-                    .find(|file| file.relative_path == normalized)
-                {
-                    let native_texture = Texture2D::from_file_with_format(file.bytes, None);
-                    self.textures.insert(texture.0.clone(), native_texture);
-                }
-            }
-        }
-
-        if let Some(native_texture) = self.textures.get(&texture.0) {
-            draw_texture_ex(
-                native_texture,
-                position.x,
-                position.y,
-                WHITE,
-                DrawTextureParams {
-                    dest_size: Some(vec2(size.x, size.y)),
-                    ..DrawTextureParams::default()
-                },
-            );
-            return;
-        }
-
-        // Fallback marker when texture file cannot be loaded.
-        draw_rectangle(position.x, position.y, size.x, size.y, WHITE);
+    fn finish_frame(&mut self) {
+        self.flush_pending_texture_batch();
     }
 
     fn set_camera_target(&mut self, target: Vec2) {
+        self.flush_pending_texture_batch();
         self.record_dispatch();
         #[cfg(test)]
         self.dispatch_log
@@ -925,6 +1039,7 @@ impl EngineBackend for MacroquadBackendContract {
     }
 
     fn draw_text(&mut self, text: &str, position: Vec2, font_size: f32, color: Color) {
+        self.flush_pending_texture_batch();
         self.record_dispatch();
         #[cfg(test)]
         self.dispatch_log.push(BackendDispatch::DrawText {
@@ -954,6 +1069,7 @@ impl EngineBackend for MacroquadBackendContract {
     }
 
     fn draw_rectangle(&mut self, position: Vec2, size: Vec2, color: Color) {
+        self.flush_pending_texture_batch();
         self.record_dispatch();
         #[cfg(test)]
         self.dispatch_log.push(BackendDispatch::DrawRectangle {

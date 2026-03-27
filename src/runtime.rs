@@ -1679,6 +1679,7 @@ class KEY:
             }
         }
         draw_batch.clear();
+        backend.finish_frame();
 
         Ok(())
     }

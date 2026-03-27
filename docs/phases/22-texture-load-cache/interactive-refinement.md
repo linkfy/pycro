@@ -16,3 +16,5 @@ No change is considered active until all four artifacts are synchronized.
 ## Refinement Log
 
 - 2026-03-27: Phase initialized from new requirement to cache repeated `load_texture(path)` calls in a dedicated sequential phase.
+- 2026-03-27: Kickoff executed; backend cache-hit short-circuit implemented with targeted tests before full validation sweep.
+- 2026-03-27: Runtime now auto-coalesces consecutive `draw_texture` calls with the same handle into internal texture runs (transparent to user scripts) and dispatches them through backend batch path.
