@@ -2,40 +2,38 @@
   "schema_version": 2,
   "project": "pycro",
   "active_phase": {
-    "number": "22",
-    "id": "22-texture-load-cache",
-    "status": "closed",
-    "path": "docs/phases/22-texture-load-cache"
+    "number": "23",
+    "id": "23-input-mouse-position-and-full-keyboard-keys",
+    "status": "in_progress",
+    "path": "docs/phases/23-input-mouse-position-and-full-keyboard-keys"
   },
   "current_objective": {
-    "id": "texture-load-cache",
-    "title": "Add deterministic cache-hit reuse for repeated `pycro.load_texture(path)` calls",
-    "status": "closed",
+    "id": "input-mouse-position-full-keyboard-keys",
+    "title": "Expose mouse position API and full keyboard KEY enum/runtime parsing coverage",
+    "status": "in_progress",
     "execution_mode": "orchestrator_owned_phase_with_worker_handoffs",
-    "phase_doc": "docs/phases/22-texture-load-cache/implementation.md",
+    "phase_doc": "docs/phases/23-input-mouse-position-and-full-keyboard-keys/implementation.md",
     "startup_gate": {
       "requirements_validated": true,
       "design_validated": true,
-      "kickoff_date": "2026-03-27"
+      "kickoff_date": "2026-03-28"
     },
     "resume_checkpoint": {
-      "branch": "codex/22-texture-load-cache",
-      "worktree": ".worktrees/22-texture-load-cache-orchestrator",
-      "summary": "phase 22 closed as experimental after implementation slices and targeted validation",
-      "code_status": "cache-hit + texture-run batching implemented; outcome classified as no significant improvement",
+      "branch": "codex/23-mouse-position-full-keyboard-enum",
+      "worktree": ".worktrees/23-mouse-position-full-keyboard-enum-orchestrator",
+      "summary": "phase 23 kickoff complete; startup gate validated and implementation slices opened",
+      "code_status": "planning artifacts synchronized; runtime/api/backend input-surface implementation pending",
       "next_slice": [
-        "keep experimental findings documented",
-        "resume optimization only with explicit baseline-vs-after measurement gates"
+        "implement `get_mouse_position()` metadata/runtime/backend bridge",
+        "expand full keyboard alias + `KEY` enum coverage and run validation gates"
       ]
     },
     "block_progress": {
-      "phase_22_texture_cache_planning": "complete (new sequential phase registered)",
-      "phase_22_startup_gate": "complete (requirements/design validated, kickoff opened)",
-      "phase_22_backend_cache_hit_impl": "complete (load_texture short-circuit by cached path)",
-      "phase_22_texture_draw_auto_batching": "complete (runtime coalesces consecutive same-handle draw_texture calls into backend batch dispatch)",
-      "phase_22_targeted_validation": "pass (backend cache-hit test + runtime direct-bridge regression test)",
-      "phase_22_full_validation": "not_promoted (experimental closeout)",
-      "phase_22_closeout": "complete (closed 2026-03-28 as experimental without significant outcome improvement)"
+      "phase_23_input_surface_planning": "complete (new sequential phase registered)",
+      "phase_23_startup_gate": "complete (requirements/design validated, kickoff opened)",
+      "phase_23_mouse_position_impl": "pending",
+      "phase_23_full_keyboard_enum_impl": "pending",
+      "phase_23_validation": "pending"
     }
   },
   "orchestration": {
@@ -70,7 +68,7 @@
     },
     "manager_agent": "worktree-manager"
   },
-  "current_branch": "codex/22-texture-load-cache",
+  "current_branch": "codex/23-mouse-position-full-keyboard-enum",
   "phase_sequence": [
     {
       "number": "00",
@@ -209,6 +207,12 @@
       "id": "22-texture-load-cache",
       "status": "closed",
       "path": "docs/phases/22-texture-load-cache"
+    },
+    {
+      "number": "23",
+      "id": "23-input-mouse-position-and-full-keyboard-keys",
+      "status": "in_progress",
+      "path": "docs/phases/23-input-mouse-position-and-full-keyboard-keys"
     }
   ],
   "tasks": [
@@ -471,6 +475,16 @@
       "worktree": ".worktrees/22-texture-load-cache-orchestrator",
       "phase_doc": "docs/phases/22-texture-load-cache/implementation.md",
       "qa": "waiver_experimental_no_significant_improvement"
+    },
+    {
+      "id": "input-mouse-position-full-keyboard-keys",
+      "phase": "23",
+      "owner": "architecture-orchestrator",
+      "status": "in_progress",
+      "branch": "codex/23-mouse-position-full-keyboard-enum",
+      "worktree": ".worktrees/23-mouse-position-full-keyboard-enum-orchestrator",
+      "phase_doc": "docs/phases/23-input-mouse-position-and-full-keyboard-keys/implementation.md",
+      "qa": "pending"
     }
   ],
   "streams": [
