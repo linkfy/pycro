@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/linkfy/pycro/compare/pycro_cli-v0.7.0...pycro_cli-v0.8.0) (2026-03-27)
+
+
+### Features
+
+* **runtime:** finalize phase 20 hot reload and error overlay closeout ([a0dcb92](https://github.com/linkfy/pycro/commit/a0dcb9215c291d1625cea05eb0c9af2166ab433c))
+
 ## [0.7.0](https://github.com/linkfy/pycro/compare/pycro_cli-v0.6.0...pycro_cli-v0.7.0) (2026-03-27)
 
 
