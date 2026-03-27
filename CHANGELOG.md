@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.0](https://github.com/linkfy/pycro/compare/pycro_cli-v0.6.0...pycro_cli-v0.7.0) (2026-03-27)
+
+
+### Features
+
+* **ios:** close phase 19 integration and generic mobile build flow ([5821405](https://github.com/linkfy/pycro/commit/58214056f615bab45bd033067c00e4ae8da92d63))
+
+
+### Bug Fixes
+
+* **build:** track desktop launcher source ([c6e6306](https://github.com/linkfy/pycro/commit/c6e630622b9484ded3d846202fc82b399d75dd32))
+
 ## [0.6.0](https://github.com/linkfy/pycro/compare/pycro_cli-v0.5.0...pycro_cli-v0.6.0) (2026-03-18)
 
 
