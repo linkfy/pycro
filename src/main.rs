@@ -2,8 +2,9 @@
 
 use macroquad::Window;
 use pycro::{
-    DesktopFrameLoop, FrameLoopConfig, ProjectBuildTarget, RuntimeConfig, RustPythonVm,
-    ScriptRuntime, build_project_bundle, embedded_project_payload, resolve_payload_relative_path,
+    DesktopFrameLoop, FrameLoopConfig, ProjectBuildTarget, PythonSourceReloadMonitor,
+    RuntimeConfig, RuntimeExecutionMode, RustPythonVm, ScriptRuntime, build_project_bundle,
+    draw_runtime_error_overlay, embedded_project_payload, resolve_payload_relative_path,
     window_conf,
 };
 use pycro::{module_spec, registration_plan, render_stub};
@@ -87,7 +88,9 @@ fn main() {
         }
         CliCommand::RunScript(script_path) => {
             Window::from_config(window_conf(), async move {
-                if let Err(error) = run_script_contract(script_path.as_str()).await {
+                if let Err(error) =
+                    run_script_contract(script_path.as_str(), RuntimeExecutionMode::Source).await
+                {
                     eprintln!("{error}");
                     println!("pycro web runtime error: {error}");
                     terminate_process(1);
@@ -1144,13 +1147,17 @@ fn run_desktop_project_build(
 async fn run_embedded_project_contract() -> Result<(), String> {
     #[cfg(target_arch = "wasm32")]
     {
-        return run_script_contract("main.py").await;
+        return run_script_contract("main.py", RuntimeExecutionMode::EmbeddedPayload).await;
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     let launch = materialize_embedded_project_runtime()?;
     #[cfg(not(target_arch = "wasm32"))]
-    return run_script_contract(launch.script_path.to_string_lossy().as_ref()).await;
+    return run_script_contract(
+        launch.script_path.to_string_lossy().as_ref(),
+        RuntimeExecutionMode::EmbeddedPayload,
+    )
+    .await;
 }
 
 fn materialize_embedded_project_runtime() -> Result<EmbeddedRuntimeLaunch, String> {
@@ -1299,7 +1306,19 @@ def update(dt: float) -> None:
     )
 }
 
-async fn run_script_contract(script_path: &str) -> Result<(), String> {
+fn load_runtime_instance(
+    config: &RuntimeConfig,
+) -> Result<ScriptRuntime<RustPythonVm>, pycro::runtime::RuntimeError> {
+    let mut runtime = ScriptRuntime::new(RustPythonVm::new(), config.clone());
+    runtime.load_main()?;
+    Ok(runtime)
+}
+
+fn is_keyboard_interrupt_runtime_error(message: &str) -> bool {
+    message.contains("KeyboardInterrupt")
+}
+
+async fn run_script_contract(script_path: &str, mode: RuntimeExecutionMode) -> Result<(), String> {
     let script_path = resolve_runtime_entry_script_path(script_path)?;
     let config = RuntimeConfig {
         entry_script: script_path,
@@ -1310,10 +1329,18 @@ async fn run_script_contract(script_path: &str) -> Result<(), String> {
     println!("python module: {}", module_spec().module_name);
     println!("registered api functions: {}", registration_plan().len());
 
-    let mut runtime = ScriptRuntime::new(RustPythonVm::new(), config.clone());
-    runtime
-        .load_main()
-        .map_err(|error| format!("runtime load error: {error}"))?;
+    let reload_monitor = PythonSourceReloadMonitor::new(mode, config.entry_script.as_str())
+        .map_err(|error| format!("hot reload init error: {error}"))?;
+    let mut runtime: Option<ScriptRuntime<RustPythonVm>> = None;
+    let mut overlay_error: Option<String> = None;
+    match load_runtime_instance(&config) {
+        Ok(loaded) => runtime = Some(loaded),
+        Err(error) => {
+            let details = format!("runtime load error: {error}");
+            eprintln!("{details}");
+            overlay_error = Some(details);
+        }
+    }
     let perf_enabled = std::env::var("PYCRO_PERF").is_ok_and(|value| value == "1");
     let mut perf = PerfWindow::default();
 
@@ -1322,19 +1349,66 @@ async fn run_script_contract(script_path: &str) -> Result<(), String> {
         .run(|dt| {
             let frame_start = frame_timer_now();
             let update_start = frame_timer_now();
-            runtime
-                .update(dt)
-                .map_err(|error| format!("runtime update error: {error}"))?;
-            let update_elapsed = frame_timer_elapsed(update_start);
+            let mut update_elapsed = Duration::ZERO;
+            let mut flush_elapsed = Duration::ZERO;
+            let should_reload = reload_monitor.take_reload_signal();
 
-            let flush_start = frame_timer_now();
-            runtime
-                .flush_draw_batch()
-                .map_err(|error| format!("runtime draw flush error: {error}"))?;
-            let flush_elapsed = frame_timer_elapsed(flush_start);
+            if should_reload {
+                eprintln!("pycro hot reload: change detected, reloading...");
+                match load_runtime_instance(&config) {
+                    Ok(loaded) => {
+                        eprintln!("pycro hot reload: reload complete");
+                        runtime = Some(loaded);
+                        overlay_error = None;
+                    }
+                    Err(error) => {
+                        let details = format!("runtime reload error: {error}");
+                        eprintln!("pycro hot reload: reload failed: {error}");
+                        runtime = None;
+                        overlay_error = Some(details);
+                    }
+                }
+            }
+
+            if overlay_error.is_none()
+                && let Some(active_runtime) = runtime.as_mut()
+            {
+                match active_runtime.update(dt) {
+                    Ok(()) => {
+                        update_elapsed = frame_timer_elapsed(update_start);
+                        let flush_start = frame_timer_now();
+                        if let Err(error) = active_runtime.flush_draw_batch() {
+                            let details = format!("runtime draw flush error: {error}");
+                            eprintln!("{details}");
+                            runtime = None;
+                            overlay_error = Some(details);
+                        } else {
+                            flush_elapsed = frame_timer_elapsed(flush_start);
+                        }
+                    }
+                    Err(error) => {
+                        let details = format!("runtime update error: {error}");
+                        if is_keyboard_interrupt_runtime_error(details.as_str()) {
+                            return Err(
+                                "runtime interrupted by keyboard interrupt (Ctrl+C)".to_owned()
+                            );
+                        }
+                        eprintln!("{details}");
+                        runtime = None;
+                        overlay_error = Some(details);
+                    }
+                }
+            }
+
+            if let Some(message) = overlay_error.as_deref() {
+                draw_runtime_error_overlay(message);
+            }
 
             if perf_enabled {
-                let total_dispatches = runtime.vm().backend().dispatch_count();
+                let total_dispatches = runtime
+                    .as_ref()
+                    .map(|active_runtime| active_runtime.vm().backend().dispatch_count())
+                    .unwrap_or(0);
                 perf.record(
                     dt,
                     frame_timer_elapsed(frame_start),
@@ -1348,14 +1422,19 @@ async fn run_script_contract(script_path: &str) -> Result<(), String> {
         })
         .await?;
 
-    runtime
-        .flush_io()
-        .map_err(|error| format!("runtime io flush error: {error}"))?;
+    if let Some(active_runtime) = runtime.as_mut() {
+        active_runtime
+            .flush_io()
+            .map_err(|error| format!("runtime io flush error: {error}"))?;
+    }
 
     println!("frames executed: {}", report.frames_executed);
     println!(
         "backend api dispatches: {}",
-        runtime.vm().backend().dispatch_count()
+        runtime
+            .as_ref()
+            .map(|active_runtime| active_runtime.vm().backend().dispatch_count())
+            .unwrap_or(0)
     );
     Ok(())
 }
