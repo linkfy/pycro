@@ -15,6 +15,4 @@ No change is considered active until all four artifacts are synchronized.
 
 ## Refinement Log
 
-- 2026-03-27: Phase initialized in planned state with `get_window_size()` as dedicated API contract expansion after phase 20.
-- 2026-03-27: Scope expanded for next version objective to include `draw_rectangle()` alongside `get_window_size()`.
-- 2026-03-27: Implementation started on `codex/21-window-size-api-command`; API/runtime/backend wiring, stubs, tests, and phase-21 example scenario were added.
+- 2026-03-27: Phase initialized from new requirement to cache repeated `load_texture(path)` calls in a dedicated sequential phase.

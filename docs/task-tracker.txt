@@ -37,7 +37,8 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 18    | docs/phases/18-project-android-build         | complete    | Android target for `pycro project build` using shared embedded payload | closed (2026-03-19) |
 | 19    | docs/phases/19-project-ios-build             | complete    | iOS target for `pycro project build` using shared embedded payload | closed (2026-03-21)    |
 | 20    | docs/phases/20-dev-hot-reload-and-runtime-error-overlay | complete | Dev-mode Python hot reload (recursive `.py`) + in-window runtime/startup error overlay | closed (2026-03-27) |
-| 21    | docs/phases/21-window-size-api-command       | planned     | Add `pycro.get_window_size()` API command for runtime window dimensions | queued after phase 20 |
+| 21    | docs/phases/21-window-size-api-command       | complete    | Add `pycro.get_window_size()` + `pycro.draw_rectangle()` API commands for runtime sizing/rendering | closed (2026-03-27, qa waiver for blocked manual smoke) |
+| 22    | docs/phases/22-texture-load-cache            | planned     | Add `load_texture(path)` cache-hit reuse to avoid repeated reload/decode of identical textures | queued after phase 21 |
 +-------+----------------------------------------------+-------------+---------------------------------------------------------------+------------------------+
 
 ## Task Table
@@ -69,7 +70,8 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 18    | project-android-build              | Add Android target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/18-project-android-build | .worktrees/18-project-android-build-orchestrator | docs/phases/18-project-android-build/implementation.md | pass | closed |
 | 19    | project-ios-build                  | Add iOS target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/19-project-ios-build | .worktrees/19-project-ios-build-orchestrator | docs/phases/19-project-ios-build/implementation.md | pass | closed |
 | 20    | dev-hot-reload-runtime-error-overlay | Add development-only recursive `.py` hot reload and in-window runtime/startup error overlay | architecture-orchestrator | runtime-worker, platform-worker, api-worker, example-scenario-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/20-dev-hot-reload-runtime-overlay | .worktrees/20-dev-hot-reload-runtime-overlay-orchestrator | docs/phases/20-dev-hot-reload-and-runtime-error-overlay/implementation.md | pass | closed |
-| 21    | window-size-api-command            | Add `pycro.get_window_size()` API command for window dimensions | architecture-orchestrator | api-worker, runtime-worker, platform-worker, example-scenario-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/21-window-size-api-command | .worktrees/21-window-size-api-command-orchestrator | docs/phases/21-window-size-api-command/implementation.md | pending | queued |
+| 21    | window-size-api-command            | Add `pycro.get_window_size()` + `pycro.draw_rectangle()` API commands for window dimensions and rectangle rendering | architecture-orchestrator | api-worker, runtime-worker, platform-worker, example-scenario-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/21-window-size-api-command | .worktrees/21-window-size-api-command-orchestrator | docs/phases/21-window-size-api-command/implementation.md | pass_with_waiver | closeout complete; manual scenario waiver documented |
+| 22    | texture-load-cache                | Add backend cache-hit reuse for repeated `pycro.load_texture(path)` calls | architecture-orchestrator | runtime-worker, platform-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/22-texture-load-cache | .worktrees/22-texture-load-cache-orchestrator | docs/phases/22-texture-load-cache/implementation.md | pending | planned (new requirement from user feedback) |
 +-------+------------------------------------+---------------------------------------------------------+---------------------------+--------------------------------------------------------------------------+---------------+-----------------------------------------+------------------------------------------------------+------------------------------------------------------+------------------+----------+
 
 ## Streams (Non-Sequential)
@@ -313,11 +315,21 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 
 ## Phase 21 Execution Note
 
-- objective: add `pycro.get_window_size()` API command
-- startup_gate: requirements + design validated, implementation queued (2026-03-27)
+- objective: add `pycro.get_window_size()` and `pycro.draw_rectangle()` API commands
+- startup_gate: requirements + design validated, implementation opened (2026-03-27)
 - planned_branch: `codex/21-window-size-api-command`
 - return_contract: expose current window dimensions to Python runtime scripts with documented numeric tuple contract
-- implementation_status: planned (queued after phase 20 closeout)
+- draw_contract: expose rectangle rendering with documented numeric position/size + color argument contract
+- implementation_status: complete (closeout recorded; local validation pass; QA waiver for blocked manual example smoke)
+- closeout_doc: `docs/phases/21-window-size-api-command/closeout.md`
+
+## Phase 22 Execution Note
+
+- objective: add cache-hit reuse for repeated `pycro.load_texture(path)` calls
+- startup_gate: requirements + design prepared, kickoff pending (2026-03-27)
+- planned_branch: `codex/22-texture-load-cache`
+- cache_contract: repeated calls with the same texture path should return stable handle without redundant decode/load work
+- implementation_status: planned (queued after phase 21)
 
 ## Windows Input Fix Stream Note
 

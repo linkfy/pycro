@@ -505,6 +505,11 @@ enum QueuedDrawOp {
         font_size: f32,
         color: Color,
     },
+    DrawRectangle {
+        position: Vec2,
+        size: Vec2,
+        color: Color,
+    },
 }
 
 type QueuedCircle = CircleDraw;
@@ -1168,6 +1173,46 @@ class KEY:
                         color,
                     })
                 }
+                "draw_rectangle" => {
+                    if fields.len() != 6 {
+                        return Err(vm.new_value_error(format!(
+                            "submit_render commands[{index}]: draw_rectangle expects 5 arguments"
+                        )));
+                    }
+                    let x: f64 = fields[1].clone().try_into_value(vm).map_err(|_| {
+                        vm.new_value_error(format!(
+                            "submit_render commands[{index}] draw_rectangle x: expected float"
+                        ))
+                    })?;
+                    let y: f64 = fields[2].clone().try_into_value(vm).map_err(|_| {
+                        vm.new_value_error(format!(
+                            "submit_render commands[{index}] draw_rectangle y: expected float"
+                        ))
+                    })?;
+                    let width: f64 = fields[3].clone().try_into_value(vm).map_err(|_| {
+                        vm.new_value_error(format!(
+                            "submit_render commands[{index}] draw_rectangle width: expected float"
+                        ))
+                    })?;
+                    let height: f64 = fields[4].clone().try_into_value(vm).map_err(|_| {
+                        vm.new_value_error(format!(
+                            "submit_render commands[{index}] draw_rectangle height: expected float"
+                        ))
+                    })?;
+                    let color =
+                        Self::parse_color_py(vm, &fields[5], "submit_render draw_rectangle color")?;
+                    Ok(QueuedDrawOp::DrawRectangle {
+                        position: Vec2 {
+                            x: x as f32,
+                            y: y as f32,
+                        },
+                        size: Vec2 {
+                            x: width as f32,
+                            y: height as f32,
+                        },
+                        color,
+                    })
+                }
                 _ => Err(vm.new_value_error(format!(
                     "submit_render commands[{index}]: unsupported command `{command_name}`"
                 ))),
@@ -1545,6 +1590,11 @@ class KEY:
                                 font_size,
                                 color,
                             } => backend.draw_text(text.as_str(), position, font_size, color),
+                            QueuedDrawOp::DrawRectangle {
+                                position,
+                                size,
+                                color,
+                            } => backend.draw_rectangle(position, size, color),
                         }
                     }
                 }
@@ -1574,6 +1624,11 @@ class KEY:
                     font_size,
                     color,
                 } => backend.draw_text(text.as_str(), position, font_size, color),
+                QueuedDrawOp::DrawRectangle {
+                    position,
+                    size,
+                    color,
+                } => backend.draw_rectangle(position, size, color),
             }
         }
         Self::rebuild_submit_render_circle_cache_py(
@@ -1612,6 +1667,11 @@ class KEY:
                         font_size,
                         color,
                     } => backend.draw_text(text.as_str(), position, font_size, color),
+                    QueuedDrawOp::DrawRectangle {
+                        position,
+                        size,
+                        color,
+                    } => backend.draw_rectangle(position, size, color),
                 },
                 QueuedBatchEntry::CircleRun { start, len } => {
                     backend.draw_circle_batch(&draw_batch.circles[*start..(*start + *len)]);
@@ -1777,6 +1837,51 @@ class KEY:
                                     text,
                                     position,
                                     font_size: font_size as f32,
+                                    color,
+                                },
+                            )
+                        },
+                    )
+                    .into()
+                }
+                "get_window_size" => {
+                    let backend = Arc::clone(&backend);
+                    vm.new_function("get_window_size", move |vm: &VirtualMachine| {
+                        Self::with_backend_py(vm, &backend, |backend| {
+                            let size = backend.get_window_size();
+                            let width = vm.ctx.new_float(f64::from(size.x));
+                            let height = vm.ctx.new_float(f64::from(size.y));
+                            Ok(vm.ctx.new_tuple(vec![width.into(), height.into()]))
+                        })
+                    })
+                    .into()
+                }
+                "draw_rectangle" => {
+                    let draw_batch = Arc::clone(&draw_batch);
+                    vm.new_function(
+                        "draw_rectangle",
+                        move |x: PyObjectRef,
+                              y: PyObjectRef,
+                              width: PyObjectRef,
+                              height: PyObjectRef,
+                              color: PyObjectRef,
+                              vm: &VirtualMachine| {
+                            let x = Self::parse_number_item_at_py(vm, &x, "draw_rectangle", 0)?;
+                            let y = Self::parse_number_item_at_py(vm, &y, "draw_rectangle", 1)?;
+                            let width =
+                                Self::parse_number_item_at_py(vm, &width, "draw_rectangle", 2)?;
+                            let height =
+                                Self::parse_number_item_at_py(vm, &height, "draw_rectangle", 3)?;
+                            let color = Self::parse_color_py(vm, &color, "draw_rectangle color")?;
+                            Self::queue_draw_op_py(
+                                vm,
+                                &draw_batch,
+                                QueuedDrawOp::DrawRectangle {
+                                    position: Vec2 { x, y },
+                                    size: Vec2 {
+                                        x: width,
+                                        y: height,
+                                    },
                                     color,
                                 },
                             )
@@ -3263,6 +3368,12 @@ def update(dt):
     if handle != 'examples/assets/does-not-exist.png':
         raise RuntimeError(f'unexpected texture handle: {handle}')
 
+    size = pycro.get_window_size()
+    if not isinstance(size, tuple) or len(size) != 2:
+        raise RuntimeError(f'get_window_size shape mismatch: {size}')
+    if not isinstance(size[0], float) or not isinstance(size[1], float):
+        raise RuntimeError(f'get_window_size type mismatch: {size}')
+
     current = pycro.frame_time()
     if abs(current - dt) > 1e-6:
         raise RuntimeError(f'frame_time mismatch: {current} vs {dt}')
@@ -3354,6 +3465,7 @@ def update(dt):
     pycro.draw_circle((10, 20), 5.0, (1, 2, 3, 4))
     pycro.draw_text("ints", (30, 40), 18.0, (10, 20, 30, 255))
     pycro.draw_texture("tex", (50, 60), (64, 48))
+    pycro.draw_rectangle(70, 80, 90, 100, (5, 6, 7, 8))
 "#;
         let script_path = write_temp_script("int-components-coercion", script);
         let mut runtime = ScriptRuntime::new(
@@ -3397,6 +3509,16 @@ def update(dt):
                     texture: "tex".to_owned(),
                     position: Vec2 { x: 50.0, y: 60.0 },
                     size: Vec2 { x: 64.0, y: 48.0 }
+                },
+                QueuedDrawOp::DrawRectangle {
+                    position: Vec2 { x: 70.0, y: 80.0 },
+                    size: Vec2 { x: 90.0, y: 100.0 },
+                    color: Color {
+                        r: 5.0,
+                        g: 6.0,
+                        b: 7.0,
+                        a: 8.0
+                    }
                 },
             ]
         );

@@ -28,7 +28,7 @@ class KEY(str, Enum):
     MOUSE_RIGHT = "MOUSE_RIGHT"
     MOUSE_MIDDLE = "MOUSE_MIDDLE"
 
-__all__ = ["Color", "Vec2", "TextureHandle", "KEY", "clear_background", "draw_circle", "is_key_down", "frame_time", "load_texture", "draw_texture", "set_camera_target", "draw_text", "submit_render", "submit_circle_batch"]
+__all__ = ["Color", "Vec2", "TextureHandle", "KEY", "clear_background", "draw_circle", "is_key_down", "frame_time", "load_texture", "draw_texture", "set_camera_target", "draw_text", "get_window_size", "draw_rectangle", "submit_render", "submit_circle_batch"]
 
 def clear_background(color: Color) -> None:
     """Clear the current frame to a normalized RGBA color. Supported on desktop=planned, web=planned, android=planned, ios=planned."""
@@ -60,6 +60,14 @@ def set_camera_target(target: Vec2) -> None:
 
 def draw_text(text: str, position: Vec2, font_size: float, color: Color) -> None:
     """Draw text in screen space using a baseline anchor. Supported on desktop=planned, web=planned, android=planned, ios=planned."""
+    ...
+
+def get_window_size() -> Vec2:
+    """Return the current window width and height in pixels. Supported on desktop=planned, web=planned, android=planned, ios=planned."""
+    ...
+
+def draw_rectangle(x: float, y: float, width: float, height: float, color: Color) -> None:
+    """Draw a filled rectangle in screen space. Supported on desktop=planned, web=planned, android=planned, ios=planned."""
     ...
 
 def submit_render(commands: list[tuple[object, ...]]) -> None:
