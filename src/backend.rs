@@ -23,6 +23,21 @@ use std::collections::HashMap;
 use std::env;
 #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
 use std::path::Path;
+#[cfg(all(
+    not(target_arch = "wasm32"),
+    not(target_os = "android"),
+    not(target_os = "ios")
+))]
+use std::sync::Once;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+static INTERRUPT_REQUESTED: AtomicBool = AtomicBool::new(false);
+#[cfg(all(
+    not(target_arch = "wasm32"),
+    not(target_os = "android"),
+    not(target_os = "ios")
+))]
+static INTERRUPT_HANDLER_ONCE: Once = Once::new();
 
 /// A two-dimensional vector.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -219,7 +234,11 @@ impl DesktopFrameLoop {
         mut on_frame: impl FnMut(f32) -> Result<(), String>,
     ) -> Result<DesktopLoopReport, String> {
         let mut frames_executed = 0usize;
+        install_interrupt_handler();
         loop {
+            if interrupt_requested() {
+                return Err("runtime interrupted by keyboard interrupt (Ctrl+C)".to_owned());
+            }
             let dt = self.config.fixed_dt_seconds.unwrap_or_else(get_frame_time);
             on_frame(dt)?;
             frames_executed += 1;
@@ -246,7 +265,138 @@ fn should_terminate_frame_loop() -> bool {
 
 #[cfg(not(target_os = "android"))]
 fn should_terminate_frame_loop() -> bool {
-    is_quit_requested()
+    is_quit_requested() || interrupt_requested()
+}
+
+#[cfg(all(
+    not(target_arch = "wasm32"),
+    not(target_os = "android"),
+    not(target_os = "ios")
+))]
+fn install_interrupt_handler() {
+    INTERRUPT_HANDLER_ONCE.call_once(|| {
+        if let Err(error) = ctrlc::set_handler(|| {
+            INTERRUPT_REQUESTED.store(true, Ordering::Release);
+        }) {
+            eprintln!("failed to install Ctrl+C handler: {error}");
+        }
+    });
+}
+
+#[cfg(any(target_arch = "wasm32", target_os = "android", target_os = "ios"))]
+fn install_interrupt_handler() {}
+
+fn interrupt_requested() -> bool {
+    INTERRUPT_REQUESTED.load(Ordering::Acquire)
+}
+
+fn wrap_overlay_message(message: &str, max_chars: usize, max_lines: usize) -> Vec<String> {
+    let mut lines = Vec::new();
+    for raw_line in message.lines() {
+        if raw_line.is_empty() {
+            lines.push(String::new());
+            if lines.len() >= max_lines {
+                break;
+            }
+            continue;
+        }
+        let mut current = String::new();
+        for word in raw_line.split_whitespace() {
+            let candidate_len = if current.is_empty() {
+                word.len()
+            } else {
+                current.len() + 1 + word.len()
+            };
+            if candidate_len > max_chars && !current.is_empty() {
+                lines.push(std::mem::take(&mut current));
+                if lines.len() >= max_lines {
+                    break;
+                }
+                current = word.to_owned();
+            } else if current.is_empty() {
+                current.push_str(word);
+            } else {
+                current.push(' ');
+                current.push_str(word);
+            }
+        }
+        if lines.len() >= max_lines {
+            break;
+        }
+        lines.push(current);
+        if lines.len() >= max_lines {
+            break;
+        }
+    }
+    if lines.len() >= max_lines
+        && let Some(last) = lines.last_mut()
+        && !last.ends_with("...")
+    {
+        last.push_str("...");
+    }
+    lines
+}
+
+/// Draws an in-window runtime error overlay while keeping terminal logs unchanged.
+pub fn draw_runtime_error_overlay(message: &str) {
+    let width = screen_width();
+    let height = screen_height();
+    clear_background(MqColor {
+        r: 0.08,
+        g: 0.0,
+        b: 0.0,
+        a: 1.0,
+    });
+
+    let margin = 24.0;
+    let panel_x = margin;
+    let panel_y = margin;
+    let panel_w = (width - (2.0 * margin)).max(100.0);
+    let panel_h = (height - (2.0 * margin)).max(100.0);
+    draw_rectangle(
+        panel_x,
+        panel_y,
+        panel_w,
+        panel_h,
+        MqColor {
+            r: 0.16,
+            g: 0.03,
+            b: 0.03,
+            a: 0.95,
+        },
+    );
+    draw_text(
+        "pycro runtime error",
+        panel_x + 16.0,
+        panel_y + 36.0,
+        32.0,
+        MqColor {
+            r: 1.0,
+            g: 0.85,
+            b: 0.85,
+            a: 1.0,
+        },
+    );
+
+    let mut y = panel_y + 68.0;
+    for line in wrap_overlay_message(message, 96, 22) {
+        if y > panel_y + panel_h - 12.0 {
+            break;
+        }
+        draw_text(
+            line.as_str(),
+            panel_x + 16.0,
+            y,
+            22.0,
+            MqColor {
+                r: 0.98,
+                g: 0.96,
+                b: 0.96,
+                a: 1.0,
+            },
+        );
+        y += 24.0;
+    }
 }
 
 /// Window configuration used by the real Macroquad loop owner.
