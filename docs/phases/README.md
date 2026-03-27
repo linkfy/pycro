@@ -32,7 +32,7 @@ This directory stores the canonical sequential delivery phases.
 - `19-project-ios-build` (complete)
 - `20-dev-hot-reload-and-runtime-error-overlay` (complete)
 - `21-window-size-api-command` (complete)
-- `22-texture-load-cache` (planned)
+- `22-texture-load-cache` (closed)
 
 ## Required Files Per Phase
 
