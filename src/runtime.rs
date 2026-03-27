@@ -11,12 +11,15 @@ use rustpython_vm::builtins::{PyBaseExceptionRef, PyDictRef, PyFloat, PyList, Py
 use rustpython_vm::function::FuncArgs;
 use rustpython_vm::scope::Scope;
 use rustpython_vm::{AsObject, Interpreter, PyObjectRef, PyResult, Settings, VirtualMachine};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Component, Path};
 use std::sync::Arc;
 use std::sync::OnceLock;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+#[cfg(not(target_arch = "wasm32"))]
+use std::thread::{self, JoinHandle};
+use std::time::{Duration, Instant, SystemTime};
 
 /// Runtime configuration for Python script loading.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -31,6 +34,281 @@ impl Default for RuntimeConfig {
             entry_script: ENTRYPOINT_SCRIPT.to_owned(),
         }
     }
+}
+
+const DEFAULT_RELOAD_DEBOUNCE_MS: u64 = 120;
+const DEFAULT_RELOAD_SCAN_INTERVAL_MS: u64 = 20;
+const DEFAULT_RELOAD_FULL_SCAN_INTERVAL_MS: u64 = 120;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct PythonFileStamp {
+    modified: SystemTime,
+    size_bytes: u64,
+}
+
+/// Runtime execution mode used for source-mode features such as hot reload.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RuntimeExecutionMode {
+    /// Executes directly from local source files.
+    Source,
+    /// Executes from an embedded project payload.
+    EmbeddedPayload,
+}
+
+/// Recursive `.py` change detector with debounce for source-mode hot reload.
+#[derive(Debug)]
+pub struct PythonSourceReloadMonitor {
+    enabled: bool,
+    reload_requested: Arc<AtomicBool>,
+    stop_requested: Arc<AtomicBool>,
+    #[cfg(not(target_arch = "wasm32"))]
+    worker: Option<JoinHandle<()>>,
+}
+
+impl PythonSourceReloadMonitor {
+    /// Builds a monitor for an entry script path and execution mode.
+    pub fn new(mode: RuntimeExecutionMode, entry_script: &str) -> Result<Self, RuntimeError> {
+        let debounce_millis = std::env::var("PYCRO_RELOAD_DEBOUNCE_MS")
+            .ok()
+            .and_then(|value| value.parse::<u64>().ok())
+            .unwrap_or(DEFAULT_RELOAD_DEBOUNCE_MS)
+            .clamp(50, 2000);
+        let scan_interval_millis = std::env::var("PYCRO_RELOAD_SCAN_INTERVAL_MS")
+            .ok()
+            .and_then(|value| value.parse::<u64>().ok())
+            .unwrap_or(DEFAULT_RELOAD_SCAN_INTERVAL_MS)
+            .clamp(20, 5000);
+
+        let reload_requested = Arc::new(AtomicBool::new(false));
+        let stop_requested = Arc::new(AtomicBool::new(false));
+        let enabled = matches!(mode, RuntimeExecutionMode::Source);
+        #[cfg(not(target_arch = "wasm32"))]
+        let worker = if enabled {
+            let project_root_path = resolve_project_root(entry_script)?;
+            let project_root = project_root_path.to_string_lossy().to_string();
+            let reload_requested = Arc::clone(&reload_requested);
+            let stop_requested = Arc::clone(&stop_requested);
+            Some(thread::spawn(move || {
+                let debounce = Duration::from_millis(debounce_millis);
+                let scan_interval = Duration::from_millis(scan_interval_millis);
+                run_reload_monitor_worker(
+                    project_root,
+                    debounce,
+                    scan_interval,
+                    reload_requested,
+                    stop_requested,
+                );
+            }))
+        } else {
+            None
+        };
+
+        Ok(Self {
+            enabled,
+            reload_requested,
+            stop_requested,
+            #[cfg(not(target_arch = "wasm32"))]
+            worker,
+        })
+    }
+
+    /// Returns whether source hot reload should be active.
+    #[must_use]
+    pub fn is_enabled(&self) -> bool {
+        self.enabled
+    }
+
+    /// Returns true when the monitor worker has signaled a source reload.
+    #[must_use]
+    pub fn take_reload_signal(&self) -> bool {
+        if !self.enabled {
+            return false;
+        }
+        self.reload_requested.swap(false, Ordering::AcqRel)
+    }
+}
+
+impl Drop for PythonSourceReloadMonitor {
+    fn drop(&mut self) {
+        self.stop_requested.store(true, Ordering::Release);
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(worker) = self.worker.take() {
+            let _ = worker.join();
+        }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn run_reload_monitor_worker(
+    project_root: String,
+    debounce: Duration,
+    scan_interval: Duration,
+    reload_requested: Arc<AtomicBool>,
+    stop_requested: Arc<AtomicBool>,
+) {
+    let root_path = std::path::PathBuf::from(project_root);
+    let mut snapshot = match collect_python_snapshot(root_path.as_path()) {
+        Ok(snapshot) => snapshot,
+        Err(error) => {
+            eprintln!("hot reload worker initialization error: {error}");
+            HashMap::new()
+        }
+    };
+    let full_scan_interval_millis = std::env::var("PYCRO_RELOAD_FULL_SCAN_INTERVAL_MS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(DEFAULT_RELOAD_FULL_SCAN_INTERVAL_MS)
+        .clamp(50, 10_000);
+    let full_scan_interval = Duration::from_millis(full_scan_interval_millis);
+    let mut pending_change_since: Option<Instant> = None;
+    let mut last_root_mtime = read_directory_mtime(root_path.as_path()).ok();
+    let mut last_full_scan_at = Instant::now();
+
+    while !stop_requested.load(Ordering::Acquire) {
+        thread::sleep(scan_interval);
+        if stop_requested.load(Ordering::Acquire) {
+            break;
+        }
+
+        let now = Instant::now();
+        let root_mtime = match read_directory_mtime(root_path.as_path()) {
+            Ok(value) => value,
+            Err(error) => {
+                eprintln!("hot reload worker root mtime error: {error}");
+                continue;
+            }
+        };
+        let root_changed = last_root_mtime != Some(root_mtime);
+        let must_full_scan = pending_change_since.is_some()
+            || root_changed
+            || now.duration_since(last_full_scan_at) >= full_scan_interval;
+        if !must_full_scan {
+            continue;
+        }
+
+        if root_changed {
+            last_root_mtime = Some(root_mtime);
+        }
+        last_full_scan_at = now;
+
+        let current = match collect_python_snapshot(root_path.as_path()) {
+            Ok(snapshot) => snapshot,
+            Err(error) => {
+                eprintln!("hot reload worker scan error: {error}");
+                continue;
+            }
+        };
+        if current != snapshot {
+            snapshot = current;
+            pending_change_since = Some(Instant::now());
+            continue;
+        }
+
+        if let Some(pending_since) = pending_change_since
+            && pending_since.elapsed() >= debounce
+        {
+            reload_requested.store(true, Ordering::Release);
+            pending_change_since = None;
+        }
+    }
+}
+
+fn read_directory_mtime(path: &Path) -> Result<SystemTime, RuntimeError> {
+    let metadata = fs::metadata(path).map_err(|error| RuntimeError::ScriptLoad {
+        path: path.display().to_string(),
+        details: format!("failed to read root directory metadata: {error}"),
+    })?;
+    metadata
+        .modified()
+        .map_err(|error| RuntimeError::ScriptLoad {
+            path: path.display().to_string(),
+            details: format!("failed to read root directory modified timestamp: {error}"),
+        })
+}
+
+fn resolve_project_root(entry_script: &str) -> Result<std::path::PathBuf, RuntimeError> {
+    let script_path = Path::new(entry_script);
+    let project_root = script_path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+
+    fs::canonicalize(project_root).map_err(|error| RuntimeError::ScriptLoad {
+        path: project_root.display().to_string(),
+        details: format!("failed to resolve project root for hot reload: {error}"),
+    })
+}
+
+fn collect_python_snapshot(root: &Path) -> Result<HashMap<String, PythonFileStamp>, RuntimeError> {
+    let mut snapshot = HashMap::new();
+    let mut stack = vec![root.to_path_buf()];
+    while let Some(current) = stack.pop() {
+        let entries =
+            fs::read_dir(current.as_path()).map_err(|error| RuntimeError::ScriptLoad {
+                path: current.display().to_string(),
+                details: format!("failed to scan python files for hot reload: {error}"),
+            })?;
+        for entry in entries {
+            let entry = entry.map_err(|error| RuntimeError::ScriptLoad {
+                path: current.display().to_string(),
+                details: format!("failed to inspect python file candidate: {error}"),
+            })?;
+            let path = entry.path();
+            if path.is_dir() {
+                if is_ignored_reload_directory(path.as_path()) {
+                    continue;
+                }
+                stack.push(path);
+                continue;
+            }
+            let is_python = path
+                .extension()
+                .and_then(|value| value.to_str())
+                .is_some_and(|value| value == "py");
+            if !is_python {
+                continue;
+            }
+            let metadata =
+                fs::metadata(path.as_path()).map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.display().to_string(),
+                    details: format!("failed to read file metadata for hot reload: {error}"),
+                })?;
+            let modified = metadata
+                .modified()
+                .map_err(|error| RuntimeError::ScriptLoad {
+                    path: path.display().to_string(),
+                    details: format!("failed to read file timestamp for hot reload: {error}"),
+                })?;
+            snapshot.insert(
+                path.to_string_lossy().to_string(),
+                PythonFileStamp {
+                    modified,
+                    size_bytes: metadata.len(),
+                },
+            );
+        }
+    }
+    Ok(snapshot)
+}
+
+fn is_ignored_reload_directory(path: &Path) -> bool {
+    let Some(name) = path.file_name().and_then(|value| value.to_str()) else {
+        return false;
+    };
+    matches!(
+        name,
+        ".git"
+            | ".hg"
+            | ".svn"
+            | ".venv"
+            | "venv"
+            | "target"
+            | "dist"
+            | "build"
+            | "node_modules"
+            | "__pycache__"
+            | ".worktrees"
+    )
 }
 
 /// A runtime value passed into lifecycle functions.
@@ -2246,13 +2524,15 @@ impl PythonVm for RustPythonVm {
 #[cfg(test)]
 mod tests {
     use super::{
-        ModuleInstallPlan, PythonVm, QueuedDrawOp, RuntimeConfig, RuntimeError, RuntimeValue,
-        RustPythonVm, ScriptRuntime,
+        ModuleInstallPlan, PythonSourceReloadMonitor, PythonVm, QueuedDrawOp, RuntimeConfig,
+        RuntimeError, RuntimeExecutionMode, RuntimeValue, RustPythonVm, ScriptRuntime,
     };
     use crate::backend::{BackendDispatch, Color, Vec2, VectorRenderMode};
     use std::fs;
     use std::path::{Path, PathBuf};
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::thread;
+    use std::time::Duration;
+    use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
     #[derive(Debug, Default)]
     struct FakeVm {
@@ -2343,6 +2623,73 @@ mod tests {
             fs::write(path, contents).expect("temporary project file should be writable");
         }
         root
+    }
+
+    #[test]
+    fn source_reload_monitor_is_disabled_for_embedded_mode() {
+        let root = write_temp_project(
+            "reload-disabled-embedded",
+            &[("main.py", "def update(dt):\n    pass\n")],
+        );
+        let main = root.join("main.py");
+        let monitor = PythonSourceReloadMonitor::new(
+            RuntimeExecutionMode::EmbeddedPayload,
+            main.to_string_lossy().as_ref(),
+        )
+        .expect("embedded monitor should initialize");
+        assert!(!monitor.is_enabled());
+        assert!(
+            !monitor.take_reload_signal(),
+            "embedded mode should never trigger source hot reload"
+        );
+        fs::remove_dir_all(root).expect("temporary project should be removable");
+    }
+
+    #[test]
+    fn source_reload_monitor_triggers_after_debounce_when_python_file_changes() {
+        let root = write_temp_project(
+            "reload-detect-change",
+            &[
+                ("main.py", "import sidecar\n\ndef update(dt):\n    pass\n"),
+                ("sidecar.py", "value = 1\n"),
+            ],
+        );
+        let main = root.join("main.py");
+        let monitor = PythonSourceReloadMonitor::new(
+            RuntimeExecutionMode::Source,
+            main.to_string_lossy().as_ref(),
+        )
+        .expect("source monitor should initialize");
+
+        assert!(
+            !monitor.take_reload_signal(),
+            "initial poll should not request reload"
+        );
+
+        // Give the worker enough time to capture its initial baseline snapshot
+        // before we mutate files for the test.
+        thread::sleep(Duration::from_millis(550));
+        fs::write(root.join("sidecar.py"), "value = 42\n").expect("sidecar update should succeed");
+
+        let deadline = Instant::now() + Duration::from_secs(3);
+        let mut reload_received = false;
+        while Instant::now() < deadline {
+            if monitor.take_reload_signal() {
+                reload_received = true;
+                break;
+            }
+            thread::sleep(Duration::from_millis(60));
+        }
+        assert!(
+            reload_received,
+            "worker should signal reload after debounce"
+        );
+        assert!(
+            !monitor.take_reload_signal(),
+            "reload signal should be one-shot"
+        );
+
+        fs::remove_dir_all(root).expect("temporary project should be removable");
     }
 
     fn backend_dispatches(runtime: &ScriptRuntime<RustPythonVm>) -> Vec<BackendDispatch> {

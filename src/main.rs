@@ -1,12 +1,13 @@
 //! Single-command CLI that delegates script execution to runtime.
 
 use macroquad::Window;
-use pycro_cli::{
-    DesktopFrameLoop, FrameLoopConfig, ProjectBuildTarget, RuntimeConfig, RustPythonVm,
-    ScriptRuntime, build_project_bundle, embedded_project_payload, resolve_payload_relative_path,
+use pycro::{
+    DesktopFrameLoop, FrameLoopConfig, ProjectBuildTarget, PythonSourceReloadMonitor,
+    RuntimeConfig, RuntimeExecutionMode, RustPythonVm, ScriptRuntime, build_project_bundle,
+    draw_runtime_error_overlay, embedded_project_payload, resolve_payload_relative_path,
     window_conf,
 };
-use pycro_cli::{module_spec, registration_plan, render_stub};
+use pycro::{module_spec, registration_plan, render_stub};
 use std::fs;
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
@@ -28,6 +29,13 @@ const WEB_INDEX_FILE_NAME: &str = "index.html";
 const ANDROID_SOURCE_APK_DIR: &str = "target/android-artifacts/release/apk";
 const ANDROID_DIST_APK_DIR: &str = "dist/android/apk";
 const ANDROID_QUAD_APK_RUSTFLAGS: &str = "-Aunsafe-code -Aunsafe-attr-outside-unsafe";
+const IOS_DIST_DIR: &str = "dist/ios";
+const IOS_XCODE_DIST_DIR: &str = "dist/ios/xcode";
+const IOS_ARTIFACT_DIST_DIR: &str = "dist/ios/artifacts";
+const IOS_EMBED_ROOT_HINT_FILE: &str = ".pycro-embed-project-root";
+const IOS_SIMULATOR_TARGET: &str = "aarch64-sim";
+const IOS_SIMULATOR_RUST_TARGET: &str = "aarch64-apple-ios-sim";
+const IOS_CARGO_APPLE_SUBCOMMAND: &str = "apple";
 
 #[cfg(target_os = "windows")]
 const LOCAL_RUNNER_FILE_NAME: &str = "pycro.exe";
@@ -80,7 +88,9 @@ fn main() {
         }
         CliCommand::RunScript(script_path) => {
             Window::from_config(window_conf(), async move {
-                if let Err(error) = run_script_contract(script_path.as_str()).await {
+                if let Err(error) =
+                    run_script_contract(script_path.as_str(), RuntimeExecutionMode::Source).await
+                {
                     eprintln!("{error}");
                     println!("pycro web runtime error: {error}");
                     terminate_process(1);
@@ -342,6 +352,161 @@ fn build_alias_usage() -> String {
     "usage: pycro build [--project <path>|<path>] [--target <desktop|web|android|ios>] [--exe <name>]\nexample: pycro build . --exe game".to_owned()
 }
 
+fn cargo_binary_name() -> String {
+    std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_owned())
+}
+
+fn canonicalize_project_root(project_root: &Path) -> Result<PathBuf, String> {
+    fs::canonicalize(project_root).map_err(|error| {
+        format!(
+            "failed to resolve project root {}: {error}",
+            project_root.display()
+        )
+    })
+}
+
+fn supports_output_exe_name(target: ProjectBuildTarget) -> bool {
+    matches!(target, ProjectBuildTarget::Desktop)
+}
+
+fn ios_xcode_output_root(project_root: &Path) -> PathBuf {
+    project_root.join(IOS_XCODE_DIST_DIR)
+}
+
+fn ios_artifact_output_root(project_root: &Path) -> PathBuf {
+    project_root.join(IOS_ARTIFACT_DIST_DIR)
+}
+
+fn is_ios_packaged_artifact_path(path: &Path) -> bool {
+    if let Some(extension) = path.extension().and_then(|value| value.to_str()) {
+        matches!(extension, "app" | "framework" | "a" | "dylib")
+    } else {
+        false
+    }
+}
+
+fn copy_path_recursive(source: &Path, destination: &Path) -> Result<(), String> {
+    if source.is_dir() {
+        fs::create_dir_all(destination)
+            .map_err(|error| format!("failed to create {}: {error}", destination.display()))?;
+        for entry in fs::read_dir(source)
+            .map_err(|error| format!("failed to read {}: {error}", source.display()))?
+        {
+            let entry = entry
+                .map_err(|error| format!("failed to inspect {}: {error}", source.display()))?;
+            let child_source = entry.path();
+            let child_destination = destination.join(entry.file_name());
+            copy_path_recursive(child_source.as_path(), child_destination.as_path())?;
+        }
+        return Ok(());
+    }
+
+    if let Some(parent) = destination.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
+    }
+
+    fs::copy(source, destination).map_err(|error| {
+        format!(
+            "failed to copy {} -> {}: {error}",
+            source.display(),
+            destination.display()
+        )
+    })?;
+    Ok(())
+}
+
+fn reset_directory(path: &Path) -> Result<(), String> {
+    if path.exists() {
+        fs::remove_dir_all(path)
+            .map_err(|error| format!("failed to remove {}: {error}", path.display()))?;
+    }
+    fs::create_dir_all(path)
+        .map_err(|error| format!("failed to create {}: {error}", path.display()))
+}
+
+fn read_dir_recursively(root: &Path) -> Result<Vec<PathBuf>, String> {
+    let mut entries = Vec::new();
+    if !root.exists() {
+        return Ok(entries);
+    }
+
+    let mut stack = vec![root.to_path_buf()];
+    while let Some(current) = stack.pop() {
+        for entry in fs::read_dir(current.as_path())
+            .map_err(|error| format!("failed to read {}: {error}", current.display()))?
+        {
+            let entry = entry
+                .map_err(|error| format!("failed to inspect {}: {error}", current.display()))?;
+            let path = entry.path();
+            if path.is_dir() {
+                stack.push(path.clone());
+            }
+            entries.push(path);
+        }
+    }
+
+    Ok(entries)
+}
+
+fn find_latest_generated_xcode_root(source_root: &Path) -> Result<PathBuf, String> {
+    let mut candidates = Vec::new();
+    for path in read_dir_recursively(source_root)? {
+        if path
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .is_some_and(|extension| extension == "xcodeproj")
+            && path.is_dir()
+        {
+            candidates.push(path);
+        }
+    }
+
+    let candidate = candidates
+        .into_iter()
+        .max_by_key(|path| {
+            path.metadata()
+                .and_then(|metadata| metadata.modified())
+                .ok()
+                .and_then(|modified| modified.duration_since(std::time::UNIX_EPOCH).ok())
+                .unwrap_or(Duration::ZERO)
+        })
+        .ok_or_else(|| {
+            format!(
+                "ios build finished but no Xcode project bundle was generated under {}",
+                source_root.display()
+            )
+        })?;
+
+    candidate.parent().map(Path::to_path_buf).ok_or_else(|| {
+        format!(
+            "generated Xcode project has no parent directory: {}",
+            candidate.display()
+        )
+    })
+}
+
+fn collect_ios_build_artifacts(source_root: &Path) -> Result<Vec<PathBuf>, String> {
+    let mut artifacts = Vec::new();
+    let candidate_roots = [
+        source_root.join("gen"),
+        source_root.join("target"),
+        source_root.join("build"),
+    ];
+
+    for root in candidate_roots {
+        for path in read_dir_recursively(root.as_path())? {
+            if is_ios_packaged_artifact_path(path.as_path()) {
+                artifacts.push(path);
+            }
+        }
+    }
+
+    artifacts.sort();
+    artifacts.dedup();
+    Ok(artifacts)
+}
+
 fn cli_help_text() -> String {
     format!(
         concat!(
@@ -381,33 +546,214 @@ fn run_project_build_contract(command: ProjectBuildCommand) -> Result<(), String
     println!("project root: {}", bundle.contract.root.display());
     println!("target: {}", bundle.target.as_str());
     println!("resource providers: {:?}", bundle.resource_provider_plan);
+    if command.output_exe_name.is_some() && !supports_output_exe_name(bundle.target) {
+        return Err("--exe is only supported when --target desktop".to_owned());
+    }
     match bundle.target {
         ProjectBuildTarget::Desktop => run_desktop_project_build(
             bundle.contract.root.as_path(),
             command.output_exe_name.as_deref(),
         ),
-        ProjectBuildTarget::Web => {
-            if command.output_exe_name.is_some() {
-                return Err("--exe is only supported when --target desktop".to_owned());
+        ProjectBuildTarget::Web => run_web_project_build(bundle.contract.root.as_path()),
+        ProjectBuildTarget::Android => run_android_project_build(bundle.contract.root.as_path()),
+        ProjectBuildTarget::Ios => run_ios_project_build(bundle.contract.root.as_path()),
+    }
+}
+
+fn run_ios_project_build(project_root: &Path) -> Result<(), String> {
+    let project_root = canonicalize_project_root(project_root)?;
+    let source_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let cargo_binary = cargo_binary_name();
+    println!("ios build mode: cargo apple + simulator target");
+    println!("ios simulator target: {IOS_SIMULATOR_TARGET}");
+    println!(
+        "ios dist root: {}",
+        project_root.join(IOS_DIST_DIR).display()
+    );
+    println!(
+        "ios xcode artifact destination: {}",
+        ios_xcode_output_root(project_root.as_path()).display()
+    );
+
+    let cargo_apple_available = Command::new(cargo_binary.as_str())
+        .current_dir(source_root.as_path())
+        .arg(IOS_CARGO_APPLE_SUBCOMMAND)
+        .arg("--help")
+        .output()
+        .map_err(|error| {
+            if error.kind() == std::io::ErrorKind::NotFound {
+                format!(
+                    "failed to start ios build command from {}: cargo executable not found.\ninstall Rust and ensure `cargo` is on PATH.",
+                    source_root.display()
+                )
+            } else {
+                format!(
+                    "failed to probe cargo apple availability from {}: {error}",
+                    source_root.display()
+                )
             }
-            run_web_project_build(bundle.contract.root.as_path())
+        })?
+        .status
+        .success();
+
+    if !cargo_apple_available {
+        return Err(
+            "iOS build requires `cargo apple` from cargo-mobile2.\ninstall with `cargo install --git https://github.com/tauri-apps/cargo-mobile2` and ensure Xcode and the iOS simulator target are available."
+                .to_owned(),
+        );
+    }
+
+    let mut command = Command::new(cargo_binary);
+    command
+        .current_dir(source_root.as_path())
+        .arg(IOS_CARGO_APPLE_SUBCOMMAND)
+        .arg("build")
+        .arg("--release")
+        .arg("-y")
+        .arg(IOS_SIMULATOR_TARGET)
+        .env("PYCRO_EMBED_PROJECT_ROOT", project_root.as_os_str());
+    command.env_remove("RUSTFLAGS");
+    command.env_remove("CARGO_ENCODED_RUSTFLAGS");
+    command.env("CARGO_BUILD_RUSTFLAGS", "");
+    command.env(
+        format!(
+            "CARGO_TARGET_{}_RUSTFLAGS",
+            IOS_SIMULATOR_RUST_TARGET.replace('-', "_").to_uppercase()
+        ),
+        "",
+    );
+
+    let status = command.status().map_err(|error| {
+        if error.kind() == std::io::ErrorKind::NotFound {
+            format!(
+                "failed to start ios build command from {}: cargo executable not found.\ninstall Rust and ensure `cargo` is on PATH.",
+                source_root.display()
+            )
+        } else {
+            format!(
+                "failed to start ios build command from {}: {error}",
+                source_root.display()
+            )
         }
-        ProjectBuildTarget::Android => {
-            if command.output_exe_name.is_some() {
-                return Err("--exe is only supported when --target desktop".to_owned());
-            }
-            run_android_project_build(bundle.contract.root.as_path())
+    })?;
+
+    if !status.success() {
+        return Err(format!(
+            "ios build command failed with status {status} (project: {}).\nverify cargo-mobile2, Xcode, and the iOS simulator target (`rustup target add {IOS_SIMULATOR_RUST_TARGET}`).",
+            project_root.display()
+        ));
+    }
+
+    let xcode_source_root = find_latest_generated_xcode_root(source_root.as_path())?;
+    let xcode_output_root = ios_xcode_output_root(project_root.as_path());
+    reset_directory(xcode_output_root.as_path())?;
+    copy_path_recursive(xcode_source_root.as_path(), xcode_output_root.as_path())?;
+    prepare_ios_xcode_rust_context(xcode_output_root.as_path(), source_root.as_path())?;
+    persist_ios_embed_project_hint(xcode_output_root.as_path(), project_root.as_path())?;
+
+    let artifact_output_root = ios_artifact_output_root(project_root.as_path());
+    reset_directory(artifact_output_root.as_path())?;
+    let artifacts = collect_ios_build_artifacts(source_root.as_path())?;
+    for artifact in artifacts {
+        let file_name = artifact
+            .file_name()
+            .ok_or_else(|| format!("ios artifact path has no file name: {}", artifact.display()))?;
+        let output_artifact = artifact_output_root.join(file_name);
+        copy_path_recursive(artifact.as_path(), output_artifact.as_path())?;
+        println!("artifact ios: {}", output_artifact.display());
+    }
+
+    println!("ios project build complete");
+    println!("artifact xcode project: {}", xcode_output_root.display());
+    Ok(())
+}
+
+fn prepare_ios_xcode_rust_context(
+    xcode_output_root: &Path,
+    source_root: &Path,
+) -> Result<(), String> {
+    // Xcode projects copied under dist/ios/xcode are opened directly by users.
+    // cargo-mobile expects Cargo metadata near the project root, so we mirror the
+    // minimum Rust workspace paths into that copied project location.
+    let required_paths = [
+        "Cargo.toml",
+        "Cargo.lock",
+        "mobile.toml",
+        "build.rs",
+        "src",
+        "gen",
+        "third_party",
+    ];
+
+    for relative in required_paths {
+        let source_path = source_root.join(relative);
+        if !source_path.exists() {
+            continue;
         }
-        ProjectBuildTarget::Ios => {
-            if command.output_exe_name.is_some() {
-                return Err("--exe is only supported when --target desktop".to_owned());
-            }
-            println!(
-                "project build target `{}` is not implemented yet",
-                bundle.target.as_str()
-            );
-            Ok(())
+        let output_path = xcode_output_root.join(relative);
+        link_or_copy_path(source_path.as_path(), output_path.as_path())?;
+    }
+
+    // cargo-apple xcode-script resolves staticlib artifacts at ../../target/*
+    // from dist/ios/xcode. Mirror that path by linking <project>/dist/target.
+    if let Some(dist_root) = xcode_output_root.parent().and_then(|path| path.parent()) {
+        let source_target_dir = source_root.join("target");
+        if source_target_dir.exists() {
+            let dist_target_dir = dist_root.join("target");
+            link_or_copy_path(source_target_dir.as_path(), dist_target_dir.as_path())?;
         }
+    }
+
+    Ok(())
+}
+
+fn persist_ios_embed_project_hint(
+    xcode_output_root: &Path,
+    project_root: &Path,
+) -> Result<(), String> {
+    let hint_path = xcode_output_root.join(IOS_EMBED_ROOT_HINT_FILE);
+    fs::write(hint_path.as_path(), format!("{}\n", project_root.display())).map_err(|error| {
+        format!(
+            "failed to write ios embed project hint {}: {error}",
+            hint_path.display()
+        )
+    })?;
+
+    Ok(())
+}
+
+fn link_or_copy_path(source_path: &Path, output_path: &Path) -> Result<(), String> {
+    if let Some(parent) = output_path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
+    }
+
+    if output_path.exists() {
+        if output_path.is_dir() {
+            fs::remove_dir_all(output_path)
+                .map_err(|error| format!("failed to remove {}: {error}", output_path.display()))?;
+        } else {
+            fs::remove_file(output_path)
+                .map_err(|error| format!("failed to remove {}: {error}", output_path.display()))?;
+        }
+    }
+
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(source_path, output_path).map_err(|error| {
+            format!(
+                "failed to link {} -> {}: {error}",
+                source_path.display(),
+                output_path.display()
+            )
+        })?;
+        Ok(())
+    }
+
+    #[cfg(not(unix))]
+    {
+        copy_path_recursive(source_path, output_path)?;
+        Ok(())
     }
 }
 
@@ -801,13 +1147,17 @@ fn run_desktop_project_build(
 async fn run_embedded_project_contract() -> Result<(), String> {
     #[cfg(target_arch = "wasm32")]
     {
-        return run_script_contract("main.py").await;
+        return run_script_contract("main.py", RuntimeExecutionMode::EmbeddedPayload).await;
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     let launch = materialize_embedded_project_runtime()?;
     #[cfg(not(target_arch = "wasm32"))]
-    return run_script_contract(launch.script_path.to_string_lossy().as_ref()).await;
+    return run_script_contract(
+        launch.script_path.to_string_lossy().as_ref(),
+        RuntimeExecutionMode::EmbeddedPayload,
+    )
+    .await;
 }
 
 fn materialize_embedded_project_runtime() -> Result<EmbeddedRuntimeLaunch, String> {
@@ -956,7 +1306,19 @@ def update(dt: float) -> None:
     )
 }
 
-async fn run_script_contract(script_path: &str) -> Result<(), String> {
+fn load_runtime_instance(
+    config: &RuntimeConfig,
+) -> Result<ScriptRuntime<RustPythonVm>, pycro::runtime::RuntimeError> {
+    let mut runtime = ScriptRuntime::new(RustPythonVm::new(), config.clone());
+    runtime.load_main()?;
+    Ok(runtime)
+}
+
+fn is_keyboard_interrupt_runtime_error(message: &str) -> bool {
+    message.contains("KeyboardInterrupt")
+}
+
+async fn run_script_contract(script_path: &str, mode: RuntimeExecutionMode) -> Result<(), String> {
     let script_path = resolve_runtime_entry_script_path(script_path)?;
     let config = RuntimeConfig {
         entry_script: script_path,
@@ -967,10 +1329,18 @@ async fn run_script_contract(script_path: &str) -> Result<(), String> {
     println!("python module: {}", module_spec().module_name);
     println!("registered api functions: {}", registration_plan().len());
 
-    let mut runtime = ScriptRuntime::new(RustPythonVm::new(), config.clone());
-    runtime
-        .load_main()
-        .map_err(|error| format!("runtime load error: {error}"))?;
+    let reload_monitor = PythonSourceReloadMonitor::new(mode, config.entry_script.as_str())
+        .map_err(|error| format!("hot reload init error: {error}"))?;
+    let mut runtime: Option<ScriptRuntime<RustPythonVm>> = None;
+    let mut overlay_error: Option<String> = None;
+    match load_runtime_instance(&config) {
+        Ok(loaded) => runtime = Some(loaded),
+        Err(error) => {
+            let details = format!("runtime load error: {error}");
+            eprintln!("{details}");
+            overlay_error = Some(details);
+        }
+    }
     let perf_enabled = std::env::var("PYCRO_PERF").is_ok_and(|value| value == "1");
     let mut perf = PerfWindow::default();
 
@@ -979,19 +1349,66 @@ async fn run_script_contract(script_path: &str) -> Result<(), String> {
         .run(|dt| {
             let frame_start = frame_timer_now();
             let update_start = frame_timer_now();
-            runtime
-                .update(dt)
-                .map_err(|error| format!("runtime update error: {error}"))?;
-            let update_elapsed = frame_timer_elapsed(update_start);
+            let mut update_elapsed = Duration::ZERO;
+            let mut flush_elapsed = Duration::ZERO;
+            let should_reload = reload_monitor.take_reload_signal();
 
-            let flush_start = frame_timer_now();
-            runtime
-                .flush_draw_batch()
-                .map_err(|error| format!("runtime draw flush error: {error}"))?;
-            let flush_elapsed = frame_timer_elapsed(flush_start);
+            if should_reload {
+                eprintln!("pycro hot reload: change detected, reloading...");
+                match load_runtime_instance(&config) {
+                    Ok(loaded) => {
+                        eprintln!("pycro hot reload: reload complete");
+                        runtime = Some(loaded);
+                        overlay_error = None;
+                    }
+                    Err(error) => {
+                        let details = format!("runtime reload error: {error}");
+                        eprintln!("pycro hot reload: reload failed: {error}");
+                        runtime = None;
+                        overlay_error = Some(details);
+                    }
+                }
+            }
+
+            if overlay_error.is_none()
+                && let Some(active_runtime) = runtime.as_mut()
+            {
+                match active_runtime.update(dt) {
+                    Ok(()) => {
+                        update_elapsed = frame_timer_elapsed(update_start);
+                        let flush_start = frame_timer_now();
+                        if let Err(error) = active_runtime.flush_draw_batch() {
+                            let details = format!("runtime draw flush error: {error}");
+                            eprintln!("{details}");
+                            runtime = None;
+                            overlay_error = Some(details);
+                        } else {
+                            flush_elapsed = frame_timer_elapsed(flush_start);
+                        }
+                    }
+                    Err(error) => {
+                        let details = format!("runtime update error: {error}");
+                        if is_keyboard_interrupt_runtime_error(details.as_str()) {
+                            return Err(
+                                "runtime interrupted by keyboard interrupt (Ctrl+C)".to_owned()
+                            );
+                        }
+                        eprintln!("{details}");
+                        runtime = None;
+                        overlay_error = Some(details);
+                    }
+                }
+            }
+
+            if let Some(message) = overlay_error.as_deref() {
+                draw_runtime_error_overlay(message);
+            }
 
             if perf_enabled {
-                let total_dispatches = runtime.vm().backend().dispatch_count();
+                let total_dispatches = runtime
+                    .as_ref()
+                    .map(|active_runtime| active_runtime.vm().backend().dispatch_count())
+                    .unwrap_or(0);
                 perf.record(
                     dt,
                     frame_timer_elapsed(frame_start),
@@ -1005,14 +1422,19 @@ async fn run_script_contract(script_path: &str) -> Result<(), String> {
         })
         .await?;
 
-    runtime
-        .flush_io()
-        .map_err(|error| format!("runtime io flush error: {error}"))?;
+    if let Some(active_runtime) = runtime.as_mut() {
+        active_runtime
+            .flush_io()
+            .map_err(|error| format!("runtime io flush error: {error}"))?;
+    }
 
     println!("frames executed: {}", report.frames_executed);
     println!(
         "backend api dispatches: {}",
-        runtime.vm().backend().dispatch_count()
+        runtime
+            .as_ref()
+            .map(|active_runtime| active_runtime.vm().backend().dispatch_count())
+            .unwrap_or(0)
     );
     Ok(())
 }
@@ -1148,10 +1570,10 @@ mod tests {
     use super::{
         CliCommand, DEFAULT_STUB_OUTPUT_PATH, GenerateStubsCommand, LOCAL_RUNNER_FILE_NAME,
         MAIN_FILE_NAME, ProjectBuildCommand, ProjectBuildTarget, ProjectCommand, STUB_FILE_NAME,
-        check_stub, cli_help_text, create_project_scaffold, no_args_command_for_payload,
-        parse_build_alias_command, parse_cli_command, parse_project_build_command,
-        render_main_py_template, render_web_index_html, run_generate_stubs_contract,
-        run_project_build_contract,
+        check_stub, cli_help_text, create_project_scaffold, is_ios_packaged_artifact_path,
+        no_args_command_for_payload, parse_build_alias_command, parse_cli_command,
+        parse_project_build_command, render_main_py_template, render_web_index_html,
+        run_generate_stubs_contract, supports_output_exe_name,
     };
     use std::fs;
     use std::path::PathBuf;
@@ -1461,22 +1883,46 @@ mod tests {
     }
 
     #[test]
-    fn run_project_build_contract_validates_project_dir_for_placeholder_targets() {
-        let base_dir = temp_test_dir("project-build-contract");
-        fs::write(
-            base_dir.join(MAIN_FILE_NAME),
-            "def update(dt: float) -> None:\n    pass\n",
-        )
-        .expect("main.py should be writable");
+    fn parse_project_build_accepts_ios_target() {
+        assert_eq!(
+            parse_project_build_command(vec![
+                "--project".to_owned(),
+                "examples".to_owned(),
+                "--target".to_owned(),
+                "ios".to_owned(),
+            ])
+            .expect("parse should succeed"),
+            ProjectBuildCommand {
+                target: ProjectBuildTarget::Ios,
+                project_path: PathBuf::from("examples"),
+                output_exe_name: None,
+            }
+        );
+    }
 
-        run_project_build_contract(ProjectBuildCommand {
-            target: ProjectBuildTarget::Ios,
-            project_path: base_dir.clone(),
-            output_exe_name: None,
-        })
-        .expect("placeholder target should validate project contract");
+    #[test]
+    fn ios_target_rejects_exe_overrides_while_desktop_keeps_them() {
+        assert!(supports_output_exe_name(ProjectBuildTarget::Desktop));
+        assert!(!supports_output_exe_name(ProjectBuildTarget::Ios));
+    }
 
-        fs::remove_dir_all(base_dir).expect("cleanup should succeed");
+    #[test]
+    fn ios_artifact_helper_matches_expected_packaged_artifacts() {
+        assert!(is_ios_packaged_artifact_path(
+            PathBuf::from("Demo.app").as_path()
+        ));
+        assert!(is_ios_packaged_artifact_path(
+            PathBuf::from("libpycro.a").as_path()
+        ));
+        assert!(is_ios_packaged_artifact_path(
+            PathBuf::from("Frameworks/Example.framework").as_path()
+        ));
+        assert!(is_ios_packaged_artifact_path(
+            PathBuf::from("libpycro.dylib").as_path()
+        ));
+        assert!(!is_ios_packaged_artifact_path(
+            PathBuf::from("notes.txt").as_path()
+        ));
     }
 
     #[test]
