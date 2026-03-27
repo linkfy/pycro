@@ -31,6 +31,7 @@ rustpython-pylib = { version = "0.4", features = ["freeze-stdlib"] }
 
 [target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))'.dependencies]
 mimalloc = "0.1"
+ctrlc = "3.4"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.3.4", features = ["wasm_js"] }
