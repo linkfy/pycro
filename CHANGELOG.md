@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.0](https://github.com/linkfy/pycro/compare/pycro_cli-v0.8.0...pycro_cli-v0.9.0) (2026-04-04)
+
+
+### Features
+
+* close phase 22 as experimental texture cache iteration ([741e242](https://github.com/linkfy/pycro/commit/741e24280dba05bc4f2bd13a68f3cf7514259fa9))
+* **input:** phase 23 closeout with macOS native click path and full keyboard enum ([3d14d43](https://github.com/linkfy/pycro/commit/3d14d439b33bdc7a4d84405c47bd06dac5f973c5))
+* **runtime:** add window-size/rectangle api and close phase21 ([4c27b2e](https://github.com/linkfy/pycro/commit/4c27b2ee798f6a9e064679de91b1bbff07d67480))
+
 ## [0.8.0](https://github.com/linkfy/pycro/compare/pycro_cli-v0.7.0...pycro_cli-v0.8.0) (2026-03-27)
 
 
