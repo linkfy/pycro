@@ -15,8 +15,8 @@ use macroquad::miniquad::conf::AppleGfxApi;
 use macroquad::models::{Mesh, Vertex, draw_mesh};
 use macroquad::prelude::{
     Camera2D, Color as MqColor, DrawTextureParams, Rect, Texture2D, WHITE, clear_background,
-    draw_circle, draw_rectangle, draw_text, draw_texture_ex, screen_height, screen_width,
-    set_camera,
+    draw_circle, draw_line as mq_draw_line, draw_rectangle, draw_text, draw_texture_ex,
+    screen_height, screen_width, set_camera,
 };
 use macroquad::texture::FilterMode;
 use macroquad::time::get_frame_time;
@@ -158,6 +158,22 @@ pub enum BackendDispatch {
         /// Fill color.
         color: Color,
     },
+    /// put_pixel(position, color)
+    PutPixel {
+        /// Pixel position.
+        position: Vec2,
+        /// Pixel color.
+        color: Color,
+    },
+    /// draw_line(start, end, color)
+    DrawLine {
+        /// Line start position.
+        start: Vec2,
+        /// Line end position.
+        end: Vec2,
+        /// Line color.
+        color: Color,
+    },
 }
 
 /// Engine backend contract consumed by `api`.
@@ -199,8 +215,14 @@ pub trait EngineBackend {
     fn draw_text(&mut self, text: &str, position: Vec2, font_size: f32, color: Color);
     /// Returns current window size in pixels.
     fn get_window_size(&self) -> Vec2;
+    /// Returns current mouse position in pixels.
+    fn get_mouse_position(&self) -> Vec2;
     /// Draws a filled rectangle.
     fn draw_rectangle(&mut self, position: Vec2, size: Vec2, color: Color);
+    /// Draws a single pixel in screen space.
+    fn put_pixel(&mut self, position: Vec2, color: Color);
+    /// Draws a 1px line in screen space.
+    fn draw_line(&mut self, start: Vec2, end: Vec2, color: Color);
 }
 
 /// Desktop loop owner config for frame dispatch.
@@ -830,13 +852,104 @@ fn key_code_from_name(key: &str) -> Option<KeyCode> {
         };
     }
 
-    match key {
-        "Space" | "space" => Some(KeyCode::Space),
-        "Left" | "left" => Some(KeyCode::Left),
-        "Right" | "right" => Some(KeyCode::Right),
-        "Up" | "up" => Some(KeyCode::Up),
-        "Down" | "down" => Some(KeyCode::Down),
-        "Escape" | "escape" => Some(KeyCode::Escape),
+    let normalized = key.to_ascii_lowercase().replace('_', "");
+
+    match normalized.as_str() {
+        "space" => Some(KeyCode::Space),
+        "apostrophe" => Some(KeyCode::Apostrophe),
+        "comma" => Some(KeyCode::Comma),
+        "minus" => Some(KeyCode::Minus),
+        "period" => Some(KeyCode::Period),
+        "slash" => Some(KeyCode::Slash),
+        "key0" | "0" => Some(KeyCode::Key0),
+        "key1" | "1" => Some(KeyCode::Key1),
+        "key2" | "2" => Some(KeyCode::Key2),
+        "key3" | "3" => Some(KeyCode::Key3),
+        "key4" | "4" => Some(KeyCode::Key4),
+        "key5" | "5" => Some(KeyCode::Key5),
+        "key6" | "6" => Some(KeyCode::Key6),
+        "key7" | "7" => Some(KeyCode::Key7),
+        "key8" | "8" => Some(KeyCode::Key8),
+        "key9" | "9" => Some(KeyCode::Key9),
+        "semicolon" => Some(KeyCode::Semicolon),
+        "equal" => Some(KeyCode::Equal),
+        "leftbracket" => Some(KeyCode::LeftBracket),
+        "backslash" => Some(KeyCode::Backslash),
+        "rightbracket" => Some(KeyCode::RightBracket),
+        "graveaccent" => Some(KeyCode::GraveAccent),
+        "world1" => Some(KeyCode::World1),
+        "world2" => Some(KeyCode::World2),
+        "escape" => Some(KeyCode::Escape),
+        "enter" => Some(KeyCode::Enter),
+        "tab" => Some(KeyCode::Tab),
+        "backspace" => Some(KeyCode::Backspace),
+        "insert" => Some(KeyCode::Insert),
+        "delete" => Some(KeyCode::Delete),
+        "right" => Some(KeyCode::Right),
+        "left" => Some(KeyCode::Left),
+        "down" => Some(KeyCode::Down),
+        "up" => Some(KeyCode::Up),
+        "pageup" => Some(KeyCode::PageUp),
+        "pagedown" => Some(KeyCode::PageDown),
+        "home" => Some(KeyCode::Home),
+        "end" => Some(KeyCode::End),
+        "capslock" => Some(KeyCode::CapsLock),
+        "scrolllock" => Some(KeyCode::ScrollLock),
+        "numlock" => Some(KeyCode::NumLock),
+        "printscreen" => Some(KeyCode::PrintScreen),
+        "pause" => Some(KeyCode::Pause),
+        "f1" => Some(KeyCode::F1),
+        "f2" => Some(KeyCode::F2),
+        "f3" => Some(KeyCode::F3),
+        "f4" => Some(KeyCode::F4),
+        "f5" => Some(KeyCode::F5),
+        "f6" => Some(KeyCode::F6),
+        "f7" => Some(KeyCode::F7),
+        "f8" => Some(KeyCode::F8),
+        "f9" => Some(KeyCode::F9),
+        "f10" => Some(KeyCode::F10),
+        "f11" => Some(KeyCode::F11),
+        "f12" => Some(KeyCode::F12),
+        "f13" => Some(KeyCode::F13),
+        "f14" => Some(KeyCode::F14),
+        "f15" => Some(KeyCode::F15),
+        "f16" => Some(KeyCode::F16),
+        "f17" => Some(KeyCode::F17),
+        "f18" => Some(KeyCode::F18),
+        "f19" => Some(KeyCode::F19),
+        "f20" => Some(KeyCode::F20),
+        "f21" => Some(KeyCode::F21),
+        "f22" => Some(KeyCode::F22),
+        "f23" => Some(KeyCode::F23),
+        "f24" => Some(KeyCode::F24),
+        "f25" => Some(KeyCode::F25),
+        "kp0" => Some(KeyCode::Kp0),
+        "kp1" => Some(KeyCode::Kp1),
+        "kp2" => Some(KeyCode::Kp2),
+        "kp3" => Some(KeyCode::Kp3),
+        "kp4" => Some(KeyCode::Kp4),
+        "kp5" => Some(KeyCode::Kp5),
+        "kp6" => Some(KeyCode::Kp6),
+        "kp7" => Some(KeyCode::Kp7),
+        "kp8" => Some(KeyCode::Kp8),
+        "kp9" => Some(KeyCode::Kp9),
+        "kpdecimal" => Some(KeyCode::KpDecimal),
+        "kpdivide" => Some(KeyCode::KpDivide),
+        "kpmultiply" => Some(KeyCode::KpMultiply),
+        "kpsubtract" => Some(KeyCode::KpSubtract),
+        "kpadd" => Some(KeyCode::KpAdd),
+        "kpenter" => Some(KeyCode::KpEnter),
+        "kpequal" => Some(KeyCode::KpEqual),
+        "leftshift" => Some(KeyCode::LeftShift),
+        "leftcontrol" => Some(KeyCode::LeftControl),
+        "leftalt" => Some(KeyCode::LeftAlt),
+        "leftsuper" => Some(KeyCode::LeftSuper),
+        "rightshift" => Some(KeyCode::RightShift),
+        "rightcontrol" => Some(KeyCode::RightControl),
+        "rightalt" => Some(KeyCode::RightAlt),
+        "rightsuper" => Some(KeyCode::RightSuper),
+        "menu" => Some(KeyCode::Menu),
+        "back" => Some(KeyCode::Back),
         _ => None,
     }
 }
@@ -1068,6 +1181,18 @@ impl EngineBackend for MacroquadBackendContract {
         }
     }
 
+    fn get_mouse_position(&self) -> Vec2 {
+        #[cfg(test)]
+        {
+            Vec2 { x: 0.0, y: 0.0 }
+        }
+        #[cfg(not(test))]
+        {
+            let (x, y) = macroquad::input::mouse_position();
+            Vec2 { x, y }
+        }
+    }
+
     fn draw_rectangle(&mut self, position: Vec2, size: Vec2, color: Color) {
         self.flush_pending_texture_batch();
         self.record_dispatch();
@@ -1079,11 +1204,30 @@ impl EngineBackend for MacroquadBackendContract {
         });
         draw_rectangle(position.x, position.y, size.x, size.y, color.into());
     }
+
+    fn put_pixel(&mut self, position: Vec2, color: Color) {
+        self.flush_pending_texture_batch();
+        self.record_dispatch();
+        #[cfg(test)]
+        self.dispatch_log
+            .push(BackendDispatch::PutPixel { position, color });
+        draw_rectangle(position.x, position.y, 1.0, 1.0, color.into());
+    }
+
+    fn draw_line(&mut self, start: Vec2, end: Vec2, color: Color) {
+        self.flush_pending_texture_batch();
+        self.record_dispatch();
+        #[cfg(test)]
+        self.dispatch_log
+            .push(BackendDispatch::DrawLine { start, end, color });
+        mq_draw_line(start.x, start.y, end.x, end.y, 1.0, color.into());
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{key_code_from_name, mouse_button_from_name};
+    use crate::api::KEY_ENUM_MEMBERS;
 
     #[test]
     fn key_code_from_name_supports_expected_aliases() {
@@ -1101,6 +1245,13 @@ mod tests {
             );
         }
 
+        for key in ["Enter", "Tab", "Backspace", "Insert", "Delete"] {
+            assert!(
+                key_code_from_name(key).is_some(),
+                "expected known extended key mapping for {key}"
+            );
+        }
+
         for key in ["A", "a", "B", "b", "Z", "z"] {
             assert!(
                 key_code_from_name(key).is_some(),
@@ -1111,10 +1262,23 @@ mod tests {
 
     #[test]
     fn key_code_from_name_rejects_unknown_keys() {
-        for key in ["Enter", "Tab", "Unknown", ""] {
+        for key in ["Unknown", "NopeKey", ""] {
             assert!(
                 key_code_from_name(key).is_none(),
                 "unexpected mapping for unsupported key {key:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn key_code_from_name_supports_all_non_mouse_key_enum_values() {
+        for (enum_name, value) in KEY_ENUM_MEMBERS {
+            if enum_name.starts_with("MOUSE_") {
+                continue;
+            }
+            assert!(
+                key_code_from_name(value).is_some(),
+                "missing key mapping for KEY.{enum_name} = {value:?}"
             );
         }
     }

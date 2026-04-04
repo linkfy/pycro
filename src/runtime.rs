@@ -1,16 +1,22 @@
 //! Script runtime lifecycle contract.
 
-use crate::api::{ENTRYPOINT_SCRIPT, MODULE_NAME, UPDATE_FUNCTION, registration_plan};
+use crate::api::{
+    ENTRYPOINT_SCRIPT, KEY_ENUM_MEMBERS, MODULE_NAME, UPDATE_FUNCTION, registration_plan,
+};
 use crate::backend::{
     CircleDraw, Color, EngineBackend, MacroquadBackendContract, TextureHandle, Vec2,
     VectorRenderMode,
 };
 use crate::embedded_project_payload;
+#[cfg(target_os = "macos")]
+use device_query::{DeviceQuery, DeviceState};
 use parking_lot::{Mutex, MutexGuard};
 use rustpython_vm::builtins::{PyBaseExceptionRef, PyDictRef, PyFloat, PyList, PyStr, PyTuple};
 use rustpython_vm::function::FuncArgs;
 use rustpython_vm::scope::Scope;
 use rustpython_vm::{AsObject, Interpreter, PyObjectRef, PyResult, Settings, VirtualMachine};
+#[cfg(target_os = "macos")]
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Component, Path};
@@ -510,6 +516,15 @@ enum QueuedDrawOp {
         size: Vec2,
         color: Color,
     },
+    PutPixel {
+        position: Vec2,
+        color: Color,
+    },
+    DrawLine {
+        start: Vec2,
+        end: Vec2,
+        color: Color,
+    },
 }
 
 type QueuedCircle = CircleDraw;
@@ -689,6 +704,72 @@ impl Default for RustPythonVm {
 }
 
 impl RustPythonVm {
+    #[cfg(target_os = "macos")]
+    fn is_left_mouse_key_alias(key: &str) -> bool {
+        matches!(key, "MOUSE_LEFT" | "mouse_left" | "MouseLeft")
+    }
+
+    #[cfg(target_os = "macos")]
+    fn query_left_mouse_down_macos() -> bool {
+        static DEBUG_NATIVE_ROUTE_ONCE: AtomicBool = AtomicBool::new(false);
+        static DEBUG_UNAVAILABLE_ONCE: AtomicBool = AtomicBool::new(false);
+        thread_local! {
+            static MACOS_DEVICE_STATE: RefCell<Option<DeviceState>> = const { RefCell::new(None) };
+        }
+
+        let mut unavailable = false;
+        let is_down = MACOS_DEVICE_STATE.with(|slot| {
+            let mut slot = slot.borrow_mut();
+            if slot.is_none() {
+                *slot = DeviceState::checked_new();
+            }
+
+            let Some(device_state) = slot.as_ref() else {
+                unavailable = true;
+                return false;
+            };
+
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let mouse = device_state.get_mouse();
+                mouse.button_pressed.get(1).copied().unwrap_or(false)
+            }))
+            .unwrap_or(false)
+        });
+
+        if unavailable {
+            if std::env::var("PYCRO_DEBUG_MAC_LEFT_NATIVE").as_deref() == Ok("1")
+                && !DEBUG_UNAVAILABLE_ONCE.swap(true, Ordering::Relaxed)
+            {
+                eprintln!(
+                    "[pycro] macOS left click native sampler unavailable (Accessibility permission missing). Returning false without backend fallback."
+                );
+            }
+            return false;
+        }
+
+        if std::env::var("PYCRO_DEBUG_MAC_LEFT_NATIVE").as_deref() == Ok("1")
+            && !DEBUG_NATIVE_ROUTE_ONCE.swap(true, Ordering::Relaxed)
+        {
+            eprintln!(
+                "[pycro] macOS left click using native binding path (device_query direct polling on Python call thread)."
+            );
+        }
+
+        is_down
+    }
+
+    #[cfg(target_os = "macos")]
+    fn is_cursor_inside_window_py(
+        vm: &VirtualMachine,
+        backend: &Arc<Mutex<MacroquadBackendContract>>,
+    ) -> PyResult<bool> {
+        Self::with_backend_py(vm, backend, |backend| {
+            let mouse = backend.get_mouse_position();
+            let size = backend.get_window_size();
+            Ok(mouse.x >= 0.0 && mouse.y >= 0.0 && mouse.x < size.x && mouse.y < size.y)
+        })
+    }
+
     fn normalize_payload_relative_path(path: &Path) -> String {
         path.to_string_lossy().replace('\\', "/")
     }
@@ -826,21 +907,21 @@ impl RustPythonVm {
     }
 
     fn module_bootstrap_source() -> &'static str {
-        r#"Color = tuple
-Vec2 = tuple
-TextureHandle = str
-
-class KEY:
-    SPACE = "Space"
-    LEFT = "Left"
-    RIGHT = "Right"
-    UP = "Up"
-    DOWN = "Down"
-    ESCAPE = "Escape"
-    MOUSE_LEFT = "MOUSE_LEFT"
-    MOUSE_RIGHT = "MOUSE_RIGHT"
-    MOUSE_MIDDLE = "MOUSE_MIDDLE"
-"#
+        static SOURCE: OnceLock<String> = OnceLock::new();
+        SOURCE
+            .get_or_init(|| {
+                let mut source = String::from(
+                    "Color = tuple\n\
+Vec2 = tuple\n\
+TextureHandle = str\n\n\
+class KEY:\n",
+                );
+                for (name, value) in KEY_ENUM_MEMBERS {
+                    source.push_str(&format!("    {} = \"{}\"\n", name, value));
+                }
+                source
+            })
+            .as_str()
     }
 
     fn with_scope<T>(
@@ -1209,6 +1290,72 @@ class KEY:
                         size: Vec2 {
                             x: width as f32,
                             y: height as f32,
+                        },
+                        color,
+                    })
+                }
+                "put_pixel" => {
+                    if fields.len() != 4 {
+                        return Err(vm.new_value_error(format!(
+                            "submit_render commands[{index}]: put_pixel expects 3 arguments"
+                        )));
+                    }
+                    let x: f64 = fields[1].clone().try_into_value(vm).map_err(|_| {
+                        vm.new_value_error(format!(
+                            "submit_render commands[{index}] put_pixel x: expected float"
+                        ))
+                    })?;
+                    let y: f64 = fields[2].clone().try_into_value(vm).map_err(|_| {
+                        vm.new_value_error(format!(
+                            "submit_render commands[{index}] put_pixel y: expected float"
+                        ))
+                    })?;
+                    let color =
+                        Self::parse_color_py(vm, &fields[3], "submit_render put_pixel color")?;
+                    Ok(QueuedDrawOp::PutPixel {
+                        position: Vec2 {
+                            x: x as f32,
+                            y: y as f32,
+                        },
+                        color,
+                    })
+                }
+                "draw_line" => {
+                    if fields.len() != 6 {
+                        return Err(vm.new_value_error(format!(
+                            "submit_render commands[{index}]: draw_line expects 5 arguments"
+                        )));
+                    }
+                    let x1: f64 = fields[1].clone().try_into_value(vm).map_err(|_| {
+                        vm.new_value_error(format!(
+                            "submit_render commands[{index}] draw_line x1: expected float"
+                        ))
+                    })?;
+                    let y1: f64 = fields[2].clone().try_into_value(vm).map_err(|_| {
+                        vm.new_value_error(format!(
+                            "submit_render commands[{index}] draw_line y1: expected float"
+                        ))
+                    })?;
+                    let x2: f64 = fields[3].clone().try_into_value(vm).map_err(|_| {
+                        vm.new_value_error(format!(
+                            "submit_render commands[{index}] draw_line x2: expected float"
+                        ))
+                    })?;
+                    let y2: f64 = fields[4].clone().try_into_value(vm).map_err(|_| {
+                        vm.new_value_error(format!(
+                            "submit_render commands[{index}] draw_line y2: expected float"
+                        ))
+                    })?;
+                    let color =
+                        Self::parse_color_py(vm, &fields[5], "submit_render draw_line color")?;
+                    Ok(QueuedDrawOp::DrawLine {
+                        start: Vec2 {
+                            x: x1 as f32,
+                            y: y1 as f32,
+                        },
+                        end: Vec2 {
+                            x: x2 as f32,
+                            y: y2 as f32,
                         },
                         color,
                     })
@@ -1595,6 +1742,12 @@ class KEY:
                                 size,
                                 color,
                             } => backend.draw_rectangle(position, size, color),
+                            QueuedDrawOp::PutPixel { position, color } => {
+                                backend.put_pixel(position, color)
+                            }
+                            QueuedDrawOp::DrawLine { start, end, color } => {
+                                backend.draw_line(start, end, color)
+                            }
                         }
                     }
                 }
@@ -1629,6 +1782,10 @@ class KEY:
                     size,
                     color,
                 } => backend.draw_rectangle(position, size, color),
+                QueuedDrawOp::PutPixel { position, color } => backend.put_pixel(position, color),
+                QueuedDrawOp::DrawLine { start, end, color } => {
+                    backend.draw_line(start, end, color)
+                }
             }
         }
         Self::rebuild_submit_render_circle_cache_py(
@@ -1672,6 +1829,12 @@ class KEY:
                         size,
                         color,
                     } => backend.draw_rectangle(position, size, color),
+                    QueuedDrawOp::PutPixel { position, color } => {
+                        backend.put_pixel(position, color)
+                    }
+                    QueuedDrawOp::DrawLine { start, end, color } => {
+                        backend.draw_line(start, end, color)
+                    }
                 },
                 QueuedBatchEntry::CircleRun { start, len } => {
                     backend.draw_circle_batch(&draw_batch.circles[*start..(*start + *len)]);
@@ -1753,6 +1916,13 @@ class KEY:
                             }
                             let (key,): (PyObjectRef,) = args.bind(vm)?;
                             let key = Self::parse_key_name_py(vm, &key, "is_key_down key")?;
+                            #[cfg(target_os = "macos")]
+                            if Self::is_left_mouse_key_alias(key.as_str()) {
+                                if !Self::is_cursor_inside_window_py(vm, &backend)? {
+                                    return Ok(false);
+                                }
+                                return Ok(Self::query_left_mouse_down_macos());
+                            }
                             Self::with_backend_py(vm, &backend, |backend| {
                                 Ok(backend.is_key_down(&key))
                             })
@@ -1857,6 +2027,18 @@ class KEY:
                     })
                     .into()
                 }
+                "get_mouse_position" => {
+                    let backend = Arc::clone(&backend);
+                    vm.new_function("get_mouse_position", move |vm: &VirtualMachine| {
+                        Self::with_backend_py(vm, &backend, |backend| {
+                            let position = backend.get_mouse_position();
+                            let x = vm.ctx.new_float(f64::from(position.x));
+                            let y = vm.ctx.new_float(f64::from(position.y));
+                            Ok(vm.ctx.new_tuple(vec![x.into(), y.into()]))
+                        })
+                    })
+                    .into()
+                }
                 "draw_rectangle" => {
                     let draw_batch = Arc::clone(&draw_batch);
                     vm.new_function(
@@ -1883,6 +2065,57 @@ class KEY:
                                         x: width,
                                         y: height,
                                     },
+                                    color,
+                                },
+                            )
+                        },
+                    )
+                    .into()
+                }
+                "put_pixel" => {
+                    let draw_batch = Arc::clone(&draw_batch);
+                    vm.new_function(
+                        "put_pixel",
+                        move |x: PyObjectRef,
+                              y: PyObjectRef,
+                              color: PyObjectRef,
+                              vm: &VirtualMachine| {
+                            let x = Self::parse_number_item_at_py(vm, &x, "put_pixel", 0)?;
+                            let y = Self::parse_number_item_at_py(vm, &y, "put_pixel", 1)?;
+                            let color = Self::parse_color_py(vm, &color, "put_pixel color")?;
+                            Self::queue_draw_op_py(
+                                vm,
+                                &draw_batch,
+                                QueuedDrawOp::PutPixel {
+                                    position: Vec2 { x, y },
+                                    color,
+                                },
+                            )
+                        },
+                    )
+                    .into()
+                }
+                "draw_line" => {
+                    let draw_batch = Arc::clone(&draw_batch);
+                    vm.new_function(
+                        "draw_line",
+                        move |x1: PyObjectRef,
+                              y1: PyObjectRef,
+                              x2: PyObjectRef,
+                              y2: PyObjectRef,
+                              color: PyObjectRef,
+                              vm: &VirtualMachine| {
+                            let x1 = Self::parse_number_item_at_py(vm, &x1, "draw_line", 0)?;
+                            let y1 = Self::parse_number_item_at_py(vm, &y1, "draw_line", 1)?;
+                            let x2 = Self::parse_number_item_at_py(vm, &x2, "draw_line", 2)?;
+                            let y2 = Self::parse_number_item_at_py(vm, &y2, "draw_line", 3)?;
+                            let color = Self::parse_color_py(vm, &color, "draw_line color")?;
+                            Self::queue_draw_op_py(
+                                vm,
+                                &draw_batch,
+                                QueuedDrawOp::DrawLine {
+                                    start: Vec2 { x: x1, y: y1 },
+                                    end: Vec2 { x: x2, y: y2 },
                                     color,
                                 },
                             )
