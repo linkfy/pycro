@@ -58,7 +58,7 @@ Phase-4 import compatibility behavior (`RustPythonVm::load_script`):
 Direct bridge status (current architecture):
 
 - Runtime installs callable Python functions that directly invoke `MacroquadBackendContract` through a shared mutex (`Arc<Mutex<...>>`).
-- Return values propagate directly for `is_key_down -> bool`, `frame_time -> float`, `load_texture -> TextureHandle(str)`.
+- Return values propagate directly for `is_key_down -> bool`, `frame_time -> float`, `get_window_size -> Vec2`, `load_texture -> TextureHandle(str)`.
 - Python argument shape/type errors are surfaced as `RuntimeError::FunctionCall` with RustPython exception details.
 
 ## API Module (`src/api.rs`)
@@ -81,8 +81,10 @@ Public authored API functions (from `FUNCTIONS`):
 
 - `clear_background(color: Color) -> None`
 - `draw_circle(position: Vec2, radius: float, color: Color) -> None`
+- `draw_rectangle(x: float, y: float, width: float, height: float, color: Color) -> None`
 - `is_key_down(key: KEY) -> bool`
 - `frame_time() -> float`
+- `get_window_size() -> Vec2`
 - `load_texture(path: str) -> TextureHandle`
 - `draw_texture(texture: TextureHandle, position: Vec2, size: Vec2) -> None`
 - `set_camera_target(target: Vec2) -> None`
@@ -116,6 +118,8 @@ Core contract types:
   - `draw_texture`
   - `set_camera_target`
   - `draw_text`
+  - `get_window_size`
+  - `draw_rectangle`
 
 Frame loop boundary:
 

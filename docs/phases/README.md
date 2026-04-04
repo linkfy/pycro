@@ -31,7 +31,9 @@ This directory stores the canonical sequential delivery phases.
 - `18-project-android-build` (complete)
 - `19-project-ios-build` (complete)
 - `20-dev-hot-reload-and-runtime-error-overlay` (complete)
-- `21-window-size-api-command` (planned)
+- `21-window-size-api-command` (complete)
+- `22-texture-load-cache` (closed)
+- `23-input-mouse-position-and-full-keyboard-keys` (complete)
 
 ## Required Files Per Phase
 

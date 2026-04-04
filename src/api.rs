@@ -176,6 +176,35 @@ pub enum BackendDispatchCommand {
         /// Text color.
         color: Color,
     },
+    /// `draw_rectangle(position, size, color)`
+    DrawRectangle {
+        /// Top-left rectangle position.
+        position: Vec2,
+        /// Rectangle size.
+        size: Vec2,
+        /// Fill color.
+        color: Color,
+    },
+    /// `put_pixel(position, color)`
+    PutPixel {
+        /// Pixel position in screen space.
+        position: Vec2,
+        /// Pixel color.
+        color: Color,
+    },
+    /// `draw_line(start, end, color)`
+    DrawLine {
+        /// Line start point.
+        start: Vec2,
+        /// Line end point.
+        end: Vec2,
+        /// Line color.
+        color: Color,
+    },
+    /// `get_window_size()`
+    GetWindowSize,
+    /// `get_mouse_position()`
+    GetMousePosition,
 }
 
 /// Parses a runtime dispatch record into a typed backend command.
@@ -237,6 +266,54 @@ pub fn parse_backend_dispatch_record(record: &str) -> Result<BackendDispatchComm
                 a: parse_f32(a)?,
             },
         }),
+        ["draw_rectangle", x, y, width, height, r, g, b, a] => {
+            Ok(BackendDispatchCommand::DrawRectangle {
+                position: Vec2 {
+                    x: parse_f32(x)?,
+                    y: parse_f32(y)?,
+                },
+                size: Vec2 {
+                    x: parse_f32(width)?,
+                    y: parse_f32(height)?,
+                },
+                color: Color {
+                    r: parse_f32(r)?,
+                    g: parse_f32(g)?,
+                    b: parse_f32(b)?,
+                    a: parse_f32(a)?,
+                },
+            })
+        }
+        ["put_pixel", x, y, r, g, b, a] => Ok(BackendDispatchCommand::PutPixel {
+            position: Vec2 {
+                x: parse_f32(x)?,
+                y: parse_f32(y)?,
+            },
+            color: Color {
+                r: parse_f32(r)?,
+                g: parse_f32(g)?,
+                b: parse_f32(b)?,
+                a: parse_f32(a)?,
+            },
+        }),
+        ["draw_line", x1, y1, x2, y2, r, g, b, a] => Ok(BackendDispatchCommand::DrawLine {
+            start: Vec2 {
+                x: parse_f32(x1)?,
+                y: parse_f32(y1)?,
+            },
+            end: Vec2 {
+                x: parse_f32(x2)?,
+                y: parse_f32(y2)?,
+            },
+            color: Color {
+                r: parse_f32(r)?,
+                g: parse_f32(g)?,
+                b: parse_f32(b)?,
+                a: parse_f32(a)?,
+            },
+        }),
+        ["get_window_size"] => Ok(BackendDispatchCommand::GetWindowSize),
+        ["get_mouse_position"] => Ok(BackendDispatchCommand::GetMousePosition),
         _ => Err(format!("unsupported dispatch record: {record}")),
     }
 }
@@ -268,6 +345,21 @@ pub fn dispatch_backend_record(
             font_size,
             color,
         } => backend.draw_text(text.as_str(), position, font_size, color),
+        BackendDispatchCommand::DrawRectangle {
+            position,
+            size,
+            color,
+        } => backend.draw_rectangle(position, size, color),
+        BackendDispatchCommand::PutPixel { position, color } => backend.put_pixel(position, color),
+        BackendDispatchCommand::DrawLine { start, end, color } => {
+            backend.draw_line(start, end, color)
+        }
+        BackendDispatchCommand::GetWindowSize => {
+            let _ = backend.get_window_size();
+        }
+        BackendDispatchCommand::GetMousePosition => {
+            let _ = backend.get_mouse_position();
+        }
     }
     Ok(())
 }
@@ -373,6 +465,83 @@ const DRAW_TEXT_ARGS: [PythonArg; 4] = [
     },
 ];
 
+const GET_WINDOW_SIZE_ARGS: [PythonArg; 0] = [];
+const GET_MOUSE_POSITION_ARGS: [PythonArg; 0] = [];
+
+const DRAW_RECTANGLE_ARGS: [PythonArg; 5] = [
+    PythonArg {
+        name: "x",
+        type_hint: "float",
+        summary: "Rectangle top-left x in screen space.",
+    },
+    PythonArg {
+        name: "y",
+        type_hint: "float",
+        summary: "Rectangle top-left y in screen space.",
+    },
+    PythonArg {
+        name: "width",
+        type_hint: "float",
+        summary: "Rectangle width in pixels.",
+    },
+    PythonArg {
+        name: "height",
+        type_hint: "float",
+        summary: "Rectangle height in pixels.",
+    },
+    PythonArg {
+        name: "color",
+        type_hint: "Color",
+        summary: "Fill color for the rectangle.",
+    },
+];
+
+const PUT_PIXEL_ARGS: [PythonArg; 3] = [
+    PythonArg {
+        name: "x",
+        type_hint: "float",
+        summary: "Pixel x in screen space.",
+    },
+    PythonArg {
+        name: "y",
+        type_hint: "float",
+        summary: "Pixel y in screen space.",
+    },
+    PythonArg {
+        name: "color",
+        type_hint: "Color",
+        summary: "Pixel color.",
+    },
+];
+
+const DRAW_LINE_ARGS: [PythonArg; 5] = [
+    PythonArg {
+        name: "x1",
+        type_hint: "float",
+        summary: "Line start x in screen space.",
+    },
+    PythonArg {
+        name: "y1",
+        type_hint: "float",
+        summary: "Line start y in screen space.",
+    },
+    PythonArg {
+        name: "x2",
+        type_hint: "float",
+        summary: "Line end x in screen space.",
+    },
+    PythonArg {
+        name: "y2",
+        type_hint: "float",
+        summary: "Line end y in screen space.",
+    },
+    PythonArg {
+        name: "color",
+        type_hint: "Color",
+        summary: "Line color.",
+    },
+];
+
 const SUBMIT_RENDER_ARGS: [PythonArg; 1] = [PythonArg {
     name: "commands",
     type_hint: "list[tuple[object, ...]]",
@@ -397,7 +566,7 @@ const SUBMIT_CIRCLE_BATCH_ARGS: [PythonArg; 3] = [
     },
 ];
 
-const FUNCTIONS: [PythonFunction; 10] = [
+const FUNCTIONS: [PythonFunction; 15] = [
     PythonFunction {
         name: "clear_background",
         family: ApiFamily::Render,
@@ -463,6 +632,46 @@ const FUNCTIONS: [PythonFunction; 10] = [
         platforms: PlatformMatrix::cross_platform_safe(),
     },
     PythonFunction {
+        name: "get_window_size",
+        family: ApiFamily::Render,
+        summary: "Return the current window width and height in pixels.",
+        args: &GET_WINDOW_SIZE_ARGS,
+        return_type: "Vec2",
+        platforms: PlatformMatrix::cross_platform_safe(),
+    },
+    PythonFunction {
+        name: "get_mouse_position",
+        family: ApiFamily::Input,
+        summary: "Return the current mouse x/y coordinates in screen space.",
+        args: &GET_MOUSE_POSITION_ARGS,
+        return_type: "Vec2",
+        platforms: PlatformMatrix::cross_platform_safe(),
+    },
+    PythonFunction {
+        name: "draw_rectangle",
+        family: ApiFamily::Render,
+        summary: "Draw a filled rectangle in screen space.",
+        args: &DRAW_RECTANGLE_ARGS,
+        return_type: "None",
+        platforms: PlatformMatrix::cross_platform_safe(),
+    },
+    PythonFunction {
+        name: "put_pixel",
+        family: ApiFamily::Render,
+        summary: "Draw a single pixel at the given screen-space position.",
+        args: &PUT_PIXEL_ARGS,
+        return_type: "None",
+        platforms: PlatformMatrix::cross_platform_safe(),
+    },
+    PythonFunction {
+        name: "draw_line",
+        family: ApiFamily::Render,
+        summary: "Draw a 1px line segment in screen space.",
+        args: &DRAW_LINE_ARGS,
+        return_type: "None",
+        platforms: PlatformMatrix::cross_platform_safe(),
+    },
+    PythonFunction {
         name: "submit_render",
         family: ApiFamily::Render,
         summary: "Queue multiple render commands in one Python-to-runtime call.",
@@ -486,13 +695,129 @@ const MODULE_SPEC: ModuleSpec = ModuleSpec {
     functions: &FUNCTIONS,
 };
 
-const KEY_ENUM_MEMBERS: [(&str, &str); 9] = [
+/// Canonical `(enum_member_name, runtime_key_value)` pairs for `pycro.KEY`.
+pub const KEY_ENUM_MEMBERS: &[(&str, &str)] = &[
     ("SPACE", "Space"),
-    ("LEFT", "Left"),
-    ("RIGHT", "Right"),
-    ("UP", "Up"),
-    ("DOWN", "Down"),
+    ("APOSTROPHE", "Apostrophe"),
+    ("COMMA", "Comma"),
+    ("MINUS", "Minus"),
+    ("PERIOD", "Period"),
+    ("SLASH", "Slash"),
+    ("KEY_0", "Key0"),
+    ("KEY_1", "Key1"),
+    ("KEY_2", "Key2"),
+    ("KEY_3", "Key3"),
+    ("KEY_4", "Key4"),
+    ("KEY_5", "Key5"),
+    ("KEY_6", "Key6"),
+    ("KEY_7", "Key7"),
+    ("KEY_8", "Key8"),
+    ("KEY_9", "Key9"),
+    ("SEMICOLON", "Semicolon"),
+    ("EQUAL", "Equal"),
+    ("A", "A"),
+    ("B", "B"),
+    ("C", "C"),
+    ("D", "D"),
+    ("E", "E"),
+    ("F", "F"),
+    ("G", "G"),
+    ("H", "H"),
+    ("I", "I"),
+    ("J", "J"),
+    ("K", "K"),
+    ("L", "L"),
+    ("M", "M"),
+    ("N", "N"),
+    ("O", "O"),
+    ("P", "P"),
+    ("Q", "Q"),
+    ("R", "R"),
+    ("S", "S"),
+    ("T", "T"),
+    ("U", "U"),
+    ("V", "V"),
+    ("W", "W"),
+    ("X", "X"),
+    ("Y", "Y"),
+    ("Z", "Z"),
+    ("LEFT_BRACKET", "LeftBracket"),
+    ("BACKSLASH", "Backslash"),
+    ("RIGHT_BRACKET", "RightBracket"),
+    ("GRAVE_ACCENT", "GraveAccent"),
+    ("WORLD_1", "World1"),
+    ("WORLD_2", "World2"),
     ("ESCAPE", "Escape"),
+    ("ENTER", "Enter"),
+    ("TAB", "Tab"),
+    ("BACKSPACE", "Backspace"),
+    ("INSERT", "Insert"),
+    ("DELETE", "Delete"),
+    ("RIGHT", "Right"),
+    ("LEFT", "Left"),
+    ("DOWN", "Down"),
+    ("UP", "Up"),
+    ("PAGE_UP", "PageUp"),
+    ("PAGE_DOWN", "PageDown"),
+    ("HOME", "Home"),
+    ("END", "End"),
+    ("CAPS_LOCK", "CapsLock"),
+    ("SCROLL_LOCK", "ScrollLock"),
+    ("NUM_LOCK", "NumLock"),
+    ("PRINT_SCREEN", "PrintScreen"),
+    ("PAUSE", "Pause"),
+    ("F1", "F1"),
+    ("F2", "F2"),
+    ("F3", "F3"),
+    ("F4", "F4"),
+    ("F5", "F5"),
+    ("F6", "F6"),
+    ("F7", "F7"),
+    ("F8", "F8"),
+    ("F9", "F9"),
+    ("F10", "F10"),
+    ("F11", "F11"),
+    ("F12", "F12"),
+    ("F13", "F13"),
+    ("F14", "F14"),
+    ("F15", "F15"),
+    ("F16", "F16"),
+    ("F17", "F17"),
+    ("F18", "F18"),
+    ("F19", "F19"),
+    ("F20", "F20"),
+    ("F21", "F21"),
+    ("F22", "F22"),
+    ("F23", "F23"),
+    ("F24", "F24"),
+    ("F25", "F25"),
+    ("KP_0", "Kp0"),
+    ("KP_1", "Kp1"),
+    ("KP_2", "Kp2"),
+    ("KP_3", "Kp3"),
+    ("KP_4", "Kp4"),
+    ("KP_5", "Kp5"),
+    ("KP_6", "Kp6"),
+    ("KP_7", "Kp7"),
+    ("KP_8", "Kp8"),
+    ("KP_9", "Kp9"),
+    ("KP_DECIMAL", "KpDecimal"),
+    ("KP_DIVIDE", "KpDivide"),
+    ("KP_MULTIPLY", "KpMultiply"),
+    ("KP_SUBTRACT", "KpSubtract"),
+    ("KP_ADD", "KpAdd"),
+    ("KP_ENTER", "KpEnter"),
+    ("KP_EQUAL", "KpEqual"),
+    ("LEFT_SHIFT", "LeftShift"),
+    ("LEFT_CONTROL", "LeftControl"),
+    ("LEFT_ALT", "LeftAlt"),
+    ("LEFT_SUPER", "LeftSuper"),
+    ("RIGHT_SHIFT", "RightShift"),
+    ("RIGHT_CONTROL", "RightControl"),
+    ("RIGHT_ALT", "RightAlt"),
+    ("RIGHT_SUPER", "RightSuper"),
+    ("MENU", "Menu"),
+    ("BACK", "Back"),
     ("MOUSE_LEFT", "MOUSE_LEFT"),
     ("MOUSE_RIGHT", "MOUSE_RIGHT"),
     ("MOUSE_MIDDLE", "MOUSE_MIDDLE"),
@@ -671,6 +996,35 @@ mod tests {
             .expect("load_texture metadata should exist");
         assert_eq!(load_texture.return_type, "TextureHandle");
         assert!(stub.contains("def load_texture(path: str) -> TextureHandle:"));
+
+        let get_window_size = plan
+            .iter()
+            .find(|entry| entry.function_name == "get_window_size")
+            .expect("get_window_size metadata should exist");
+        assert_eq!(get_window_size.return_type, "Vec2");
+        assert!(stub.contains("def get_window_size() -> Vec2:"));
+
+        let get_mouse_position = plan
+            .iter()
+            .find(|entry| entry.function_name == "get_mouse_position")
+            .expect("get_mouse_position metadata should exist");
+        assert_eq!(get_mouse_position.return_type, "Vec2");
+        assert!(stub.contains("def get_mouse_position() -> Vec2:"));
+
+        let draw_rectangle = plan
+            .iter()
+            .find(|entry| entry.function_name == "draw_rectangle")
+            .expect("draw_rectangle metadata should exist");
+        assert_eq!(draw_rectangle.return_type, "None");
+        assert!(
+            stub.contains(
+                "def draw_rectangle(x: float, y: float, width: float, height: float, color: Color) -> None:"
+            )
+        );
+        assert!(stub.contains("def put_pixel(x: float, y: float, color: Color) -> None:"));
+        assert!(stub.contains(
+            "def draw_line(x1: float, y1: float, x2: float, y2: float, color: Color) -> None:"
+        ));
     }
 
     #[test]
@@ -704,6 +1058,18 @@ mod tests {
             fn draw_texture(&mut self, _texture: &TextureHandle, _position: Vec2, _size: Vec2) {}
             fn set_camera_target(&mut self, _target: Vec2) {}
             fn draw_text(&mut self, _text: &str, _position: Vec2, _font_size: f32, _color: Color) {}
+            fn get_window_size(&self) -> Vec2 {
+                Vec2 {
+                    x: 1280.0,
+                    y: 720.0,
+                }
+            }
+            fn get_mouse_position(&self) -> Vec2 {
+                Vec2 { x: 0.0, y: 0.0 }
+            }
+            fn draw_rectangle(&mut self, _position: Vec2, _size: Vec2, _color: Color) {}
+            fn put_pixel(&mut self, _position: Vec2, _color: Color) {}
+            fn draw_line(&mut self, _start: Vec2, _end: Vec2, _color: Color) {}
         }
 
         let command = parse_backend_dispatch_record("clear_background|0.1|0.2|0.3|1.0")
@@ -772,6 +1138,18 @@ mod tests {
             fn draw_texture(&mut self, _texture: &TextureHandle, _position: Vec2, _size: Vec2) {}
             fn set_camera_target(&mut self, _target: Vec2) {}
             fn draw_text(&mut self, _text: &str, _position: Vec2, _font_size: f32, _color: Color) {}
+            fn get_window_size(&self) -> Vec2 {
+                Vec2 {
+                    x: 1280.0,
+                    y: 720.0,
+                }
+            }
+            fn draw_rectangle(&mut self, _position: Vec2, _size: Vec2, _color: Color) {}
+            fn get_mouse_position(&self) -> Vec2 {
+                Vec2 { x: 0.0, y: 0.0 }
+            }
+            fn put_pixel(&mut self, _position: Vec2, _color: Color) {}
+            fn draw_line(&mut self, _start: Vec2, _end: Vec2, _color: Color) {}
         }
 
         let mut backend = NoopBackend;

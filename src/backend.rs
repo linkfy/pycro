@@ -11,10 +11,12 @@ use macroquad::input::{is_key_down, is_mouse_button_down};
 use macroquad::math::vec2;
 #[cfg(target_os = "macos")]
 use macroquad::miniquad::conf::AppleGfxApi;
+#[cfg(not(test))]
+use macroquad::models::{Mesh, Vertex, draw_mesh};
 use macroquad::prelude::{
     Camera2D, Color as MqColor, DrawTextureParams, Rect, Texture2D, WHITE, clear_background,
-    draw_circle, draw_rectangle, draw_text, draw_texture_ex, screen_height, screen_width,
-    set_camera,
+    draw_circle, draw_line as mq_draw_line, draw_rectangle, draw_text, draw_texture_ex,
+    screen_height, screen_width, set_camera,
 };
 use macroquad::texture::FilterMode;
 use macroquad::time::get_frame_time;
@@ -72,6 +74,15 @@ pub struct CircleDraw {
     pub color: Color,
     /// Per-command render mode override.
     pub render_mode: VectorRenderMode,
+}
+
+/// Packed textured quad payload.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct TextureDraw {
+    /// Top-left position.
+    pub position: Vec2,
+    /// Draw size.
+    pub size: Vec2,
 }
 
 /// Optional per-command vector rendering mode.
@@ -138,6 +149,31 @@ pub enum BackendDispatch {
         /// Text color.
         color: Color,
     },
+    /// draw_rectangle(position, size, color)
+    DrawRectangle {
+        /// Top-left position.
+        position: Vec2,
+        /// Rectangle size.
+        size: Vec2,
+        /// Fill color.
+        color: Color,
+    },
+    /// put_pixel(position, color)
+    PutPixel {
+        /// Pixel position.
+        position: Vec2,
+        /// Pixel color.
+        color: Color,
+    },
+    /// draw_line(start, end, color)
+    DrawLine {
+        /// Line start position.
+        start: Vec2,
+        /// Line end position.
+        end: Vec2,
+        /// Line color.
+        color: Color,
+    },
 }
 
 /// Engine backend contract consumed by `api`.
@@ -171,10 +207,22 @@ pub trait EngineBackend {
     fn load_texture(&mut self, path: &str) -> Result<TextureHandle, String>;
     /// Draws a texture.
     fn draw_texture(&mut self, texture: &TextureHandle, position: Vec2, size: Vec2);
+    /// Flushes deferred rendering work for the current frame.
+    fn finish_frame(&mut self) {}
     /// Moves the active camera target.
     fn set_camera_target(&mut self, target: Vec2);
     /// Draws text on screen.
     fn draw_text(&mut self, text: &str, position: Vec2, font_size: f32, color: Color);
+    /// Returns current window size in pixels.
+    fn get_window_size(&self) -> Vec2;
+    /// Returns current mouse position in pixels.
+    fn get_mouse_position(&self) -> Vec2;
+    /// Draws a filled rectangle.
+    fn draw_rectangle(&mut self, position: Vec2, size: Vec2, color: Color);
+    /// Draws a single pixel in screen space.
+    fn put_pixel(&mut self, position: Vec2, color: Color);
+    /// Draws a 1px line in screen space.
+    fn draw_line(&mut self, start: Vec2, end: Vec2, color: Color);
 }
 
 /// Desktop loop owner config for frame dispatch.
@@ -451,6 +499,8 @@ pub struct MacroquadBackendContract {
     #[cfg(test)]
     dispatch_log: Vec<BackendDispatch>,
     textures: HashMap<String, Texture2D>,
+    pending_texture: Option<TextureHandle>,
+    pending_texture_draws: Vec<TextureDraw>,
     circle_sprite: Option<Texture2D>,
     circle_sprite_size: u16,
     circle_sprite_filter_linear: bool,
@@ -480,6 +530,8 @@ impl Default for MacroquadBackendContract {
             #[cfg(test)]
             dispatch_log: Vec::new(),
             textures: HashMap::new(),
+            pending_texture: None,
+            pending_texture_draws: Vec::new(),
             circle_sprite: None,
             circle_sprite_size: {
                 #[cfg(test)]
@@ -640,6 +692,125 @@ impl MacroquadBackendContract {
             VectorRenderMode::ForceSprite => true,
         }
     }
+
+    fn max_sprites_per_texture_geometry_batch(&self) -> usize {
+        let max_vertices = self.drawcall_max_vertices.unwrap_or(10_000);
+        let max_indices = self.drawcall_max_indices.unwrap_or(5_000);
+        let by_vertices = max_vertices / 4;
+        let by_indices = max_indices / 6;
+        by_vertices
+            .min(by_indices)
+            .max(1)
+            .min(usize::from(u16::MAX) / 4)
+    }
+
+    fn queue_texture_draw(&mut self, texture: &TextureHandle, position: Vec2, size: Vec2) {
+        if self
+            .pending_texture
+            .as_ref()
+            .is_some_and(|pending| pending == texture)
+        {
+            self.pending_texture_draws
+                .push(TextureDraw { position, size });
+            return;
+        }
+        self.flush_pending_texture_batch();
+        self.pending_texture = Some(texture.clone());
+        self.pending_texture_draws
+            .push(TextureDraw { position, size });
+    }
+
+    fn draw_texture_geometry_chunk(&self, native_texture: &Texture2D, draws: &[TextureDraw]) {
+        #[cfg(not(test))]
+        {
+            let mut vertices = Vec::with_capacity(draws.len() * 4);
+            let mut indices = Vec::with_capacity(draws.len() * 6);
+            for (draw_index, draw) in draws.iter().enumerate() {
+                let base = u16::try_from(draw_index * 4).expect("texture batch index must fit u16");
+                let x = draw.position.x;
+                let y = draw.position.y;
+                let w = draw.size.x;
+                let h = draw.size.y;
+                vertices.push(Vertex::new(x, y, 0.0, 0.0, 0.0, WHITE));
+                vertices.push(Vertex::new(x + w, y, 0.0, 1.0, 0.0, WHITE));
+                vertices.push(Vertex::new(x + w, y + h, 0.0, 1.0, 1.0, WHITE));
+                vertices.push(Vertex::new(x, y + h, 0.0, 0.0, 1.0, WHITE));
+                indices.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
+            }
+            let mesh = Mesh {
+                vertices,
+                indices,
+                texture: Some(native_texture.clone()),
+            };
+            draw_mesh(&mesh);
+        }
+        #[cfg(test)]
+        {
+            let _ = (native_texture, draws);
+        }
+    }
+
+    fn draw_texture_batch_native(&self, native_texture: &Texture2D, draws: &[TextureDraw]) {
+        let chunk_size = self.max_sprites_per_texture_geometry_batch();
+        for chunk in draws.chunks(chunk_size) {
+            if chunk.len() == 1 {
+                let draw = chunk[0];
+                draw_texture_ex(
+                    native_texture,
+                    draw.position.x,
+                    draw.position.y,
+                    WHITE,
+                    DrawTextureParams {
+                        dest_size: Some(vec2(draw.size.x, draw.size.y)),
+                        ..DrawTextureParams::default()
+                    },
+                );
+            } else {
+                self.draw_texture_geometry_chunk(native_texture, chunk);
+            }
+        }
+    }
+
+    fn flush_pending_texture_batch(&mut self) {
+        let Some(texture) = self.pending_texture.take() else {
+            return;
+        };
+        let draws = std::mem::take(&mut self.pending_texture_draws);
+        if draws.is_empty() {
+            return;
+        }
+
+        #[cfg(target_os = "android")]
+        if !self.textures.contains_key(&texture.0) {
+            let normalized = texture.0.trim_start_matches("./");
+            if let Some(payload) = embedded_project_payload() {
+                if let Some(file) = payload
+                    .files
+                    .iter()
+                    .find(|file| file.relative_path == normalized)
+                {
+                    let native_texture = Texture2D::from_file_with_format(file.bytes, None);
+                    self.textures.insert(texture.0.clone(), native_texture);
+                }
+            }
+        }
+
+        if let Some(native_texture) = self.textures.get(&texture.0) {
+            self.draw_texture_batch_native(native_texture, &draws);
+            return;
+        }
+
+        // Fallback marker when texture file cannot be loaded.
+        for draw in draws {
+            draw_rectangle(
+                draw.position.x,
+                draw.position.y,
+                draw.size.x,
+                draw.size.y,
+                WHITE,
+            );
+        }
+    }
 }
 
 fn key_code_from_name(key: &str) -> Option<KeyCode> {
@@ -681,13 +852,104 @@ fn key_code_from_name(key: &str) -> Option<KeyCode> {
         };
     }
 
-    match key {
-        "Space" | "space" => Some(KeyCode::Space),
-        "Left" | "left" => Some(KeyCode::Left),
-        "Right" | "right" => Some(KeyCode::Right),
-        "Up" | "up" => Some(KeyCode::Up),
-        "Down" | "down" => Some(KeyCode::Down),
-        "Escape" | "escape" => Some(KeyCode::Escape),
+    let normalized = key.to_ascii_lowercase().replace('_', "");
+
+    match normalized.as_str() {
+        "space" => Some(KeyCode::Space),
+        "apostrophe" => Some(KeyCode::Apostrophe),
+        "comma" => Some(KeyCode::Comma),
+        "minus" => Some(KeyCode::Minus),
+        "period" => Some(KeyCode::Period),
+        "slash" => Some(KeyCode::Slash),
+        "key0" | "0" => Some(KeyCode::Key0),
+        "key1" | "1" => Some(KeyCode::Key1),
+        "key2" | "2" => Some(KeyCode::Key2),
+        "key3" | "3" => Some(KeyCode::Key3),
+        "key4" | "4" => Some(KeyCode::Key4),
+        "key5" | "5" => Some(KeyCode::Key5),
+        "key6" | "6" => Some(KeyCode::Key6),
+        "key7" | "7" => Some(KeyCode::Key7),
+        "key8" | "8" => Some(KeyCode::Key8),
+        "key9" | "9" => Some(KeyCode::Key9),
+        "semicolon" => Some(KeyCode::Semicolon),
+        "equal" => Some(KeyCode::Equal),
+        "leftbracket" => Some(KeyCode::LeftBracket),
+        "backslash" => Some(KeyCode::Backslash),
+        "rightbracket" => Some(KeyCode::RightBracket),
+        "graveaccent" => Some(KeyCode::GraveAccent),
+        "world1" => Some(KeyCode::World1),
+        "world2" => Some(KeyCode::World2),
+        "escape" => Some(KeyCode::Escape),
+        "enter" => Some(KeyCode::Enter),
+        "tab" => Some(KeyCode::Tab),
+        "backspace" => Some(KeyCode::Backspace),
+        "insert" => Some(KeyCode::Insert),
+        "delete" => Some(KeyCode::Delete),
+        "right" => Some(KeyCode::Right),
+        "left" => Some(KeyCode::Left),
+        "down" => Some(KeyCode::Down),
+        "up" => Some(KeyCode::Up),
+        "pageup" => Some(KeyCode::PageUp),
+        "pagedown" => Some(KeyCode::PageDown),
+        "home" => Some(KeyCode::Home),
+        "end" => Some(KeyCode::End),
+        "capslock" => Some(KeyCode::CapsLock),
+        "scrolllock" => Some(KeyCode::ScrollLock),
+        "numlock" => Some(KeyCode::NumLock),
+        "printscreen" => Some(KeyCode::PrintScreen),
+        "pause" => Some(KeyCode::Pause),
+        "f1" => Some(KeyCode::F1),
+        "f2" => Some(KeyCode::F2),
+        "f3" => Some(KeyCode::F3),
+        "f4" => Some(KeyCode::F4),
+        "f5" => Some(KeyCode::F5),
+        "f6" => Some(KeyCode::F6),
+        "f7" => Some(KeyCode::F7),
+        "f8" => Some(KeyCode::F8),
+        "f9" => Some(KeyCode::F9),
+        "f10" => Some(KeyCode::F10),
+        "f11" => Some(KeyCode::F11),
+        "f12" => Some(KeyCode::F12),
+        "f13" => Some(KeyCode::F13),
+        "f14" => Some(KeyCode::F14),
+        "f15" => Some(KeyCode::F15),
+        "f16" => Some(KeyCode::F16),
+        "f17" => Some(KeyCode::F17),
+        "f18" => Some(KeyCode::F18),
+        "f19" => Some(KeyCode::F19),
+        "f20" => Some(KeyCode::F20),
+        "f21" => Some(KeyCode::F21),
+        "f22" => Some(KeyCode::F22),
+        "f23" => Some(KeyCode::F23),
+        "f24" => Some(KeyCode::F24),
+        "f25" => Some(KeyCode::F25),
+        "kp0" => Some(KeyCode::Kp0),
+        "kp1" => Some(KeyCode::Kp1),
+        "kp2" => Some(KeyCode::Kp2),
+        "kp3" => Some(KeyCode::Kp3),
+        "kp4" => Some(KeyCode::Kp4),
+        "kp5" => Some(KeyCode::Kp5),
+        "kp6" => Some(KeyCode::Kp6),
+        "kp7" => Some(KeyCode::Kp7),
+        "kp8" => Some(KeyCode::Kp8),
+        "kp9" => Some(KeyCode::Kp9),
+        "kpdecimal" => Some(KeyCode::KpDecimal),
+        "kpdivide" => Some(KeyCode::KpDivide),
+        "kpmultiply" => Some(KeyCode::KpMultiply),
+        "kpsubtract" => Some(KeyCode::KpSubtract),
+        "kpadd" => Some(KeyCode::KpAdd),
+        "kpenter" => Some(KeyCode::KpEnter),
+        "kpequal" => Some(KeyCode::KpEqual),
+        "leftshift" => Some(KeyCode::LeftShift),
+        "leftcontrol" => Some(KeyCode::LeftControl),
+        "leftalt" => Some(KeyCode::LeftAlt),
+        "leftsuper" => Some(KeyCode::LeftSuper),
+        "rightshift" => Some(KeyCode::RightShift),
+        "rightcontrol" => Some(KeyCode::RightControl),
+        "rightalt" => Some(KeyCode::RightAlt),
+        "rightsuper" => Some(KeyCode::RightSuper),
+        "menu" => Some(KeyCode::Menu),
+        "back" => Some(KeyCode::Back),
         _ => None,
     }
 }
@@ -703,6 +965,7 @@ fn mouse_button_from_name(key: &str) -> Option<MouseButton> {
 
 impl EngineBackend for MacroquadBackendContract {
     fn clear_background(&mut self, color: Color) {
+        self.flush_pending_texture_batch();
         self.apply_drawcall_capacity_once();
         self.record_dispatch();
         #[cfg(test)]
@@ -718,6 +981,7 @@ impl EngineBackend for MacroquadBackendContract {
         color: Color,
         render_mode: VectorRenderMode,
     ) {
+        self.flush_pending_texture_batch();
         self.record_dispatch();
         #[cfg(test)]
         self.dispatch_log.push(BackendDispatch::DrawCircle {
@@ -746,6 +1010,7 @@ impl EngineBackend for MacroquadBackendContract {
     }
 
     fn draw_circle_batch(&mut self, circles: &[CircleDraw]) {
+        self.flush_pending_texture_batch();
         if self.count_dispatches {
             self.dispatch_count += circles.len();
         }
@@ -853,6 +1118,7 @@ impl EngineBackend for MacroquadBackendContract {
     }
 
     fn draw_texture(&mut self, texture: &TextureHandle, position: Vec2, size: Vec2) {
+        self.apply_drawcall_capacity_once();
         self.record_dispatch();
         #[cfg(test)]
         self.dispatch_log.push(BackendDispatch::DrawTexture {
@@ -860,41 +1126,15 @@ impl EngineBackend for MacroquadBackendContract {
             position,
             size,
         });
+        self.queue_texture_draw(texture, position, size);
+    }
 
-        #[cfg(target_os = "android")]
-        if !self.textures.contains_key(&texture.0) {
-            let normalized = texture.0.trim_start_matches("./");
-            if let Some(payload) = embedded_project_payload() {
-                if let Some(file) = payload
-                    .files
-                    .iter()
-                    .find(|file| file.relative_path == normalized)
-                {
-                    let native_texture = Texture2D::from_file_with_format(file.bytes, None);
-                    self.textures.insert(texture.0.clone(), native_texture);
-                }
-            }
-        }
-
-        if let Some(native_texture) = self.textures.get(&texture.0) {
-            draw_texture_ex(
-                native_texture,
-                position.x,
-                position.y,
-                WHITE,
-                DrawTextureParams {
-                    dest_size: Some(vec2(size.x, size.y)),
-                    ..DrawTextureParams::default()
-                },
-            );
-            return;
-        }
-
-        // Fallback marker when texture file cannot be loaded.
-        draw_rectangle(position.x, position.y, size.x, size.y, WHITE);
+    fn finish_frame(&mut self) {
+        self.flush_pending_texture_batch();
     }
 
     fn set_camera_target(&mut self, target: Vec2) {
+        self.flush_pending_texture_batch();
         self.record_dispatch();
         #[cfg(test)]
         self.dispatch_log
@@ -912,6 +1152,7 @@ impl EngineBackend for MacroquadBackendContract {
     }
 
     fn draw_text(&mut self, text: &str, position: Vec2, font_size: f32, color: Color) {
+        self.flush_pending_texture_batch();
         self.record_dispatch();
         #[cfg(test)]
         self.dispatch_log.push(BackendDispatch::DrawText {
@@ -922,11 +1163,71 @@ impl EngineBackend for MacroquadBackendContract {
         });
         draw_text(text, position.x, position.y, font_size, color.into());
     }
+
+    fn get_window_size(&self) -> Vec2 {
+        #[cfg(test)]
+        {
+            Vec2 {
+                x: 1280.0,
+                y: 720.0,
+            }
+        }
+        #[cfg(not(test))]
+        {
+            Vec2 {
+                x: screen_width(),
+                y: screen_height(),
+            }
+        }
+    }
+
+    fn get_mouse_position(&self) -> Vec2 {
+        #[cfg(test)]
+        {
+            Vec2 { x: 0.0, y: 0.0 }
+        }
+        #[cfg(not(test))]
+        {
+            let (x, y) = macroquad::input::mouse_position();
+            Vec2 { x, y }
+        }
+    }
+
+    fn draw_rectangle(&mut self, position: Vec2, size: Vec2, color: Color) {
+        self.flush_pending_texture_batch();
+        self.record_dispatch();
+        #[cfg(test)]
+        self.dispatch_log.push(BackendDispatch::DrawRectangle {
+            position,
+            size,
+            color,
+        });
+        draw_rectangle(position.x, position.y, size.x, size.y, color.into());
+    }
+
+    fn put_pixel(&mut self, position: Vec2, color: Color) {
+        self.flush_pending_texture_batch();
+        self.record_dispatch();
+        #[cfg(test)]
+        self.dispatch_log
+            .push(BackendDispatch::PutPixel { position, color });
+        draw_rectangle(position.x, position.y, 1.0, 1.0, color.into());
+    }
+
+    fn draw_line(&mut self, start: Vec2, end: Vec2, color: Color) {
+        self.flush_pending_texture_batch();
+        self.record_dispatch();
+        #[cfg(test)]
+        self.dispatch_log
+            .push(BackendDispatch::DrawLine { start, end, color });
+        mq_draw_line(start.x, start.y, end.x, end.y, 1.0, color.into());
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{key_code_from_name, mouse_button_from_name};
+    use crate::api::KEY_ENUM_MEMBERS;
 
     #[test]
     fn key_code_from_name_supports_expected_aliases() {
@@ -944,6 +1245,13 @@ mod tests {
             );
         }
 
+        for key in ["Enter", "Tab", "Backspace", "Insert", "Delete"] {
+            assert!(
+                key_code_from_name(key).is_some(),
+                "expected known extended key mapping for {key}"
+            );
+        }
+
         for key in ["A", "a", "B", "b", "Z", "z"] {
             assert!(
                 key_code_from_name(key).is_some(),
@@ -954,10 +1262,23 @@ mod tests {
 
     #[test]
     fn key_code_from_name_rejects_unknown_keys() {
-        for key in ["Enter", "Tab", "Unknown", ""] {
+        for key in ["Unknown", "NopeKey", ""] {
             assert!(
                 key_code_from_name(key).is_none(),
                 "unexpected mapping for unsupported key {key:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn key_code_from_name_supports_all_non_mouse_key_enum_values() {
+        for (enum_name, value) in KEY_ENUM_MEMBERS {
+            if enum_name.starts_with("MOUSE_") {
+                continue;
+            }
+            assert!(
+                key_code_from_name(value).is_some(),
+                "missing key mapping for KEY.{enum_name} = {value:?}"
             );
         }
     }

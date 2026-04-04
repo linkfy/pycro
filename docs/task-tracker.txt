@@ -6,7 +6,7 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 ## Immediate Next Workstream
 
 - id: `stream-windows-input-fix`
-- status: `in_progress` (parallel stream; phase 20 kickoff is now active)
+- status: `in_progress` (parallel stream; phase 23 implementation is now active)
 - branch: `codex/stream-windows-input-fix-plan`
 - start doc: `docs/streams/windows-input-fix.md`
 - first execution target: run Windows manual validation on patched `miniquad` path using `examples/windows_input_diagnostic.py`
@@ -37,7 +37,9 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 18    | docs/phases/18-project-android-build         | complete    | Android target for `pycro project build` using shared embedded payload | closed (2026-03-19) |
 | 19    | docs/phases/19-project-ios-build             | complete    | iOS target for `pycro project build` using shared embedded payload | closed (2026-03-21)    |
 | 20    | docs/phases/20-dev-hot-reload-and-runtime-error-overlay | complete | Dev-mode Python hot reload (recursive `.py`) + in-window runtime/startup error overlay | closed (2026-03-27) |
-| 21    | docs/phases/21-window-size-api-command       | planned     | Add `pycro.get_window_size()` API command for runtime window dimensions | queued after phase 20 |
+| 21    | docs/phases/21-window-size-api-command       | complete    | Add `pycro.get_window_size()` + `pycro.draw_rectangle()` API commands for runtime sizing/rendering | closed (2026-03-27, qa waiver for blocked manual smoke) |
+| 22    | docs/phases/22-texture-load-cache            | closed      | Add `load_texture(path)` cache-hit reuse to avoid repeated reload/decode of identical textures | closed 2026-03-28 as experimental; no considerable improvement observed |
+| 23    | docs/phases/23-input-mouse-position-and-full-keyboard-keys | complete    | Add mouse position API + full keyboard `KEY` enum/runtime key parsing coverage | closed (2026-04-04; keyboard coverage complete; macOS left-click delay resolved and user-validated) |
 +-------+----------------------------------------------+-------------+---------------------------------------------------------------+------------------------+
 
 ## Task Table
@@ -69,7 +71,9 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 | 18    | project-android-build              | Add Android target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/18-project-android-build | .worktrees/18-project-android-build-orchestrator | docs/phases/18-project-android-build/implementation.md | pass | closed |
 | 19    | project-ios-build                  | Add iOS target support for `pycro project build` | architecture-orchestrator | runtime-worker, platform-worker, api-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/19-project-ios-build | .worktrees/19-project-ios-build-orchestrator | docs/phases/19-project-ios-build/implementation.md | pass | closed |
 | 20    | dev-hot-reload-runtime-error-overlay | Add development-only recursive `.py` hot reload and in-window runtime/startup error overlay | architecture-orchestrator | runtime-worker, platform-worker, api-worker, example-scenario-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/20-dev-hot-reload-runtime-overlay | .worktrees/20-dev-hot-reload-runtime-overlay-orchestrator | docs/phases/20-dev-hot-reload-and-runtime-error-overlay/implementation.md | pass | closed |
-| 21    | window-size-api-command            | Add `pycro.get_window_size()` API command for window dimensions | architecture-orchestrator | api-worker, runtime-worker, platform-worker, example-scenario-worker, docs-tracker, qa-reviewer, commit-steward | planned | codex/21-window-size-api-command | .worktrees/21-window-size-api-command-orchestrator | docs/phases/21-window-size-api-command/implementation.md | pending | queued |
+| 21    | window-size-api-command            | Add `pycro.get_window_size()` + `pycro.draw_rectangle()` API commands for window dimensions and rectangle rendering | architecture-orchestrator | api-worker, runtime-worker, platform-worker, example-scenario-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/21-window-size-api-command | .worktrees/21-window-size-api-command-orchestrator | docs/phases/21-window-size-api-command/implementation.md | pass_with_waiver | closeout complete; manual scenario waiver documented |
+| 22    | texture-load-cache                | Add backend cache-hit reuse for repeated `pycro.load_texture(path)` calls | architecture-orchestrator | runtime-worker, platform-worker, docs-tracker, qa-reviewer, commit-steward | complete | codex/22-texture-load-cache | .worktrees/22-texture-load-cache-orchestrator | docs/phases/22-texture-load-cache/implementation.md | waiver_experimental_no_significant_improvement | closed as experimental; implementation behaved correctly in targeted checks but without considerable results improvement |
+| 23    | input-mouse-position-full-keyboard-keys | Add `get_mouse_position()` and full keyboard `KEY` enum/runtime key parsing coverage | architecture-orchestrator | runtime-worker, api-worker, platform-worker, docs-tracker, qa-reviewer, commit-steward, example-scenario-worker | complete | codex/23-mouse-position-full-keyboard-enum | .worktrees/23-mouse-position-full-keyboard-enum-orchestrator | docs/phases/23-input-mouse-position-and-full-keyboard-keys/implementation.md | pass | closeout complete; full keyboard contract shipped; macOS left-click fix validated by user |
 +-------+------------------------------------+---------------------------------------------------------+---------------------------+--------------------------------------------------------------------------+---------------+-----------------------------------------+------------------------------------------------------+------------------------------------------------------+------------------+----------+
 
 ## Streams (Non-Sequential)
@@ -313,12 +317,46 @@ Keep synchronized with `state/repo-state.json` and active phase docs under `docs
 
 ## Phase 21 Execution Note
 
-- objective: add `pycro.get_window_size()` API command
-- startup_gate: requirements + design validated, implementation queued (2026-03-27)
+- objective: add `pycro.get_window_size()` and `pycro.draw_rectangle()` API commands
+- startup_gate: requirements + design validated, implementation opened (2026-03-27)
 - planned_branch: `codex/21-window-size-api-command`
 - return_contract: expose current window dimensions to Python runtime scripts with documented numeric tuple contract
-- implementation_status: planned (queued after phase 20 closeout)
+- draw_contract: expose rectangle rendering with documented numeric position/size + color argument contract
+- implementation_status: complete (closeout recorded; local validation pass; QA waiver for blocked manual example smoke)
+- closeout_doc: `docs/phases/21-window-size-api-command/closeout.md`
 
+## Phase 22 Execution Note
+
+- objective: add cache-hit reuse for repeated `pycro.load_texture(path)` calls
+- startup_gate: requirements + design validated, implementation opened (2026-03-27)
+- planned_branch: `codex/22-texture-load-cache`
+- cache_contract: repeated calls with the same texture path should return stable handle without redundant decode/load work
+- implementation_status: closed_experimental (2026-03-28)
+- implementation_slice_1: complete (2026-03-27)
+  - backend: `load_texture(path)` now short-circuits on cache-hit before decode/reload
+  - backend-test: `load_texture_reuses_cache_hit_for_same_path` validates one miss-attempt across repeated same-path loads
+  - runtime-regression: `direct_bridge_returns_backend_values_for_frame_time_and_texture_handle` remains green
+- implementation_slice_2: complete (2026-03-27)
+  - runtime: transparent auto-coalescing of consecutive `draw_texture` ops by texture handle into internal texture runs
+  - backend: new internal `draw_texture_batch` path to consume runtime texture runs without public API changes
+  - regression: draw ordering and direct-bridge tests remain green
+- closeout_decision: experimental closure; no considerable end-result improvement observed
+- closeout_doc: `docs/phases/22-texture-load-cache/closeout.md`
+
+## Phase 23 Execution Note
+
+- objective: expose mouse position detection and full keyboard `KEY` enum coverage in runtime interpreter paths
+- startup_gate: requirements + design validated, implementation opened (2026-03-28)
+- planned_branch: `codex/23-mouse-position-full-keyboard-enum`
+- mouse_contract: `pycro.get_mouse_position()` returns deterministic numeric `Vec2`-compatible coordinates
+- keyboard_contract: `is_key_down` accepts complete documented keyboard aliases from generated `KEY` enum
+- implementation_status: complete (2026-04-04)
+- resolution: full keyboard contract completed (`KEY` metadata + runtime bootstrap + backend parser), and macOS left-click delay resolved through native binding path + inside-window gating
+- diagnostic_scenarios:
+  - `examples/input_click_left_diagnostic.py`
+  - `examples/input_click_right_diagnostic.py`
+  - `examples/input_click_middle_diagnostic.py`
+- closeout_doc: `docs/phases/23-input-mouse-position-and-full-keyboard-keys/closeout.md`
 ## Windows Input Fix Stream Note
 
 - objective: isolate and fix Windows key polling failures reported in release artifacts (`is_key_down` always `False`)

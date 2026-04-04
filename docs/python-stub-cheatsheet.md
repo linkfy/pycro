@@ -36,11 +36,13 @@ Lifecycle contract: the engine calls required `update(dt)` each frame. The frame
 | --- | --- | --- | --- |
 | `clear_background` | `(color: Color) -> None` | render | Clear current frame with a normalized RGBA color. |
 | `draw_circle` | `(position: Vec2, radius: float, color: Color) -> None` | render | Draw a filled world-space circle. |
+| `draw_rectangle` | `(x: float, y: float, width: float, height: float, color: Color) -> None` | render | Draw a filled screen-space rectangle. |
 | `draw_text` | `(text: str, position: Vec2, font_size: float, color: Color) -> None` | render | Draw screen-space text using baseline anchor. |
 | `submit_render` | `(commands: list[tuple[object, ...]]) -> None` | render batch | Queue many render commands in one bridge call. |
 | `submit_circle_batch` | `(positions: list[Vec2], radii: list[float], colors: list[Color]) -> None` | circle batch | Queue many circles in one specialized batch call. |
 | `is_key_down` | `(key: KEY) -> bool` | input | Return whether a key or mouse button is currently held. |
 | `frame_time` | `() -> float` | timing | Return last frame delta time in seconds. |
+| `get_window_size` | `() -> Vec2` | render | Return the current window width/height in pixels. |
 | `load_texture` | `(path: str) -> TextureHandle` | textures/assets | Load texture and return opaque handle. |
 | `draw_texture` | `(texture: TextureHandle, position: Vec2, size: Vec2) -> None` | textures/assets | Draw texture at world-space position and size. |
 | `set_camera_target` | `(target: Vec2) -> None` | camera | Move active camera target to world-space coordinates. |
@@ -171,7 +173,7 @@ These scenarios were validated on 2026-03-14 with:
 
 ## Exported API (`__all__`)
 
-`["Color", "Vec2", "TextureHandle", "KEY", "clear_background", "draw_circle", "is_key_down", "frame_time", "load_texture", "draw_texture", "set_camera_target", "draw_text", "submit_render", "submit_circle_batch"]`
+`["Color", "Vec2", "TextureHandle", "KEY", "clear_background", "draw_circle", "is_key_down", "frame_time", "load_texture", "draw_texture", "set_camera_target", "draw_text", "get_window_size", "draw_rectangle", "submit_render", "submit_circle_batch"]`
 
 ## Functions
 
@@ -179,9 +181,11 @@ These scenarios were validated on 2026-03-14 with:
 
 - `clear_background(color: Color) -> None`: Clear the current frame to a normalized RGBA color.
 - `draw_circle(position: Vec2, radius: float, color: Color) -> None`: Draw a filled circle using world-space coordinates.
+- `draw_rectangle(x: float, y: float, width: float, height: float, color: Color) -> None`: Draw a filled rectangle in screen space.
 - `draw_text(text: str, position: Vec2, font_size: float, color: Color) -> None`: Draw text in screen space using a baseline anchor.
 - `submit_render(commands: list[tuple[object, ...]]) -> None`: Queue multiple render commands in one Python-to-runtime call.
 - `submit_circle_batch(positions: list[Vec2], radii: list[float], colors: list[Color]) -> None`: Queue many circles in one specialized batch call.
+- `get_window_size() -> Vec2`: Return current window dimensions as `(width, height)`.
 
 ### Input + Timing
 

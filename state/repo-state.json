@@ -2,37 +2,37 @@
   "schema_version": 2,
   "project": "pycro",
   "active_phase": {
-    "number": "20",
-    "id": "20-dev-hot-reload-and-runtime-error-overlay",
+    "number": "23",
+    "id": "23-input-mouse-position-and-full-keyboard-keys",
     "status": "complete",
-    "path": "docs/phases/20-dev-hot-reload-and-runtime-error-overlay"
+    "path": "docs/phases/23-input-mouse-position-and-full-keyboard-keys"
   },
   "current_objective": {
-    "id": "dev-hot-reload-runtime-error-overlay",
-    "title": "Add development-only recursive `.py` hot reload and in-window runtime/startup error overlay",
+    "id": "input-mouse-position-full-keyboard-keys",
+    "title": "Expose mouse position API and full keyboard KEY enum/runtime parsing coverage",
     "status": "complete",
     "execution_mode": "orchestrator_owned_phase_with_worker_handoffs",
-    "phase_doc": "docs/phases/20-dev-hot-reload-and-runtime-error-overlay/implementation.md",
+    "phase_doc": "docs/phases/23-input-mouse-position-and-full-keyboard-keys/implementation.md",
     "startup_gate": {
       "requirements_validated": true,
       "design_validated": true,
-      "kickoff_date": "2026-03-27"
+      "kickoff_date": "2026-03-28"
     },
     "resume_checkpoint": {
-      "branch": "codex/20-dev-hot-reload-runtime-overlay",
-      "worktree": ".worktrees/20-dev-hot-reload-runtime-overlay-orchestrator",
-      "summary": "phase 20 closed: hot reload + runtime overlay + interrupt handling complete",
-      "code_status": "phase implementation, validation, and closeout artifacts synchronized",
-      "next_slice": [
-        "open phase 21 implementation when requested"
-      ]
+      "branch": "codex/23-mouse-position-full-keyboard-enum",
+      "worktree": ".worktrees/23-mouse-position-full-keyboard-enum-orchestrator",
+      "summary": "phase 23 closed; mouse position API and full keyboard KEY coverage completed; macOS left-click latency fixed",
+      "code_status": "runtime/api/backend synchronized for full keyboard KEY contract; macOS left click uses native binding path with inside-window gating; stubs synchronized",
+      "next_slice": []
     },
     "block_progress": {
-      "phase_20_kickoff": "complete",
-      "phase_20_hot_reload_scope_defined": "accepted",
-      "phase_20_error_overlay_scope_defined": "accepted",
-      "phase_20_execution": "complete",
-      "phase_21_window_size_api_planning": "complete"
+      "phase_23_input_surface_planning": "complete (new sequential phase registered)",
+      "phase_23_startup_gate": "complete (requirements/design validated, kickoff opened)",
+      "phase_23_mouse_position_impl": "complete (get_mouse_position + put_pixel + draw_line)",
+      "phase_23_click_diagnostic_examples": "complete (examples/input_click_*_diagnostic.py)",
+      "phase_23_full_keyboard_enum_impl": "complete (KEY metadata/runtime/bootstrap/backend parsing synchronized)",
+      "phase_23_validation": "complete (targeted runtime/backend tests + stubs check + governance sync)",
+      "phase_23_left_click_latency_investigation": "complete (resolved via native binding path + inside-window gating; user validated)"
     }
   },
   "orchestration": {
@@ -67,7 +67,7 @@
     },
     "manager_agent": "worktree-manager"
   },
-  "current_branch": "codex/20-dev-hot-reload-runtime-overlay",
+  "current_branch": "codex/23-mouse-position-full-keyboard-enum",
   "phase_sequence": [
     {
       "number": "00",
@@ -198,8 +198,20 @@
     {
       "number": "21",
       "id": "21-window-size-api-command",
-      "status": "planned",
+      "status": "complete",
       "path": "docs/phases/21-window-size-api-command"
+    },
+    {
+      "number": "22",
+      "id": "22-texture-load-cache",
+      "status": "closed",
+      "path": "docs/phases/22-texture-load-cache"
+    },
+    {
+      "number": "23",
+      "id": "23-input-mouse-position-and-full-keyboard-keys",
+      "status": "complete",
+      "path": "docs/phases/23-input-mouse-position-and-full-keyboard-keys"
     }
   ],
   "tasks": [
@@ -447,11 +459,31 @@
       "id": "window-size-api-command",
       "phase": "21",
       "owner": "architecture-orchestrator",
-      "status": "planned",
+      "status": "complete",
       "branch": "codex/21-window-size-api-command",
       "worktree": ".worktrees/21-window-size-api-command-orchestrator",
       "phase_doc": "docs/phases/21-window-size-api-command/implementation.md",
-      "qa": "pending"
+      "qa": "pass_with_waiver"
+    },
+    {
+      "id": "texture-load-cache",
+      "phase": "22",
+      "owner": "architecture-orchestrator",
+      "status": "complete",
+      "branch": "codex/22-texture-load-cache",
+      "worktree": ".worktrees/22-texture-load-cache-orchestrator",
+      "phase_doc": "docs/phases/22-texture-load-cache/implementation.md",
+      "qa": "waiver_experimental_no_significant_improvement"
+    },
+    {
+      "id": "input-mouse-position-full-keyboard-keys",
+      "phase": "23",
+      "owner": "architecture-orchestrator",
+      "status": "complete",
+      "branch": "codex/23-mouse-position-full-keyboard-enum",
+      "worktree": ".worktrees/23-mouse-position-full-keyboard-enum-orchestrator",
+      "phase_doc": "docs/phases/23-input-mouse-position-and-full-keyboard-keys/implementation.md",
+      "qa": "pass"
     }
   ],
   "streams": [
