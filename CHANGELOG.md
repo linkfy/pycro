@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.8.1](https://github.com/linkfy/pycro/compare/pycro_cli-v0.8.0...pycro_cli-v0.9.0) (2026-04-04)
+## [0.8.1](https://github.com/linkfy/pycro/compare/pycro_cli-v0.8.0...pycro_cli-v0.8.1) (2026-04-04)
 
 
 ### Features
