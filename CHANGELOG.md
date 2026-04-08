@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.8.1](https://github.com/linkfy/pycro/compare/pycro_cli-v0.8.0...pycro_cli-v0.8.1) (2026-04-04)
+
+
+### Features
+
+* close phase 22 as experimental texture cache iteration ([741e242](https://github.com/linkfy/pycro/commit/741e24280dba05bc4f2bd13a68f3cf7514259fa9))
+* **input:** phase 23 closeout with macOS native click path and full keyboard enum ([3d14d43](https://github.com/linkfy/pycro/commit/3d14d439b33bdc7a4d84405c47bd06dac5f973c5))
+* **runtime:** add window-size/rectangle api and close phase21 ([4c27b2e](https://github.com/linkfy/pycro/commit/4c27b2ee798f6a9e064679de91b1bbff07d67480))
+
+## [0.8.0](https://github.com/linkfy/pycro/compare/pycro_cli-v0.7.0...pycro_cli-v0.8.0) (2026-03-27)
+
+
+### Features
+
+* **runtime:** finalize phase 20 hot reload and error overlay closeout ([a0dcb92](https://github.com/linkfy/pycro/commit/a0dcb9215c291d1625cea05eb0c9af2166ab433c))
+
+## [0.7.0](https://github.com/linkfy/pycro/compare/pycro_cli-v0.6.0...pycro_cli-v0.7.0) (2026-03-27)
+
+
+### Features
+
+* **ios:** close phase 19 integration and generic mobile build flow ([5821405](https://github.com/linkfy/pycro/commit/58214056f615bab45bd033067c00e4ae8da92d63))
+
+
+### Bug Fixes
+
+* **build:** track desktop launcher source ([c6e6306](https://github.com/linkfy/pycro/commit/c6e630622b9484ded3d846202fc82b399d75dd32))
+
 ## [0.6.0](https://github.com/linkfy/pycro/compare/pycro_cli-v0.5.0...pycro_cli-v0.6.0) (2026-03-18)
 
 

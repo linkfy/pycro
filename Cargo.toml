@@ -1,6 +1,6 @@
 [package]
 name = "pycro"
-version = "0.2.0"
+version = "0.8.1"
 edition = "2024"
 license = "MIT"
 rust-version = "1.91"
@@ -19,7 +19,7 @@ path = "src/main.rs"
 
 [[bin]]
 name = "pycro-desktop"
-path = "gen/bin/desktop.rs"
+path = "src/bin/desktop.rs"
 
 [dependencies]
 macroquad = "0.4"

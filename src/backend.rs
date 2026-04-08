@@ -1089,22 +1089,41 @@ impl EngineBackend for MacroquadBackendContract {
         #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
         {
             let resolved = Path::new(path);
-            if let Ok(bytes) = std::fs::read(resolved) {
-                let texture = Texture2D::from_file_with_format(&bytes, None);
-                self.textures.insert(handle.0.clone(), texture);
+            match std::fs::read(resolved) {
+                Ok(bytes) => {
+                    let texture = Texture2D::from_file_with_format(&bytes, None);
+                    self.textures.insert(handle.0.clone(), texture);
+                }
+                Err(error) => {
+                    return Err(format!("load_texture: could not read \"{path}\": {error}"));
+                }
             }
         }
         #[cfg(target_arch = "wasm32")]
         {
             let normalized = path.trim_start_matches("./");
-            if let Some(payload) = embedded_project_payload() {
-                if let Some(file) = payload
-                    .files
-                    .iter()
-                    .find(|file| file.relative_path == normalized)
-                {
-                    let texture = Texture2D::from_file_with_format(file.bytes, None);
-                    self.textures.insert(handle.0.clone(), texture);
+            match embedded_project_payload() {
+                None => {
+                    return Err(format!(
+                        "load_texture: no embedded project payload: \"{path}\" cannot be loaded in WASM without a project build"
+                    ));
+                }
+                Some(payload) => {
+                    match payload
+                        .files
+                        .iter()
+                        .find(|file| file.relative_path == normalized)
+                    {
+                        None => {
+                            return Err(format!(
+                                "load_texture: file not found in embedded payload: \"{path}\""
+                            ));
+                        }
+                        Some(file) => {
+                            let texture = Texture2D::from_file_with_format(file.bytes, None);
+                            self.textures.insert(handle.0.clone(), texture);
+                        }
+                    }
                 }
             }
         }
